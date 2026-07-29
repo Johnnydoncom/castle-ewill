@@ -21,10 +21,10 @@ export const Route = createFileRoute("/")({
         content:
           "Create a legally-sound Will in minutes. Nigeria's most trusted online Will making platform — secure, lawyer-reviewed, and built for your legacy.",
       },
-      { property: "og:title", content: "Castle eWill & Trust" },
+      { property: "og:title", content: "Castle eWill & Trust — Nigeria's Premium Online Will Platform" },
       {
         property: "og:description",
-        content: "Nigeria's premium online Will making platform.",
+        content: "Create a legally-sound Will in minutes. Nigeria's most trusted online Will making platform — secure, lawyer-reviewed, and built for your legacy.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

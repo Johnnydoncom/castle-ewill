@@ -77,12 +77,20 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Castle eWill & Trust" },
+      { title: "Castle eWill & Trust — Nigeria's Premium Online Will Platform" },
       {
         name: "description",
         content:
-          "Nigeria's premium online Will making platform. Draft a legally-sound Will in minutes.",
+          "Create a legally-sound Will in minutes. Nigeria's most trusted online Will making platform — secure, lawyer-reviewed, and built for your legacy.",
       },
+      { property: "og:title", content: "Castle eWill & Trust — Nigeria's Premium Online Will Platform" },
+      { name: "twitter:title", content: "Castle eWill & Trust — Nigeria's Premium Online Will Platform" },
+      { property: "og:description", content: "Create a legally-sound Will in minutes. Nigeria's most trusted online Will making platform — secure, lawyer-reviewed, and built for your legacy." },
+      { name: "twitter:description", content: "Create a legally-sound Will in minutes. Nigeria's most trusted online Will making platform — secure, lawyer-reviewed, and built for your legacy." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/145c114f-fba8-4686-9c83-0653b01558e6/id-preview-074b8170--fc2c4076-cedf-45f7-b05e-307fe7a2075c.lovable.app-1785317369431.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/145c114f-fba8-4686-9c83-0653b01558e6/id-preview-074b8170--fc2c4076-cedf-45f7-b05e-307fe7a2075c.lovable.app-1785317369431.png" },
+      { name: "twitter:card", content: "summary_large_image" },
+      { property: "og:type", content: "website" },
     ],
     links: [
       { rel: "stylesheet", href: appCss },
