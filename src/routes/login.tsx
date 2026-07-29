@@ -56,21 +56,21 @@ function LoginPage() {
           placeholder="you@domain.com"
           autoComplete="email"
         />
-        <AuthField
-          id="password"
-          label="Password"
-          type="password"
-          placeholder="••••••••"
-          autoComplete="current-password"
-          hint={
-            <Link
-              to="/forgot-password"
-              className="text-muted-foreground hover:text-navy"
-            >
-              Forgot?
-            </Link> as unknown as string
-          }
-        />
+        <div className="relative">
+          <AuthField
+            id="password"
+            label="Password"
+            type="password"
+            placeholder="••••••••"
+            autoComplete="current-password"
+          />
+          <Link
+            to="/forgot-password"
+            className="absolute right-0 top-0 text-[10px] italic text-muted-foreground hover:text-navy"
+          >
+            Forgot?
+          </Link>
+        </div>
 
         <label className="flex items-center gap-3 pt-2 text-sm text-muted-foreground">
           <input

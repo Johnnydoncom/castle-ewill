@@ -22,7 +22,17 @@ export const Route = createFileRoute("/wills/new")({
   component: WizardPage,
 });
 
-const steps = [
+type Field = {
+  id: string;
+  label: string;
+  placeholder?: string;
+  type?: string;
+  full?: boolean;
+  textarea?: boolean;
+};
+type Step = { n: string; title: string; intro: string; fields: Field[] };
+
+const steps: Step[] = [
   {
     n: "I",
     title: "Personal particulars",
