@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { ArrowRight, Check, ShieldCheck, Scale, Clock, Star, Sparkles } from "lucide-react";
+import { ArrowRight, Check, Star } from "lucide-react";
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
 import { Logo } from "@/components/brand/Logo";
