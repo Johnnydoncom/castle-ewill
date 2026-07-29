@@ -52,69 +52,180 @@ function HomePage() {
 }
 
 function Hero() {
+  const today = new Date().toLocaleDateString("en-GB", {
+    day: "2-digit",
+    month: "long",
+    year: "numeric",
+  });
   return (
-    <section className="relative overflow-hidden bg-hero-gradient">
-      <div className="mx-auto grid max-w-7xl gap-12 px-4 py-16 sm:px-6 lg:grid-cols-[1.05fr_1fr] lg:gap-16 lg:px-8 lg:py-24">
-        <div className="flex flex-col justify-center">
-          <div className="mb-6 inline-flex w-fit items-center gap-2 rounded-full border border-gold/30 bg-gold/10 px-3 py-1 text-xs font-medium text-navy">
-            <Sparkles className="h-3.5 w-3.5 text-gold" />
-            Nigeria's #1 Online Will Platform
+    <section className="relative overflow-hidden bg-navy text-navy-foreground">
+      {/* paper grain */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-0 opacity-[0.07] mix-blend-screen"
+        style={{
+          backgroundImage:
+            "radial-gradient(circle at 1px 1px, rgba(255,255,255,0.6) 1px, transparent 0)",
+          backgroundSize: "3px 3px",
+        }}
+      />
+      {/* huge background monogram */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute -right-24 top-1/2 hidden -translate-y-1/2 select-none font-serif text-[42rem] leading-none text-gold/[0.045] lg:block"
+      >
+        C
+      </div>
+
+      {/* Masthead */}
+      <div className="relative mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8">
+        <div className="flex items-center gap-4 border-b border-white/10 pb-6">
+          <img
+            src={logoAsset.url}
+            alt=""
+            className="h-9 w-9 rounded-full ring-1 ring-gold/40"
+          />
+          <span className="font-serif text-sm tracking-wide text-navy-foreground/90">
+            Castle <span className="text-gold">·</span> eWill &amp; Trust
+          </span>
+          <div className="mx-4 hidden h-px flex-1 bg-white/10 sm:block" />
+          <div className="hidden items-center gap-6 text-[10px] uppercase tracking-[0.3em] text-navy-foreground/60 sm:flex">
+            <span>
+              Vol. <span className="text-gold">I</span> — Nº 001
+            </span>
+            <span className="h-3 w-px bg-white/15" />
+            <span>Lagos · Abuja · Port Harcourt</span>
+            <span className="h-3 w-px bg-white/15" />
+            <span>{today}</span>
           </div>
-          <h1 className="font-serif text-5xl leading-[1.05] tracking-tight text-navy sm:text-6xl lg:text-7xl">
-            Your legacy,
+        </div>
+      </div>
+
+      {/* Editorial cover */}
+      <div className="relative mx-auto grid max-w-7xl gap-12 px-4 pb-16 pt-14 sm:px-6 lg:grid-cols-12 lg:gap-10 lg:px-8 lg:pb-24 lg:pt-20">
+        <div className="lg:col-span-7">
+          <div className="mb-8 flex items-center gap-4">
+            <span className="h-px w-10 bg-gold" />
+            <span className="text-[10px] font-semibold uppercase tracking-[0.4em] text-gold">
+              The Will Papers · Issue 001
+            </span>
+          </div>
+
+          <h1 className="font-serif text-[3.25rem] leading-[0.95] tracking-[-0.02em] sm:text-7xl lg:text-[6.25rem]">
+            Write the
             <br />
-            <span className="italic text-primary">secured with care.</span>
+            <span className="italic text-gold">document</span>
+            <br />
+            your family
+            <br />
+            will thank you
+            <br />
+            <span className="relative inline-block">
+              for.
+              <span className="absolute -bottom-2 left-0 h-[3px] w-full bg-gold" />
+            </span>
           </h1>
-          <p className="mt-6 max-w-xl text-lg text-muted-foreground">
-            Draft a legally-sound Will in under 20 minutes. Lawyer-reviewed,
-            bank-grade secure, and made for Nigerian families.
-          </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <Button size="lg" asChild className="h-12 bg-navy px-6 text-navy-foreground shadow-elegant hover:bg-navy/90">
-              <Link to="/">Start your Will<ArrowRight className="ml-2 h-4 w-4" /></Link>
-            </Button>
-            <Button size="lg" variant="outline" asChild className="h-12 border-navy/20 px-6">
-              <Link to="/pricing">See pricing</Link>
-            </Button>
+
+          <div className="mt-10 grid gap-8 sm:grid-cols-[1fr_auto] sm:items-end">
+            <p className="max-w-md font-serif text-lg italic leading-relaxed text-navy-foreground/75">
+              A Nigerian estate house, reimagined for the browser. Draft a
+              legally-binding Will in under twenty minutes — reviewed by
+              qualified solicitors, sealed in an encrypted vault.
+            </p>
+            <div className="hidden font-serif text-6xl leading-none text-gold/40 sm:block">
+              §
+            </div>
           </div>
-          <div className="mt-10 flex flex-wrap items-center gap-x-8 gap-y-4 text-sm text-muted-foreground">
-            <div className="flex items-center gap-2"><ShieldCheck className="h-4 w-4 text-success" />256-bit encryption</div>
-            <div className="flex items-center gap-2"><Scale className="h-4 w-4 text-success" />Lawyer reviewed</div>
-            <div className="flex items-center gap-2"><Clock className="h-4 w-4 text-success" />20-minute setup</div>
+
+          <div className="mt-10 flex flex-wrap items-center gap-x-6 gap-y-4">
+            <Button
+              size="lg"
+              asChild
+              className="group h-14 rounded-none bg-gold px-8 font-sans text-[13px] font-semibold uppercase tracking-[0.2em] text-navy hover:bg-gold/90"
+            >
+              <Link to="/">
+                Begin your Will
+                <ArrowRight className="ml-3 h-4 w-4 transition-transform group-hover:translate-x-1" />
+              </Link>
+            </Button>
+            <Link
+              to="/pricing"
+              className="group inline-flex items-center gap-3 text-sm uppercase tracking-[0.25em] text-navy-foreground/80 hover:text-gold"
+            >
+              <span className="h-px w-8 bg-current transition-all group-hover:w-14" />
+              Read the pricing sheet
+            </Link>
           </div>
         </div>
 
-        <div className="relative">
-          <div className="absolute -inset-6 -z-10 rounded-[2rem] bg-gold/10 blur-3xl" />
-          <div className="relative overflow-hidden rounded-3xl border border-border shadow-elegant">
-            <img
-              src={heroFamily}
-              alt="A multi-generational Nigerian family at home"
-              width={1600}
-              height={1200}
-              className="h-[520px] w-full object-cover sm:h-[600px]"
-            />
-            <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-navy/90 via-navy/40 to-transparent p-6 pt-24">
-              <div className="flex items-center gap-3">
-                <img src={logoAsset.url} alt="" className="h-10 w-10 rounded-full ring-2 ring-gold/40" />
+        {/* Right — museum-label portrait */}
+        <div className="relative lg:col-span-5">
+          <div className="relative">
+            {/* corner rules */}
+            <span className="absolute -left-3 -top-3 h-6 w-6 border-l border-t border-gold/70" />
+            <span className="absolute -right-3 -top-3 h-6 w-6 border-r border-t border-gold/70" />
+            <span className="absolute -bottom-3 -left-3 h-6 w-6 border-b border-l border-gold/70" />
+            <span className="absolute -bottom-3 -right-3 h-6 w-6 border-b border-r border-gold/70" />
+
+            <div className="relative overflow-hidden">
+              <img
+                src={heroFamily}
+                alt="A Nigerian family portrait"
+                width={900}
+                height={1200}
+                className="h-[520px] w-full object-cover grayscale-[0.15] sm:h-[600px]"
+              />
+              <div className="absolute inset-0 bg-gradient-to-t from-navy/60 via-transparent to-navy/10 mix-blend-multiply" />
+              <div className="absolute left-4 top-4 flex items-center gap-2 rounded-none border border-gold/40 bg-navy/60 px-3 py-1.5 text-[10px] uppercase tracking-[0.3em] text-gold backdrop-blur">
+                <span className="h-1.5 w-1.5 rounded-full bg-gold" />
+                Plate I
+              </div>
+            </div>
+
+            {/* Brass caption plate */}
+            <figcaption className="mt-4 border-y border-gold/30 bg-navy/40 px-5 py-4">
+              <div className="flex items-baseline justify-between gap-4">
+                <span className="font-serif text-sm italic text-navy-foreground/90">
+                  “A Will is a love letter to the people you leave behind.”
+                </span>
+                <span className="whitespace-nowrap text-[10px] uppercase tracking-[0.25em] text-gold">
+                  fig. 01
+                </span>
+              </div>
+              <div className="mt-2 text-[11px] uppercase tracking-[0.25em] text-navy-foreground/55">
+                The Adeyemi family, Lagos — Will completed in 18 minutes
+              </div>
+            </figcaption>
+          </div>
+        </div>
+      </div>
+
+      {/* Trust ledger — bottom rail */}
+      <div className="relative border-t border-white/10">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <dl className="grid grid-cols-2 divide-white/10 sm:grid-cols-4 sm:divide-x">
+            {[
+              ["01", "Nigerian Wills Act", "Fully compliant"],
+              ["02", "AES-256", "Bank-grade vault"],
+              ["03", "Solicitor review", "Every document"],
+              ["04", "≈ 20 minutes", "From start to seal"],
+            ].map(([n, label, sub]) => (
+              <div
+                key={n}
+                className="flex items-start gap-4 px-2 py-6 first:pl-0 sm:px-6"
+              >
+                <span className="font-serif text-2xl text-gold">{n}</span>
                 <div>
-                  <p className="font-serif text-navy-foreground">The Adeyemi family</p>
-                  <p className="text-xs text-navy-foreground/70">Will completed in 18 minutes</p>
+                  <dt className="text-sm font-semibold text-navy-foreground">
+                    {label}
+                  </dt>
+                  <dd className="mt-1 text-xs uppercase tracking-[0.2em] text-navy-foreground/55">
+                    {sub}
+                  </dd>
                 </div>
               </div>
-            </div>
-          </div>
-          <div className="absolute -bottom-6 -left-6 hidden rounded-2xl border border-border bg-card p-4 shadow-elegant sm:block">
-            <div className="flex items-center gap-3">
-              <div className="flex h-10 w-10 items-center justify-center rounded-full bg-success/10">
-                <Check className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <p className="text-sm font-semibold text-navy">Will secured</p>
-                <p className="text-xs text-muted-foreground">Stored & lawyer-verified</p>
-              </div>
-            </div>
-          </div>
+            ))}
+          </dl>
         </div>
       </div>
     </section>
