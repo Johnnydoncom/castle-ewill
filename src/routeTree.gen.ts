@@ -22,7 +22,9 @@ import { Route as BlogRouteImport } from './routes/blog'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as WillsNewRouteImport } from './routes/wills.new'
+import { Route as DashboardWillRouteImport } from './routes/dashboard/will'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -89,15 +91,25 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardIndexRoute = DashboardIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
 const WillsNewRoute = WillsNewRouteImport.update({
   id: '/wills/new',
   path: '/wills/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardWillRoute = DashboardWillRouteImport.update({
+  id: '/will',
+  path: '/will',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteRoute
+  '/dashboard': typeof DashboardRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/blog': typeof BlogRoute
   '/contact': typeof ContactRoute
@@ -109,11 +121,12 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/services': typeof ServicesRoute
   '/terms': typeof TermsRoute
+  '/dashboard/will': typeof DashboardWillRoute
   '/wills/new': typeof WillsNewRoute
+  '/dashboard/': typeof DashboardIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteRoute
   '/about': typeof AboutRoute
   '/blog': typeof BlogRoute
   '/contact': typeof ContactRoute
@@ -125,12 +138,14 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/services': typeof ServicesRoute
   '/terms': typeof TermsRoute
+  '/dashboard/will': typeof DashboardWillRoute
   '/wills/new': typeof WillsNewRoute
+  '/dashboard': typeof DashboardIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
-  '/dashboard': typeof DashboardRouteRoute
+  '/dashboard': typeof DashboardRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/blog': typeof BlogRoute
   '/contact': typeof ContactRoute
@@ -142,7 +157,9 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/services': typeof ServicesRoute
   '/terms': typeof TermsRoute
+  '/dashboard/will': typeof DashboardWillRoute
   '/wills/new': typeof WillsNewRoute
+  '/dashboard/': typeof DashboardIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -160,11 +177,12 @@ export interface FileRouteTypes {
     | '/register'
     | '/services'
     | '/terms'
+    | '/dashboard/will'
     | '/wills/new'
+    | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
-    | '/dashboard'
     | '/about'
     | '/blog'
     | '/contact'
@@ -176,7 +194,9 @@ export interface FileRouteTypes {
     | '/register'
     | '/services'
     | '/terms'
+    | '/dashboard/will'
     | '/wills/new'
+    | '/dashboard'
   id:
     | '__root__'
     | '/'
@@ -192,12 +212,14 @@ export interface FileRouteTypes {
     | '/register'
     | '/services'
     | '/terms'
+    | '/dashboard/will'
     | '/wills/new'
+    | '/dashboard/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
-  DashboardRouteRoute: typeof DashboardRouteRoute
+  DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
   BlogRoute: typeof BlogRoute
   ContactRoute: typeof ContactRoute
@@ -305,6 +327,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/': {
+      id: '/dashboard/'
+      path: '/'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
     '/wills/new': {
       id: '/wills/new'
       path: '/wills/new'
@@ -312,12 +341,33 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WillsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/will': {
+      id: '/dashboard/will'
+      path: '/will'
+      fullPath: '/dashboard/will'
+      preLoaderRoute: typeof DashboardWillRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
   }
 }
 
+interface DashboardRouteRouteChildren {
+  DashboardWillRoute: typeof DashboardWillRoute
+  DashboardIndexRoute: typeof DashboardIndexRoute
+}
+
+const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
+  DashboardWillRoute: DashboardWillRoute,
+  DashboardIndexRoute: DashboardIndexRoute,
+}
+
+const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
+  DashboardRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
-  DashboardRouteRoute: DashboardRouteRoute,
+  DashboardRouteRoute: DashboardRouteRouteWithChildren,
   AboutRoute: AboutRoute,
   BlogRoute: BlogRoute,
   ContactRoute: ContactRoute,
