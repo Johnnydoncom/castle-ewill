@@ -52,11 +52,6 @@ function HomePage() {
 }
 
 function Hero() {
-  const today = new Date().toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
   return (
     <section className="relative overflow-hidden bg-navy text-navy-foreground">
       {/* paper grain */}
