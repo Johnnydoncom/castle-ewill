@@ -24,7 +24,11 @@ import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
 import { Route as WillsNewRouteImport } from './routes/wills.new'
+import { Route as DashboardWitnessesRouteImport } from './routes/dashboard/witnesses'
 import { Route as DashboardWillRouteImport } from './routes/dashboard/will'
+import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
+import { Route as DashboardDocumentsRouteImport } from './routes/dashboard/documents'
+import { Route as DashboardAdvisorsRouteImport } from './routes/dashboard/advisors'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -101,9 +105,29 @@ const WillsNewRoute = WillsNewRouteImport.update({
   path: '/wills/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardWitnessesRoute = DashboardWitnessesRouteImport.update({
+  id: '/witnesses',
+  path: '/witnesses',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
 const DashboardWillRoute = DashboardWillRouteImport.update({
   id: '/will',
   path: '/will',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardDocumentsRoute = DashboardDocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardAdvisorsRoute = DashboardAdvisorsRouteImport.update({
+  id: '/advisors',
+  path: '/advisors',
   getParentRoute: () => DashboardRouteRoute,
 } as any)
 
@@ -121,7 +145,11 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/services': typeof ServicesRoute
   '/terms': typeof TermsRoute
+  '/dashboard/advisors': typeof DashboardAdvisorsRoute
+  '/dashboard/documents': typeof DashboardDocumentsRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/will': typeof DashboardWillRoute
+  '/dashboard/witnesses': typeof DashboardWitnessesRoute
   '/wills/new': typeof WillsNewRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
@@ -138,7 +166,11 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/services': typeof ServicesRoute
   '/terms': typeof TermsRoute
+  '/dashboard/advisors': typeof DashboardAdvisorsRoute
+  '/dashboard/documents': typeof DashboardDocumentsRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/will': typeof DashboardWillRoute
+  '/dashboard/witnesses': typeof DashboardWitnessesRoute
   '/wills/new': typeof WillsNewRoute
   '/dashboard': typeof DashboardIndexRoute
 }
@@ -157,7 +189,11 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/services': typeof ServicesRoute
   '/terms': typeof TermsRoute
+  '/dashboard/advisors': typeof DashboardAdvisorsRoute
+  '/dashboard/documents': typeof DashboardDocumentsRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
   '/dashboard/will': typeof DashboardWillRoute
+  '/dashboard/witnesses': typeof DashboardWitnessesRoute
   '/wills/new': typeof WillsNewRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
@@ -177,7 +213,11 @@ export interface FileRouteTypes {
     | '/register'
     | '/services'
     | '/terms'
+    | '/dashboard/advisors'
+    | '/dashboard/documents'
+    | '/dashboard/settings'
     | '/dashboard/will'
+    | '/dashboard/witnesses'
     | '/wills/new'
     | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
@@ -194,7 +234,11 @@ export interface FileRouteTypes {
     | '/register'
     | '/services'
     | '/terms'
+    | '/dashboard/advisors'
+    | '/dashboard/documents'
+    | '/dashboard/settings'
     | '/dashboard/will'
+    | '/dashboard/witnesses'
     | '/wills/new'
     | '/dashboard'
   id:
@@ -212,7 +256,11 @@ export interface FileRouteTypes {
     | '/register'
     | '/services'
     | '/terms'
+    | '/dashboard/advisors'
+    | '/dashboard/documents'
+    | '/dashboard/settings'
     | '/dashboard/will'
+    | '/dashboard/witnesses'
     | '/wills/new'
     | '/dashboard/'
   fileRoutesById: FileRoutesById
@@ -341,6 +389,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WillsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/witnesses': {
+      id: '/dashboard/witnesses'
+      path: '/witnesses'
+      fullPath: '/dashboard/witnesses'
+      preLoaderRoute: typeof DashboardWitnessesRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
     '/dashboard/will': {
       id: '/dashboard/will'
       path: '/will'
@@ -348,16 +403,45 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardWillRouteImport
       parentRoute: typeof DashboardRouteRoute
     }
+    '/dashboard/settings': {
+      id: '/dashboard/settings'
+      path: '/settings'
+      fullPath: '/dashboard/settings'
+      preLoaderRoute: typeof DashboardSettingsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/documents': {
+      id: '/dashboard/documents'
+      path: '/documents'
+      fullPath: '/dashboard/documents'
+      preLoaderRoute: typeof DashboardDocumentsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/advisors': {
+      id: '/dashboard/advisors'
+      path: '/advisors'
+      fullPath: '/dashboard/advisors'
+      preLoaderRoute: typeof DashboardAdvisorsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
   }
 }
 
 interface DashboardRouteRouteChildren {
+  DashboardAdvisorsRoute: typeof DashboardAdvisorsRoute
+  DashboardDocumentsRoute: typeof DashboardDocumentsRoute
+  DashboardSettingsRoute: typeof DashboardSettingsRoute
   DashboardWillRoute: typeof DashboardWillRoute
+  DashboardWitnessesRoute: typeof DashboardWitnessesRoute
   DashboardIndexRoute: typeof DashboardIndexRoute
 }
 
 const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
+  DashboardAdvisorsRoute: DashboardAdvisorsRoute,
+  DashboardDocumentsRoute: DashboardDocumentsRoute,
+  DashboardSettingsRoute: DashboardSettingsRoute,
   DashboardWillRoute: DashboardWillRoute,
+  DashboardWitnessesRoute: DashboardWitnessesRoute,
   DashboardIndexRoute: DashboardIndexRoute,
 }
 
