@@ -40,7 +40,10 @@ function HomePage() {
       <Hero />
       <TrustBar />
       <Features />
+      <Assurances />
       <HowItWorks />
+      <JournalPreview />
+
       <LegacyBanner />
       <PricingPreview />
       <Testimonials />
