@@ -200,34 +200,6 @@ function Hero() {
         </div>
       </div>
 
-      {/* Trust ledger — bottom rail */}
-      <div className="relative border-t border-white/10">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <dl className="grid grid-cols-2 divide-white/10 sm:grid-cols-4 sm:divide-x">
-            {[
-              ["01", "Nigerian Wills Act", "Fully compliant"],
-              ["02", "AES-256", "Bank-grade vault"],
-              ["03", "Solicitor review", "Every document"],
-              ["04", "≈ 20 minutes", "From start to seal"],
-            ].map(([n, label, sub]) => (
-              <div
-                key={n}
-                className="flex items-start gap-4 px-2 py-6 first:pl-0 sm:px-6"
-              >
-                <span className="font-serif text-2xl text-gold">{n}</span>
-                <div>
-                  <dt className="text-sm font-semibold text-navy-foreground">
-                    {label}
-                  </dt>
-                  <dd className="mt-1 text-xs uppercase tracking-[0.2em] text-navy-foreground/55">
-                    {sub}
-                  </dd>
-                </div>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </div>
     </section>
   );
 }
