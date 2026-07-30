@@ -40,7 +40,10 @@ function HomePage() {
       <Hero />
       <TrustBar />
       <Features />
+      <Assurances />
       <HowItWorks />
+      <JournalPreview />
+
       <LegacyBanner />
       <PricingPreview />
       <Testimonials />
@@ -52,11 +55,6 @@ function HomePage() {
 }
 
 function Hero() {
-  const today = new Date().toLocaleDateString("en-GB", {
-    day: "2-digit",
-    month: "long",
-    year: "numeric",
-  });
   return (
     <section className="relative overflow-hidden bg-navy text-navy-foreground">
       {/* paper grain */}
@@ -75,30 +73,6 @@ function Hero() {
         className="pointer-events-none absolute -right-24 top-1/2 hidden -translate-y-1/2 select-none font-serif text-[42rem] leading-none text-gold/[0.045] lg:block"
       >
         C
-      </div>
-
-      {/* Masthead */}
-      <div className="relative mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-4 border-b border-white/10 pb-6">
-          <img
-            src={logoAsset.url}
-            alt=""
-            className="h-9 w-9 rounded-full ring-1 ring-gold/40"
-          />
-          <span className="font-serif text-sm tracking-wide text-navy-foreground/90">
-            Castle <span className="text-gold">·</span> eWill &amp; Trust
-          </span>
-          <div className="mx-4 hidden h-px flex-1 bg-white/10 sm:block" />
-          <div className="hidden items-center gap-6 text-[10px] uppercase tracking-[0.3em] text-navy-foreground/60 sm:flex">
-            <span>
-              Vol. <span className="text-gold">I</span> — Nº 001
-            </span>
-            <span className="h-3 w-px bg-white/15" />
-            <span>Lagos · Abuja · Port Harcourt</span>
-            <span className="h-3 w-px bg-white/15" />
-            <span>{today}</span>
-          </div>
-        </div>
       </div>
 
       {/* Editorial cover */}
@@ -143,7 +117,7 @@ function Hero() {
               asChild
               className="group h-14 rounded-none bg-gold px-8 font-sans text-[13px] font-semibold uppercase tracking-[0.2em] text-navy hover:bg-gold/90"
             >
-              <Link to="/">
+              <Link to="/register">
                 Begin your Will
                 <ArrowRight className="ml-3 h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
@@ -200,34 +174,6 @@ function Hero() {
         </div>
       </div>
 
-      {/* Trust ledger — bottom rail */}
-      <div className="relative border-t border-white/10">
-        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-          <dl className="grid grid-cols-2 divide-white/10 sm:grid-cols-4 sm:divide-x">
-            {[
-              ["01", "Nigerian Wills Act", "Fully compliant"],
-              ["02", "AES-256", "Bank-grade vault"],
-              ["03", "Solicitor review", "Every document"],
-              ["04", "≈ 20 minutes", "From start to seal"],
-            ].map(([n, label, sub]) => (
-              <div
-                key={n}
-                className="flex items-start gap-4 px-2 py-6 first:pl-0 sm:px-6"
-              >
-                <span className="font-serif text-2xl text-gold">{n}</span>
-                <div>
-                  <dt className="text-sm font-semibold text-navy-foreground">
-                    {label}
-                  </dt>
-                  <dd className="mt-1 text-xs uppercase tracking-[0.2em] text-navy-foreground/55">
-                    {sub}
-                  </dd>
-                </div>
-              </div>
-            ))}
-          </dl>
-        </div>
-      </div>
     </section>
   );
 }
@@ -478,6 +424,95 @@ function FinalCTA() {
             <Button size="lg" variant="outline" className="h-12 border-white/30 bg-transparent px-8 text-navy-foreground hover:bg-white/10 hover:text-navy-foreground">Talk to an advisor</Button>
           </div>
         </div>
+      </div>
+    </section>
+  );
+}
+
+function Assurances() {
+  const items = [
+    ["I", "Nigerian Wills Act", "Every clause drafted to the statute, checked against current case law."],
+    ["II", "AES-256 vault", "Encrypted at rest and in transit; released only to named executors."],
+    ["III", "Solicitor review", "A practising Nigerian estate lawyer reads every document before sealing."],
+    ["IV", "≈ 20 minutes", "From first question to a signature-ready testament."],
+  ];
+  return (
+    <section className="border-y border-border bg-surface">
+      <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8 lg:py-20">
+        <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_1.4fr] lg:items-start">
+          <div>
+            <div className="mb-4 flex items-center gap-3">
+              <span className="h-px w-10 shrink-0 bg-gold" />
+              <p className="font-serif text-[10px] uppercase tracking-[0.35em] text-gold">
+                Assurances
+              </p>
+            </div>
+            <h2 className="font-serif text-3xl leading-tight text-navy sm:text-4xl">
+              Four promises we put in writing.
+            </h2>
+          </div>
+          <dl className="grid gap-x-10 gap-y-8 sm:grid-cols-2">
+            {items.map(([n, title, body]) => (
+              <div key={n} className="border-t border-border pt-5">
+                <span className="font-serif text-sm tracking-[0.3em] text-gold">{n}</span>
+                <dt className="mt-2 font-serif text-lg text-navy">{title}</dt>
+                <dd className="mt-1.5 text-sm leading-relaxed text-muted-foreground">{body}</dd>
+              </div>
+            ))}
+          </dl>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function JournalPreview() {
+  const posts = [
+    { image: officeInterior, kicker: "Succession", title: "What happens when a Nigerian dies without a Will", read: "6 min read" },
+    { image: fatherDaughter, kicker: "Guardianship", title: "Choosing a guardian for your children — the hard questions", read: "4 min read" },
+    { image: signingHands, kicker: "Execution", title: "Signing and witnessing: the rules people get wrong", read: "5 min read" },
+  ];
+  return (
+    <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-24">
+      <div className="flex flex-wrap items-end justify-between gap-4 border-b border-border pb-6">
+        <div>
+          <p className="font-serif text-[10px] uppercase tracking-[0.35em] text-gold">
+            The Journal
+          </p>
+          <h2 className="mt-2 font-serif text-3xl text-navy sm:text-4xl">
+            Plain-language estate writing
+          </h2>
+        </div>
+        <Link
+          to="/blog"
+          className="group inline-flex items-center gap-3 text-xs uppercase tracking-[0.25em] text-navy hover:text-gold"
+        >
+          <span className="h-px w-8 bg-current transition-all group-hover:w-14" />
+          Read the journal
+        </Link>
+      </div>
+      <div className="mt-10 grid gap-8 md:grid-cols-3">
+        {posts.map((p) => (
+          <Link key={p.title} to="/blog" className="group block">
+            <div className="overflow-hidden">
+              <img
+                src={p.image}
+                alt=""
+                loading="lazy"
+                className="h-56 w-full object-cover transition-transform duration-700 group-hover:scale-105"
+              />
+            </div>
+            <p className="mt-4 font-serif text-[10px] uppercase tracking-[0.3em] text-gold">
+              {p.kicker}
+            </p>
+            <h3 className="mt-2 font-serif text-xl leading-snug text-navy group-hover:underline">
+              {p.title}
+            </h3>
+            <p className="mt-1 text-xs uppercase tracking-[0.2em] text-muted-foreground">
+              {p.read}
+            </p>
+          </Link>
+        ))}
       </div>
     </section>
   );

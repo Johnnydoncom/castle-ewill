@@ -17,12 +17,24 @@ import { Route as PricingRouteImport } from './routes/pricing'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForgotPasswordRouteImport } from './routes/forgot-password'
 import { Route as FaqsRouteImport } from './routes/faqs'
-import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as BlogRouteImport } from './routes/blog'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as DashboardRouteRouteImport } from './routes/dashboard/route'
+import { Route as AdminRouteRouteImport } from './routes/admin/route'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as DashboardIndexRouteImport } from './routes/dashboard/index'
+import { Route as AdminIndexRouteImport } from './routes/admin/index'
 import { Route as WillsNewRouteImport } from './routes/wills.new'
+import { Route as DashboardWitnessesRouteImport } from './routes/dashboard/witnesses'
+import { Route as DashboardWillRouteImport } from './routes/dashboard/will'
+import { Route as DashboardSettingsRouteImport } from './routes/dashboard/settings'
+import { Route as DashboardDocumentsRouteImport } from './routes/dashboard/documents'
+import { Route as DashboardAdvisorsRouteImport } from './routes/dashboard/advisors'
+import { Route as AdminWillsRouteImport } from './routes/admin/wills'
+import { Route as AdminUsersRouteImport } from './routes/admin/users'
+import { Route as AdminSettingsRouteImport } from './routes/admin/settings'
+import { Route as AdminPaymentsRouteImport } from './routes/admin/payments'
 
 const TermsRoute = TermsRouteImport.update({
   id: '/terms',
@@ -64,11 +76,6 @@ const FaqsRoute = FaqsRouteImport.update({
   path: '/faqs',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DashboardRoute = DashboardRouteImport.update({
-  id: '/dashboard',
-  path: '/dashboard',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ContactRoute = ContactRouteImport.update({
   id: '/contact',
   path: '/contact',
@@ -84,23 +91,89 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardRouteRoute = DashboardRouteRouteImport.update({
+  id: '/dashboard',
+  path: '/dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRouteRoute = AdminRouteRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const DashboardIndexRoute = DashboardIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const AdminIndexRoute = AdminIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => AdminRouteRoute,
 } as any)
 const WillsNewRoute = WillsNewRouteImport.update({
   id: '/wills/new',
   path: '/wills/new',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DashboardWitnessesRoute = DashboardWitnessesRouteImport.update({
+  id: '/witnesses',
+  path: '/witnesses',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardWillRoute = DashboardWillRouteImport.update({
+  id: '/will',
+  path: '/will',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardSettingsRoute = DashboardSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardDocumentsRoute = DashboardDocumentsRouteImport.update({
+  id: '/documents',
+  path: '/documents',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const DashboardAdvisorsRoute = DashboardAdvisorsRouteImport.update({
+  id: '/advisors',
+  path: '/advisors',
+  getParentRoute: () => DashboardRouteRoute,
+} as any)
+const AdminWillsRoute = AdminWillsRouteImport.update({
+  id: '/wills',
+  path: '/wills',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminUsersRoute = AdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminSettingsRoute = AdminSettingsRouteImport.update({
+  id: '/settings',
+  path: '/settings',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
+const AdminPaymentsRoute = AdminPaymentsRouteImport.update({
+  id: '/payments',
+  path: '/payments',
+  getParentRoute: () => AdminRouteRoute,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteRouteWithChildren
+  '/dashboard': typeof DashboardRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/blog': typeof BlogRoute
   '/contact': typeof ContactRoute
-  '/dashboard': typeof DashboardRoute
   '/faqs': typeof FaqsRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
@@ -109,14 +182,24 @@ export interface FileRoutesByFullPath {
   '/register': typeof RegisterRoute
   '/services': typeof ServicesRoute
   '/terms': typeof TermsRoute
+  '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/admin/wills': typeof AdminWillsRoute
+  '/dashboard/advisors': typeof DashboardAdvisorsRoute
+  '/dashboard/documents': typeof DashboardDocumentsRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/will': typeof DashboardWillRoute
+  '/dashboard/witnesses': typeof DashboardWitnessesRoute
   '/wills/new': typeof WillsNewRoute
+  '/admin/': typeof AdminIndexRoute
+  '/dashboard/': typeof DashboardIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
   '/blog': typeof BlogRoute
   '/contact': typeof ContactRoute
-  '/dashboard': typeof DashboardRoute
   '/faqs': typeof FaqsRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
@@ -125,15 +208,27 @@ export interface FileRoutesByTo {
   '/register': typeof RegisterRoute
   '/services': typeof ServicesRoute
   '/terms': typeof TermsRoute
+  '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/admin/wills': typeof AdminWillsRoute
+  '/dashboard/advisors': typeof DashboardAdvisorsRoute
+  '/dashboard/documents': typeof DashboardDocumentsRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/will': typeof DashboardWillRoute
+  '/dashboard/witnesses': typeof DashboardWitnessesRoute
   '/wills/new': typeof WillsNewRoute
+  '/admin': typeof AdminIndexRoute
+  '/dashboard': typeof DashboardIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/admin': typeof AdminRouteRouteWithChildren
+  '/dashboard': typeof DashboardRouteRouteWithChildren
   '/about': typeof AboutRoute
   '/blog': typeof BlogRoute
   '/contact': typeof ContactRoute
-  '/dashboard': typeof DashboardRoute
   '/faqs': typeof FaqsRoute
   '/forgot-password': typeof ForgotPasswordRoute
   '/login': typeof LoginRoute
@@ -142,16 +237,28 @@ export interface FileRoutesById {
   '/register': typeof RegisterRoute
   '/services': typeof ServicesRoute
   '/terms': typeof TermsRoute
+  '/admin/payments': typeof AdminPaymentsRoute
+  '/admin/settings': typeof AdminSettingsRoute
+  '/admin/users': typeof AdminUsersRoute
+  '/admin/wills': typeof AdminWillsRoute
+  '/dashboard/advisors': typeof DashboardAdvisorsRoute
+  '/dashboard/documents': typeof DashboardDocumentsRoute
+  '/dashboard/settings': typeof DashboardSettingsRoute
+  '/dashboard/will': typeof DashboardWillRoute
+  '/dashboard/witnesses': typeof DashboardWitnessesRoute
   '/wills/new': typeof WillsNewRoute
+  '/admin/': typeof AdminIndexRoute
+  '/dashboard/': typeof DashboardIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/admin'
+    | '/dashboard'
     | '/about'
     | '/blog'
     | '/contact'
-    | '/dashboard'
     | '/faqs'
     | '/forgot-password'
     | '/login'
@@ -160,14 +267,24 @@ export interface FileRouteTypes {
     | '/register'
     | '/services'
     | '/terms'
+    | '/admin/payments'
+    | '/admin/settings'
+    | '/admin/users'
+    | '/admin/wills'
+    | '/dashboard/advisors'
+    | '/dashboard/documents'
+    | '/dashboard/settings'
+    | '/dashboard/will'
+    | '/dashboard/witnesses'
     | '/wills/new'
+    | '/admin/'
+    | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/about'
     | '/blog'
     | '/contact'
-    | '/dashboard'
     | '/faqs'
     | '/forgot-password'
     | '/login'
@@ -176,14 +293,26 @@ export interface FileRouteTypes {
     | '/register'
     | '/services'
     | '/terms'
+    | '/admin/payments'
+    | '/admin/settings'
+    | '/admin/users'
+    | '/admin/wills'
+    | '/dashboard/advisors'
+    | '/dashboard/documents'
+    | '/dashboard/settings'
+    | '/dashboard/will'
+    | '/dashboard/witnesses'
     | '/wills/new'
+    | '/admin'
+    | '/dashboard'
   id:
     | '__root__'
     | '/'
+    | '/admin'
+    | '/dashboard'
     | '/about'
     | '/blog'
     | '/contact'
-    | '/dashboard'
     | '/faqs'
     | '/forgot-password'
     | '/login'
@@ -192,15 +321,27 @@ export interface FileRouteTypes {
     | '/register'
     | '/services'
     | '/terms'
+    | '/admin/payments'
+    | '/admin/settings'
+    | '/admin/users'
+    | '/admin/wills'
+    | '/dashboard/advisors'
+    | '/dashboard/documents'
+    | '/dashboard/settings'
+    | '/dashboard/will'
+    | '/dashboard/witnesses'
     | '/wills/new'
+    | '/admin/'
+    | '/dashboard/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AdminRouteRoute: typeof AdminRouteRouteWithChildren
+  DashboardRouteRoute: typeof DashboardRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
   BlogRoute: typeof BlogRoute
   ContactRoute: typeof ContactRoute
-  DashboardRoute: typeof DashboardRoute
   FaqsRoute: typeof FaqsRoute
   ForgotPasswordRoute: typeof ForgotPasswordRoute
   LoginRoute: typeof LoginRoute
@@ -270,13 +411,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FaqsRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/dashboard': {
-      id: '/dashboard'
-      path: '/dashboard'
-      fullPath: '/dashboard'
-      preLoaderRoute: typeof DashboardRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/contact': {
       id: '/contact'
       path: '/contact'
@@ -298,12 +432,40 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard': {
+      id: '/dashboard'
+      path: '/dashboard'
+      fullPath: '/dashboard'
+      preLoaderRoute: typeof DashboardRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/dashboard/': {
+      id: '/dashboard/'
+      path: '/'
+      fullPath: '/dashboard/'
+      preLoaderRoute: typeof DashboardIndexRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/admin/': {
+      id: '/admin/'
+      path: '/'
+      fullPath: '/admin/'
+      preLoaderRoute: typeof AdminIndexRouteImport
+      parentRoute: typeof AdminRouteRoute
     }
     '/wills/new': {
       id: '/wills/new'
@@ -312,15 +474,121 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof WillsNewRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/dashboard/witnesses': {
+      id: '/dashboard/witnesses'
+      path: '/witnesses'
+      fullPath: '/dashboard/witnesses'
+      preLoaderRoute: typeof DashboardWitnessesRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/will': {
+      id: '/dashboard/will'
+      path: '/will'
+      fullPath: '/dashboard/will'
+      preLoaderRoute: typeof DashboardWillRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/settings': {
+      id: '/dashboard/settings'
+      path: '/settings'
+      fullPath: '/dashboard/settings'
+      preLoaderRoute: typeof DashboardSettingsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/documents': {
+      id: '/dashboard/documents'
+      path: '/documents'
+      fullPath: '/dashboard/documents'
+      preLoaderRoute: typeof DashboardDocumentsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/dashboard/advisors': {
+      id: '/dashboard/advisors'
+      path: '/advisors'
+      fullPath: '/dashboard/advisors'
+      preLoaderRoute: typeof DashboardAdvisorsRouteImport
+      parentRoute: typeof DashboardRouteRoute
+    }
+    '/admin/wills': {
+      id: '/admin/wills'
+      path: '/wills'
+      fullPath: '/admin/wills'
+      preLoaderRoute: typeof AdminWillsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/users': {
+      id: '/admin/users'
+      path: '/users'
+      fullPath: '/admin/users'
+      preLoaderRoute: typeof AdminUsersRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/settings': {
+      id: '/admin/settings'
+      path: '/settings'
+      fullPath: '/admin/settings'
+      preLoaderRoute: typeof AdminSettingsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
+    '/admin/payments': {
+      id: '/admin/payments'
+      path: '/payments'
+      fullPath: '/admin/payments'
+      preLoaderRoute: typeof AdminPaymentsRouteImport
+      parentRoute: typeof AdminRouteRoute
+    }
   }
 }
 
+interface AdminRouteRouteChildren {
+  AdminPaymentsRoute: typeof AdminPaymentsRoute
+  AdminSettingsRoute: typeof AdminSettingsRoute
+  AdminUsersRoute: typeof AdminUsersRoute
+  AdminWillsRoute: typeof AdminWillsRoute
+  AdminIndexRoute: typeof AdminIndexRoute
+}
+
+const AdminRouteRouteChildren: AdminRouteRouteChildren = {
+  AdminPaymentsRoute: AdminPaymentsRoute,
+  AdminSettingsRoute: AdminSettingsRoute,
+  AdminUsersRoute: AdminUsersRoute,
+  AdminWillsRoute: AdminWillsRoute,
+  AdminIndexRoute: AdminIndexRoute,
+}
+
+const AdminRouteRouteWithChildren = AdminRouteRoute._addFileChildren(
+  AdminRouteRouteChildren,
+)
+
+interface DashboardRouteRouteChildren {
+  DashboardAdvisorsRoute: typeof DashboardAdvisorsRoute
+  DashboardDocumentsRoute: typeof DashboardDocumentsRoute
+  DashboardSettingsRoute: typeof DashboardSettingsRoute
+  DashboardWillRoute: typeof DashboardWillRoute
+  DashboardWitnessesRoute: typeof DashboardWitnessesRoute
+  DashboardIndexRoute: typeof DashboardIndexRoute
+}
+
+const DashboardRouteRouteChildren: DashboardRouteRouteChildren = {
+  DashboardAdvisorsRoute: DashboardAdvisorsRoute,
+  DashboardDocumentsRoute: DashboardDocumentsRoute,
+  DashboardSettingsRoute: DashboardSettingsRoute,
+  DashboardWillRoute: DashboardWillRoute,
+  DashboardWitnessesRoute: DashboardWitnessesRoute,
+  DashboardIndexRoute: DashboardIndexRoute,
+}
+
+const DashboardRouteRouteWithChildren = DashboardRouteRoute._addFileChildren(
+  DashboardRouteRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AdminRouteRoute: AdminRouteRouteWithChildren,
+  DashboardRouteRoute: DashboardRouteRouteWithChildren,
   AboutRoute: AboutRoute,
   BlogRoute: BlogRoute,
   ContactRoute: ContactRoute,
-  DashboardRoute: DashboardRoute,
   FaqsRoute: FaqsRoute,
   ForgotPasswordRoute: ForgotPasswordRoute,
   LoginRoute: LoginRoute,
