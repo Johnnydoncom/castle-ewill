@@ -117,7 +117,7 @@ function Hero() {
               asChild
               className="group h-14 rounded-none bg-gold px-8 font-sans text-[13px] font-semibold uppercase tracking-[0.2em] text-navy hover:bg-gold/90"
             >
-              <Link to="/">
+              <Link to="/register">
                 Begin your Will
                 <ArrowRight className="ml-3 h-4 w-4 transition-transform group-hover:translate-x-1" />
               </Link>
