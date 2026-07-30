@@ -77,30 +77,6 @@ function Hero() {
         C
       </div>
 
-      {/* Masthead */}
-      <div className="relative mx-auto max-w-7xl px-4 pt-8 sm:px-6 lg:px-8">
-        <div className="flex items-center gap-4 border-b border-white/10 pb-6">
-          <img
-            src={logoAsset.url}
-            alt=""
-            className="h-9 w-9 rounded-full ring-1 ring-gold/40"
-          />
-          <span className="font-serif text-sm tracking-wide text-navy-foreground/90">
-            Castle <span className="text-gold">·</span> eWill &amp; Trust
-          </span>
-          <div className="mx-4 hidden h-px flex-1 bg-white/10 sm:block" />
-          <div className="hidden items-center gap-6 text-[10px] uppercase tracking-[0.3em] text-navy-foreground/60 sm:flex">
-            <span>
-              Vol. <span className="text-gold">I</span> — Nº 001
-            </span>
-            <span className="h-3 w-px bg-white/15" />
-            <span>Lagos · Abuja · Port Harcourt</span>
-            <span className="h-3 w-px bg-white/15" />
-            <span>{today}</span>
-          </div>
-        </div>
-      </div>
-
       {/* Editorial cover */}
       <div className="relative mx-auto grid max-w-7xl gap-12 px-4 pb-16 pt-14 sm:px-6 lg:grid-cols-12 lg:gap-10 lg:px-8 lg:pb-24 lg:pt-20">
         <div className="lg:col-span-7">
