@@ -1,0 +1,322 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/*
+ * Castle eWill & Trust — Design System
+ * Brand: Deep navy + antique gold from the logo, teal primary #04708B,
+ * emerald success accent. Legal-grade, premium, trustworthy.
+ */
+
+@theme inline {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-serif: var(--font-fraunces), ui-serif, Georgia, serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --radius-4xl: calc(var(--radius) + 16px);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-ring-offset-background: var(--background);
+
+  --color-navy: var(--navy);
+  --color-navy-foreground: var(--navy-foreground);
+  --color-gold: var(--gold);
+  --color-gold-foreground: var(--gold-foreground);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+
+  --shadow-elegant: 0 10px 40px -12px color-mix(in oklab, var(--navy) 25%, transparent);
+  --shadow-soft: 0 4px 20px -8px color-mix(in oklab, var(--navy) 15%, transparent);
+  --shadow-gold: 0 8px 30px -10px color-mix(in oklab, var(--gold) 35%, transparent);
+
+  --gradient-hero:
+    radial-gradient(
+      1200px 600px at 80% -10%,
+      color-mix(in oklab, var(--primary) 18%, transparent),
+      transparent 60%
+    ),
+    radial-gradient(
+      900px 500px at 0% 0%,
+      color-mix(in oklab, var(--navy) 12%, transparent),
+      transparent 55%
+    );
+  --gradient-navy: linear-gradient(135deg, var(--navy) 0%, oklch(0.22 0.06 260) 100%);
+  --gradient-gold: linear-gradient(135deg, oklch(0.78 0.13 85) 0%, var(--gold) 100%);
+}
+
+:root {
+  --radius: 0.75rem;
+
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.15 0.03 260);
+
+  --surface: oklch(0.985 0.005 240);
+  --surface-muted: oklch(0.965 0.008 240);
+
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.15 0.03 260);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.15 0.03 260);
+
+  /* Primary — teal from PRD #04708B */
+  --primary: oklch(0.52 0.09 218);
+  --primary-foreground: oklch(0.99 0.005 240);
+
+  /* Navy — deep brand navy from logo */
+  --navy: oklch(0.22 0.06 260);
+  --navy-foreground: oklch(0.98 0.005 240);
+
+  /* Gold — antique gold from logo */
+  --gold: oklch(0.72 0.11 85);
+  --gold-foreground: oklch(0.22 0.06 260);
+
+  --secondary: oklch(0.96 0.008 240);
+  --secondary-foreground: oklch(0.22 0.06 260);
+
+  --muted: oklch(0.965 0.008 240);
+  --muted-foreground: oklch(0.48 0.02 260);
+
+  --accent: oklch(0.95 0.02 218);
+  --accent-foreground: oklch(0.22 0.06 260);
+
+  --success: oklch(0.68 0.15 160);
+  --success-foreground: oklch(0.99 0.005 240);
+
+  --destructive: oklch(0.58 0.22 27);
+  --destructive-foreground: oklch(0.99 0.005 240);
+
+  --border: oklch(0.92 0.01 240);
+  --input: oklch(0.92 0.01 240);
+  --ring: oklch(0.52 0.09 218);
+
+  --chart-1: oklch(0.52 0.09 218);
+  --chart-2: oklch(0.72 0.11 85);
+  --chart-3: oklch(0.22 0.06 260);
+  --chart-4: oklch(0.68 0.15 160);
+  --chart-5: oklch(0.6 0.12 30);
+
+  --sidebar: oklch(0.985 0.005 240);
+  --sidebar-foreground: oklch(0.22 0.06 260);
+  --sidebar-primary: oklch(0.22 0.06 260);
+  --sidebar-primary-foreground: oklch(0.99 0.005 240);
+  --sidebar-accent: oklch(0.95 0.02 218);
+  --sidebar-accent-foreground: oklch(0.22 0.06 260);
+  --sidebar-border: oklch(0.92 0.01 240);
+  --sidebar-ring: oklch(0.52 0.09 218);
+}
+
+.dark {
+  --background: oklch(0.14 0.03 260);
+  --foreground: oklch(0.98 0.005 240);
+  --surface: oklch(0.18 0.04 260);
+  --surface-muted: oklch(0.22 0.05 260);
+  --card: oklch(0.18 0.04 260);
+  --card-foreground: oklch(0.98 0.005 240);
+  --popover: oklch(0.18 0.04 260);
+  --popover-foreground: oklch(0.98 0.005 240);
+  --primary: oklch(0.65 0.11 218);
+  --primary-foreground: oklch(0.14 0.03 260);
+  --navy: oklch(0.28 0.06 260);
+  --navy-foreground: oklch(0.98 0.005 240);
+  --gold: oklch(0.78 0.13 85);
+  --gold-foreground: oklch(0.14 0.03 260);
+  --secondary: oklch(0.24 0.04 260);
+  --secondary-foreground: oklch(0.98 0.005 240);
+  --muted: oklch(0.24 0.04 260);
+  --muted-foreground: oklch(0.7 0.02 260);
+  --accent: oklch(0.28 0.05 218);
+  --accent-foreground: oklch(0.98 0.005 240);
+  --success: oklch(0.72 0.15 160);
+  --success-foreground: oklch(0.14 0.03 260);
+  --destructive: oklch(0.62 0.2 27);
+  --destructive-foreground: oklch(0.98 0.005 240);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 12%);
+  --ring: oklch(0.65 0.11 218);
+  --chart-1: oklch(0.65 0.11 218);
+  --chart-2: oklch(0.78 0.13 85);
+  --chart-3: oklch(0.55 0.09 260);
+  --chart-4: oklch(0.72 0.15 160);
+  --chart-5: oklch(0.7 0.14 30);
+  --sidebar: oklch(0.18 0.04 260);
+  --sidebar-foreground: oklch(0.98 0.005 240);
+  --sidebar-primary: oklch(0.65 0.11 218);
+  --sidebar-primary-foreground: oklch(0.14 0.03 260);
+  --sidebar-accent: oklch(0.24 0.04 260);
+  --sidebar-accent-foreground: oklch(0.98 0.005 240);
+  --sidebar-border: oklch(1 0 0 / 10%);
+  --sidebar-ring: oklch(0.65 0.11 218);
+}
+
+@layer base {
+  * {
+    border-color: var(--color-border);
+  }
+
+  html {
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  h5 {
+    font-family: var(--font-serif);
+    letter-spacing: -0.02em;
+    font-weight: 500;
+  }
+}
+
+@utility bg-hero-gradient {
+  background-image: var(--gradient-hero);
+}
+@utility bg-navy-gradient {
+  background-image: var(--gradient-navy);
+}
+@utility bg-gold-gradient {
+  background-image: var(--gradient-gold);
+}
+@utility shadow-elegant {
+  box-shadow: var(--shadow-elegant);
+}
+@utility shadow-soft {
+  box-shadow: var(--shadow-soft);
+}
+@utility shadow-gold {
+  box-shadow: var(--shadow-gold);
+}
+
+/* ---------------------------------------------------------------------------
+ * Accessibility and interaction polish
+ * ------------------------------------------------------------------------ */
+
+@layer base {
+  /*
+   * A visible keyboard focus indicator on every interactive element.
+   *
+   * Several inputs signal focus only by changing a 1px border colour, which is
+   * too subtle to satisfy WCAG 2.4.7. This adds a gold ring for keyboard users
+   * while leaving mouse interaction visually unchanged, since `:focus-visible`
+   * does not match pointer focus.
+   */
+  :where(a, button, input, select, textarea, summary, [tabindex]):focus-visible {
+    outline: 2px solid var(--gold);
+    outline-offset: 2px;
+    border-radius: 1px;
+  }
+
+  /* The editorial inputs sit on a hairline rule; an offset ring would collide
+     with neighbouring fields, so they hug the control instead. */
+  :where(input, textarea, select):focus-visible {
+    outline-offset: 1px;
+  }
+
+  /* Skip-link target and in-page anchors should not hide under the sticky
+     header when jumped to. */
+  :where(h1, h2, h3, section, article)[id] {
+    scroll-margin-top: 6rem;
+  }
+
+  ::selection {
+    background-color: color-mix(in oklab, var(--gold) 35%, transparent);
+    color: var(--navy);
+  }
+
+  /* Honour a reduced-motion preference rather than animating regardless. */
+  @media (prefers-reduced-motion: reduce) {
+    *,
+    *::before,
+    *::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+
+  /* Long references and email addresses must not overflow narrow screens. */
+  :where(dd, td, p) {
+    overflow-wrap: break-word;
+  }
+}
+
+/*
+ * Used by the dashboard's horizontal tab strip. Previously a bare class name
+ * with no rule behind it — the project does not include a scrollbar plugin.
+ */
+@utility scrollbar-none {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  &::-webkit-scrollbar {
+    display: none;
+  }
+}
+
+/* Screen-reader-only text that becomes visible on keyboard focus. */
+@utility skip-link {
+  position: absolute;
+  left: 0.75rem;
+  top: -3rem;
+  z-index: 100;
+  background-color: var(--navy);
+  color: var(--navy-foreground);
+  padding: 0.75rem 1.25rem;
+  font-size: 0.75rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  transition: top 150ms ease;
+
+  &:focus {
+    top: 0.75rem;
+  }
+}

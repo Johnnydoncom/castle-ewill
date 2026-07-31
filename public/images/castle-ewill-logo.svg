@@ -1,0 +1,21 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" viewBox="0 0 80 80">
+  <circle cx="40" cy="40" r="40" fill="#1e2a4a"/>
+  <!-- Castle battlements -->
+  <rect x="18" y="28" width="8" height="6" fill="#b8963e"/>
+  <rect x="30" y="28" width="8" height="6" fill="#b8963e"/>
+  <rect x="42" y="28" width="8" height="6" fill="#b8963e"/>
+  <rect x="54" y="28" width="8" height="6" fill="#b8963e"/>
+  <!-- Castle wall -->
+  <rect x="18" y="33" width="44" height="20" fill="#b8963e"/>
+  <!-- Tower -->
+  <rect x="30" y="22" width="20" height="32" fill="#c4a44a"/>
+  <!-- Battlements on tower -->
+  <rect x="28" y="18" width="5" height="6" fill="#c4a44a"/>
+  <rect x="36" y="18" width="5" height="6" fill="#c4a44a"/>
+  <rect x="44" y="18" width="5" height="6" fill="#c4a44a"/>
+  <!-- Gate arch -->
+  <rect x="35" y="40" width="10" height="15" rx="5" fill="#1e2a4a"/>
+  <!-- Windows -->
+  <rect x="20" y="40" width="5" height="7" rx="1" fill="#1e2a4a"/>
+  <rect x="55" y="40" width="5" height="7" rx="1" fill="#1e2a4a"/>
+</svg>
