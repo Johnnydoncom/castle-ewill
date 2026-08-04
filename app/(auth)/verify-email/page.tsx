@@ -1,10 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { CheckCircle2, MailWarning, MailCheck } from "lucide-react";
 
 import { AuthShell } from "@/components/auth/AuthShell";
 import { ResendVerificationForm } from "@/components/auth/ResendVerificationForm";
-import { verifyEmailToken } from "@/lib/actions/auth";
+import { ConfirmEmailForm } from "@/components/auth/ConfirmEmailForm";
 
 export const metadata: Metadata = {
   title: "Confirm your email",
@@ -18,32 +17,28 @@ export default async function VerifyEmailPage({
 }) {
   const { token, email } = await searchParams;
 
-  // Consuming the token is a state change, so it happens once here on the
-  // server and the outcome decides what the page renders.
-  const outcome = token ? await verifyEmailToken(token) : null;
+  /*
+   * The token is deliberately NOT consumed here. This is a plain GET, and
+   * mail gateways/clients routinely prefetch every link in an email to scan
+   * it before a person ever opens it — a page that verified on render would
+   * have its single-use token burned by that scan, and the real click a
+   * moment later would see "already used", indistinguishable from having
+   * expired instantly. Consumption happens only inside `ConfirmEmailForm`,
+   * gated behind an explicit button, which a passive GET never triggers.
+   */
 
   return (
     <AuthShell
       eyebrow="Folio IV · Confirmation"
       title={
-        outcome === "verified" || outcome === "already" ? (
-          <>
-            Your account is <span className="italic text-gold">confirmed.</span>
-          </>
-        ) : (
-          <>
-            Confirm your <span className="italic text-gold">email.</span>
-          </>
-        )
+        <>
+          Confirm your <span className="italic text-gold">email.</span>
+        </>
       }
       intro={
-        outcome === "verified"
-          ? "Thank you. Your email address has been verified and your account is now active."
-          : outcome === "already"
-            ? "This address was already confirmed. You can sign in whenever you are ready."
-            : outcome === "invalid"
-              ? "That confirmation link has expired or has already been used."
-              : "Enter your address below and we will send a fresh confirmation link."
+        token
+          ? "One more click and your account is active."
+          : "Enter your address below and we will send a fresh confirmation link."
       }
       plateImage="/images/signing-hands.jpg"
       plateNumber="IV"
@@ -60,40 +55,10 @@ export default async function VerifyEmailPage({
         </>
       }
     >
-      {outcome === "verified" || outcome === "already" ? (
-        <div className="space-y-6">
-          <div className="flex items-start gap-3 border-l-2 border-success bg-success/5 px-4 py-3 text-sm text-navy">
-            {outcome === "verified" ? (
-              <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-            ) : (
-              <MailCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-            )}
-            <p>
-              {outcome === "verified"
-                ? "Email address verified."
-                : "This address was confirmed previously."}
-            </p>
-          </div>
-          <Link
-            href="/login"
-            className="flex h-14 w-full items-center justify-center bg-navy font-sans text-[13px] font-semibold uppercase tracking-[0.2em] text-navy-foreground transition-colors hover:bg-navy/90"
-          >
-            Sign in to your dashboard
-          </Link>
-        </div>
+      {token ? (
+        <ConfirmEmailForm token={token} email={email} />
       ) : (
-        <div className="space-y-6">
-          {outcome === "invalid" && (
-            <div className="flex items-start gap-3 border-l-2 border-destructive bg-destructive/5 px-4 py-3 text-sm text-navy">
-              <MailWarning className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-              <p>
-                Confirmation links expire after 24 hours and can only be used
-                once. Request another below.
-              </p>
-            </div>
-          )}
-          <ResendVerificationForm defaultEmail={email} />
-        </div>
+        <ResendVerificationForm defaultEmail={email} />
       )}
     </AuthShell>
   );

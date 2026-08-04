@@ -54,20 +54,51 @@ export async function registerAction(
 
 export type VerificationOutcome = "verified" | "already" | "invalid";
 
-export async function verifyEmailToken(
-  token: string,
-): Promise<VerificationOutcome> {
-  const result = await api<{ data?: { outcome?: VerificationOutcome } }>(
-    "/auth/email/verify",
-    { method: "POST", body: { token } },
-  );
+/**
+ * Consumes the token from the emailed link — but only when this action is
+ * actually invoked, i.e. from a real form submission triggered by a click.
+ *
+ * This must never run as a side effect of merely *loading* the page the link
+ * points at. Corporate mail gateways and clients (Outlook Safe Links, Gmail's
+ * link proxy, antivirus scanners) routinely issue a GET against every link in
+ * an email before a human ever sees it, to check it isn't malicious. A page
+ * that consumed a single-use token on render would have it burned by that
+ * scan, and the genuine click moments later would see "already used" — which
+ * reads exactly like the token expiring instantly. Gating consumption behind
+ * an explicit button (`ConfirmEmailForm`) means a passive GET renders the
+ * page harmlessly; only a real submission reaches this function.
+ */
+export async function confirmEmailAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const token = String(formData.get("token") ?? "");
+
+  if (!token) {
+    return errorState(
+      "That confirmation link is missing its token.",
+      undefined,
+    );
+  }
+
+  const result = await api<{
+    message?: string;
+    data?: { outcome?: VerificationOutcome };
+  }>("/auth/email/verify", { method: "POST", body: { token } });
 
   // A failure of any kind reads as `invalid`. The backend already refuses to
   // distinguish unknown, expired and consumed tokens; collapsing a transport
   // failure into the same bucket keeps that indistinguishable too.
-  if (!result.ok) return "invalid";
+  const outcome = result.ok ? (result.data?.data?.outcome ?? "invalid") : "invalid";
+  const message = result.ok
+    ? (result.data?.message ?? "")
+    : result.message;
 
-  return result.data?.data?.outcome ?? "invalid";
+  if (outcome === "invalid") {
+    return { status: "error", message, data: { outcome } };
+  }
+
+  return { status: "success", message, data: { outcome } };
 }
 
 export async function resendVerificationAction(
