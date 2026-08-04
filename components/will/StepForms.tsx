@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { useFormAction } from "@/hooks/use-api-form";
+import { type FormState } from "@/lib/actions/state";
 import { type ApiWill } from "@/lib/actions/will";
 import {
   savePersonalAction,
@@ -34,6 +35,22 @@ function WillId({ id }: { id: string }) {
   return <input type="hidden" name="willId" value={id} />;
 }
 
+/*
+ * React resets a `<form action={fn}>`'s uncontrolled fields once the action
+ * settles — including on a validation error, since React only sees a
+ * resolved promise, not our `status: "error"`. `state.values` (populated by
+ * `useFormAction`) carries back exactly what was submitted, so preferring it
+ * over the original server value makes that reset land on what the user
+ * just typed instead of wiping it. See `FormState.values`.
+ */
+function fieldValue(state: FormState, name: string, fallback: string): string {
+  return state.values?.[name] ?? fallback;
+}
+
+function fieldChecked(state: FormState, name: string, fallback: boolean): boolean {
+  return state.values ? state.values[name] === "on" : fallback;
+}
+
 /* ------------------------------- Step 1 ---------------------------------- */
 
 export function PersonalStep({ will, help, backHref }: StepProps) {
@@ -53,7 +70,7 @@ export function PersonalStep({ will, help, backHref }: StepProps) {
           placeholder="Ada Chinelo Okafor"
           hint="As on your ID"
           required
-          defaultValue={will.personal.full_legal_name ?? ""}
+          defaultValue={fieldValue(state, "fullLegalName", will.personal.full_legal_name ?? "")}
           errors={e?.fullLegalName}
           className="sm:col-span-2"
         />
@@ -62,14 +79,14 @@ export function PersonalStep({ will, help, backHref }: StepProps) {
           name="dateOfBirth"
           type="date"
           required
-          defaultValue={will.personal.date_of_birth ?? ""}
+          defaultValue={fieldValue(state, "dateOfBirth", will.personal.date_of_birth ?? "")}
           errors={e?.dateOfBirth}
         />
         <SelectField
           label="Marital status"
           name="maritalStatus"
           required
-          defaultValue={will.personal.marital_status ?? ""}
+          defaultValue={fieldValue(state, "maritalStatus", will.personal.marital_status ?? "")}
           errors={e?.maritalStatus}
           options={[
             { value: "single", label: "Single" },
@@ -82,14 +99,14 @@ export function PersonalStep({ will, help, backHref }: StepProps) {
           label="Nationality"
           name="nationality"
           required
-          defaultValue={will.personal.nationality ?? "Nigerian"}
+          defaultValue={fieldValue(state, "nationality", will.personal.nationality ?? "Nigerian")}
           errors={e?.nationality}
         />
         <TextField
           label="Occupation"
           name="occupation"
           placeholder="Architect"
-          defaultValue={will.personal.occupation ?? ""}
+          defaultValue={fieldValue(state, "occupation", will.personal.occupation ?? "")}
           errors={e?.occupation}
         />
         <TextField
@@ -97,7 +114,7 @@ export function PersonalStep({ will, help, backHref }: StepProps) {
           name="nationalId"
           hint="Optional"
           placeholder="12345678901"
-          defaultValue={will.personal.national_id ?? ""}
+          defaultValue={fieldValue(state, "nationalId", will.personal.national_id ?? "")}
           errors={e?.nationalId}
           className="sm:col-span-2"
         />
@@ -106,7 +123,7 @@ export function PersonalStep({ will, help, backHref }: StepProps) {
           name="addressLine1"
           placeholder="12 Bourdillon Road"
           required
-          defaultValue={will.personal.address_line1 ?? ""}
+          defaultValue={fieldValue(state, "addressLine1", will.personal.address_line1 ?? "")}
           errors={e?.addressLine1}
           className="sm:col-span-2"
         />
@@ -114,7 +131,7 @@ export function PersonalStep({ will, help, backHref }: StepProps) {
           label="Address line 2"
           name="addressLine2"
           hint="Optional"
-          defaultValue={will.personal.address_line2 ?? ""}
+          defaultValue={fieldValue(state, "addressLine2", will.personal.address_line2 ?? "")}
           errors={e?.addressLine2}
           className="sm:col-span-2"
         />
@@ -123,14 +140,14 @@ export function PersonalStep({ will, help, backHref }: StepProps) {
           name="city"
           placeholder="Ikoyi"
           required
-          defaultValue={will.personal.city ?? ""}
+          defaultValue={fieldValue(state, "city", will.personal.city ?? "")}
           errors={e?.city}
         />
         <SelectField
           label="State"
           name="state"
           required
-          defaultValue={will.personal.state ?? ""}
+          defaultValue={fieldValue(state, "state", will.personal.state ?? "")}
           errors={e?.state}
           options={stateOptions}
         />
@@ -156,14 +173,14 @@ export function DeclarationStep({ will, help, backHref }: StepProps) {
       <div className="space-y-5 border border-border bg-background p-6">
         <CheckboxField
           name="declaredLastWill"
-          defaultChecked={will.declaration.declared_last_will}
+          defaultChecked={fieldChecked(state, "declaredLastWill", will.declaration.declared_last_will)}
           errors={e?.declaredLastWill}
         >
           I declare this document to be my <strong>Last Will and Testament</strong>.
         </CheckboxField>
         <CheckboxField
           name="revokesPriorWills"
-          defaultChecked={will.declaration.revokes_prior_wills}
+          defaultChecked={fieldChecked(state, "revokesPriorWills", will.declaration.revokes_prior_wills)}
           errors={e?.revokesPriorWills}
         >
           I revoke all Wills, codicils and testamentary dispositions previously
@@ -171,7 +188,7 @@ export function DeclarationStep({ will, help, backHref }: StepProps) {
         </CheckboxField>
         <CheckboxField
           name="confirmedSoundMind"
-          defaultChecked={will.declaration.confirmed_sound_mind}
+          defaultChecked={fieldChecked(state, "confirmedSoundMind", will.declaration.confirmed_sound_mind)}
           errors={e?.confirmedSoundMind}
         >
           I am of sound mind, memory and understanding, and of full legal age.
@@ -209,20 +226,20 @@ export function ExecutorsStep({ will, help, backHref }: StepProps) {
                 name={name("fullName")}
                 required
                 placeholder="Emeka Okafor"
-                defaultValue={row?.full_name ?? ""}
+                defaultValue={fieldValue(state, name("fullName"), row?.full_name ?? "")}
               />
               <TextField
                 label="Relationship"
                 name={name("relationship")}
                 placeholder="Spouse"
-                defaultValue={row?.relationship ?? ""}
+                defaultValue={fieldValue(state, name("relationship"), row?.relationship ?? "")}
               />
               <TextField
                 label="Address"
                 name={name("address")}
                 required
                 placeholder="12 Bourdillon Road, Ikoyi, Lagos"
-                defaultValue={row?.address ?? ""}
+                defaultValue={fieldValue(state, name("address"), row?.address ?? "")}
                 className="sm:col-span-2"
               />
               <TextField
@@ -230,19 +247,19 @@ export function ExecutorsStep({ will, help, backHref }: StepProps) {
                 name={name("email")}
                 type="email"
                 hint="Optional"
-                defaultValue={row?.email ?? ""}
+                defaultValue={fieldValue(state, name("email"), row?.email ?? "")}
               />
               <TextField
                 label="Phone"
                 name={name("phone")}
                 hint="Optional"
                 placeholder="08111115547"
-                defaultValue={row?.phone ?? ""}
+                defaultValue={fieldValue(state, name("phone"), row?.phone ?? "")}
               />
               <div className="sm:col-span-2">
                 <CheckboxField
                   name={name("isAlternate")}
-                  defaultChecked={row?.is_alternate ?? false}
+                  defaultChecked={fieldChecked(state, name("isAlternate"), row?.is_alternate ?? false)}
                 >
                   This is an <strong>alternate</strong> executor, who acts only
                   if a primary executor cannot.
@@ -284,14 +301,14 @@ export function BeneficiariesStep({ will, help, backHref }: StepProps) {
                 name={name("fullName")}
                 required
                 placeholder="Zara Okafor"
-                defaultValue={row?.full_name ?? ""}
+                defaultValue={fieldValue(state, name("fullName"), row?.full_name ?? "")}
               />
               <TextField
                 label="Relationship"
                 name={name("relationship")}
                 required
                 placeholder="Daughter"
-                defaultValue={row?.relationship ?? ""}
+                defaultValue={fieldValue(state, name("relationship"), row?.relationship ?? "")}
               />
               <TextField
                 label="Share of residuary estate (%)"
@@ -299,25 +316,25 @@ export function BeneficiariesStep({ will, help, backHref }: StepProps) {
                 type="number"
                 required
                 placeholder="50"
-                defaultValue={row ? String(Number(row.share_percent)) : ""}
+                defaultValue={fieldValue(state, name("sharePercent"), row ? String(Number(row.share_percent)) : "")}
               />
               <TextField
                 label="Phone"
                 name={name("phone")}
                 hint="Optional"
-                defaultValue={row?.phone ?? ""}
+                defaultValue={fieldValue(state, name("phone"), row?.phone ?? "")}
               />
               <TextField
                 label="Address"
                 name={name("address")}
                 hint="Optional"
-                defaultValue={row?.address ?? ""}
+                defaultValue={fieldValue(state, name("address"), row?.address ?? "")}
                 className="sm:col-span-2"
               />
               <div className="sm:col-span-2">
                 <CheckboxField
                   name={name("isContingent")}
-                  defaultChecked={row?.is_contingent ?? false}
+                  defaultChecked={fieldChecked(state, name("isContingent"), row?.is_contingent ?? false)}
                 >
                   This is a <strong>contingent</strong> beneficiary, who inherits
                   only if a primary beneficiary predeceases me. Contingent shares
@@ -335,7 +352,7 @@ export function BeneficiariesStep({ will, help, backHref }: StepProps) {
         hint="Optional"
         rows={3}
         placeholder="Any additional instructions about how the residue should be divided."
-        defaultValue={will.residuary_estate ?? ""}
+        defaultValue={fieldValue(state, "residuaryEstate", will.residuary_estate ?? "")}
       />
 
       <WizardFooter backHref={backHref} />
@@ -411,38 +428,38 @@ export function GuardianshipStep({ will, help, backHref }: StepProps) {
                   name={name("fullName")}
                   required
                   placeholder="Chidi Nwosu"
-                  defaultValue={row?.full_name ?? ""}
+                  defaultValue={fieldValue(state, name("fullName"), row?.full_name ?? "")}
                 />
                 <TextField
                   label="Relationship"
                   name={name("relationship")}
                   placeholder="Brother"
-                  defaultValue={row?.relationship ?? ""}
+                  defaultValue={fieldValue(state, name("relationship"), row?.relationship ?? "")}
                 />
                 <TextField
                   label="Address"
                   name={name("address")}
                   required
-                  defaultValue={row?.address ?? ""}
+                  defaultValue={fieldValue(state, name("address"), row?.address ?? "")}
                   className="sm:col-span-2"
                 />
                 <TextField
                   label="Phone"
                   name={name("phone")}
                   hint="Optional"
-                  defaultValue={row?.phone ?? ""}
+                  defaultValue={fieldValue(state, name("phone"), row?.phone ?? "")}
                 />
                 <TextField
                   label="Children covered"
                   name={name("childrenCovered")}
                   hint="Optional"
                   placeholder="Zara and Kene"
-                  defaultValue={row?.children_covered ?? ""}
+                  defaultValue={fieldValue(state, name("childrenCovered"), row?.children_covered ?? "")}
                 />
                 <div className="sm:col-span-2">
                   <CheckboxField
                     name={name("isAlternate")}
-                    defaultChecked={row?.is_alternate ?? false}
+                    defaultChecked={fieldChecked(state, name("isAlternate"), row?.is_alternate ?? false)}
                   >
                     This is an <strong>alternate</strong> guardian.
                   </CheckboxField>
@@ -485,7 +502,7 @@ export function BequestsStep({ will, help, backHref }: StepProps) {
                 name={name("itemDescription")}
                 required
                 placeholder="My father's gold wristwatch"
-                defaultValue={row?.item_description ?? ""}
+                defaultValue={fieldValue(state, name("itemDescription"), row?.item_description ?? "")}
                 className="sm:col-span-2"
               />
               <TextField
@@ -493,20 +510,20 @@ export function BequestsStep({ will, help, backHref }: StepProps) {
                 name={name("recipientName")}
                 required
                 placeholder="Kene Okafor"
-                defaultValue={row?.recipient_name ?? ""}
+                defaultValue={fieldValue(state, name("recipientName"), row?.recipient_name ?? "")}
               />
               <TextField
                 label="Relationship"
                 name={name("recipientRelationship")}
                 hint="Optional"
                 placeholder="Son"
-                defaultValue={row?.recipient_relationship ?? ""}
+                defaultValue={fieldValue(state, name("recipientRelationship"), row?.recipient_relationship ?? "")}
               />
               <TextField
                 label="Notes"
                 name={name("notes")}
                 hint="Optional"
-                defaultValue={row?.notes ?? ""}
+                defaultValue={fieldValue(state, name("notes"), row?.notes ?? "")}
                 className="sm:col-span-2"
               />
             </div>
@@ -537,7 +554,7 @@ export function FuneralStep({ will, help, backHref }: StepProps) {
         </p>
         <RadioCards
           name="funeralPreference"
-          defaultValue={will.funeral_preference ?? undefined}
+          defaultValue={fieldValue(state, "funeralPreference", will.funeral_preference ?? "") || undefined}
           errors={e?.funeralPreference}
           options={[
             { value: "burial", label: "Burial" },
@@ -553,7 +570,7 @@ export function FuneralStep({ will, help, backHref }: StepProps) {
         hint="Optional"
         rows={4}
         placeholder="A simple service in Awka, close family only."
-        defaultValue={will.funeral_instructions ?? ""}
+        defaultValue={fieldValue(state, "funeralInstructions", will.funeral_instructions ?? "")}
         errors={e?.funeralInstructions}
       />
 
@@ -563,7 +580,7 @@ export function FuneralStep({ will, help, backHref }: StepProps) {
         hint="Optional"
         rows={4}
         placeholder="Anything else your executors should know."
-        defaultValue={will.special_instructions ?? ""}
+        defaultValue={fieldValue(state, "specialInstructions", will.special_instructions ?? "")}
         errors={e?.specialInstructions}
       />
 
@@ -598,20 +615,20 @@ export function WitnessesStep({ will, help, backHref }: StepProps) {
                 name={name("fullName")}
                 required
                 placeholder="Tunde Bello"
-                defaultValue={row?.full_name ?? ""}
+                defaultValue={fieldValue(state, name("fullName"), row?.full_name ?? "")}
               />
               <TextField
                 label="Occupation"
                 name={name("occupation")}
                 hint="Optional"
                 placeholder="Banker"
-                defaultValue={row?.occupation ?? ""}
+                defaultValue={fieldValue(state, name("occupation"), row?.occupation ?? "")}
               />
               <TextField
                 label="Address"
                 name={name("address")}
                 required
-                defaultValue={row?.address ?? ""}
+                defaultValue={fieldValue(state, name("address"), row?.address ?? "")}
                 className="sm:col-span-2"
               />
               <TextField
@@ -619,13 +636,13 @@ export function WitnessesStep({ will, help, backHref }: StepProps) {
                 name={name("email")}
                 type="email"
                 hint="Optional"
-                defaultValue={row?.email ?? ""}
+                defaultValue={fieldValue(state, name("email"), row?.email ?? "")}
               />
               <TextField
                 label="Phone"
                 name={name("phone")}
                 hint="Optional"
-                defaultValue={row?.phone ?? ""}
+                defaultValue={fieldValue(state, name("phone"), row?.phone ?? "")}
               />
             </div>
           );
@@ -658,7 +675,7 @@ export function ReviewStep({
       <div className="border border-border bg-background p-6">
         <CheckboxField
           name="confirmedAccurate"
-          defaultChecked={will.confirmed_accurate}
+          defaultChecked={fieldChecked(state, "confirmedAccurate", will.confirmed_accurate)}
           errors={state.fieldErrors?.confirmedAccurate}
         >
           I confirm that the information recorded in this Will is accurate and

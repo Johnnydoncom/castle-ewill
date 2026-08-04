@@ -21,6 +21,18 @@ export type FormState = {
    * `useApiForm` performs the navigation.
    */
   redirect?: string;
+  /**
+   * The raw fields just submitted, keyed by `<input name>`.
+   *
+   * React resets a `<form action={fn}>`'s uncontrolled fields to their
+   * `defaultValue` whenever the action's promise settles — including on a
+   * validation error, since React only sees a resolved promise, not our
+   * `status: "error"`. Populated centrally by `useFormAction`, not by
+   * individual actions, so every field's `defaultValue` can prefer this over
+   * the original server value and the reset becomes invisible: React resets
+   * to a value that already equals what the user typed.
+   */
+  values?: Record<string, string>;
 };
 
 export const idleState: FormState = { status: "idle" };
