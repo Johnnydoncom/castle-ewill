@@ -29,7 +29,7 @@ export default async function VerifyEmailPage({
 
   return (
     <AuthShell
-      eyebrow="Folio IV · Confirmation"
+      eyebrow="Email Confirmation"
       title={
         <>
           Confirm your <span className="italic text-gold">email.</span>
@@ -41,7 +41,6 @@ export default async function VerifyEmailPage({
           : "Enter your address below and we will send a fresh confirmation link."
       }
       plateImage="/images/signing-hands.jpg"
-      plateNumber="IV"
       plateCaption="One click, and the record is opened in your name."
       footer={
         <>

@@ -13,7 +13,7 @@ export const metadata: Metadata = {
 export default function ForgotPasswordPage() {
   return (
     <AuthShell
-      eyebrow="Folio III · Recovery"
+      eyebrow="Password Recovery"
       title={
         <>
           Let us restore your <span className="italic text-gold">access.</span>
@@ -21,7 +21,6 @@ export default function ForgotPasswordPage() {
       }
       intro="Enter the address on your account and we will send a single-use link. It expires in one hour."
       plateImage="/images/office-interior.jpg"
-      plateNumber="III"
       plateCaption="Every door in this house can be reopened — carefully, and only by you."
       footer={
         <>

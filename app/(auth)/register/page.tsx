@@ -20,7 +20,7 @@ export default async function RegisterPage() {
 
   return (
     <AuthShell
-      eyebrow="Folio II · Registration"
+      eyebrow="Registration"
       title={
         <>
           Begin the <span className="italic text-gold">record</span> of your
@@ -29,7 +29,6 @@ export default async function RegisterPage() {
       }
       intro="Three fields and a confirmation link. No card required until you choose to seal your Will."
       plateImage="/images/father-daughter.jpg"
-      plateNumber="II"
       plateCaption="The most valuable thing you leave behind is clarity."
       footer={
         <>

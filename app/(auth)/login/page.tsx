@@ -26,15 +26,14 @@ export default async function LoginPage({
 
   return (
     <AuthShell
-      eyebrow="Folio I · Sign In"
+      eyebrow="Sign In"
       title={
         <>
-          Welcome back to your <span className="italic text-gold">chambers.</span>
+          Welcome back to your <span className="italic text-gold">account.</span>
         </>
       }
       intro="Enter your credentials to resume drafting, review pending signatures, or access sealed documents."
       plateImage="/images/signing-hands.jpg"
-      plateNumber="I"
       plateCaption="A signature is a promise made permanent. Yours is safeguarded."
       footer={
         <>

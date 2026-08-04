@@ -11,7 +11,6 @@ interface AuthShellProps {
   footer: ReactNode;
   plateImage: string;
   plateCaption: string;
-  plateNumber: string;
 }
 
 export function AuthShell({
@@ -22,7 +21,6 @@ export function AuthShell({
   footer,
   plateImage,
   plateCaption,
-  plateNumber,
 }: AuthShellProps) {
   return (
     <div className="min-h-screen bg-background">
@@ -44,14 +42,14 @@ export function AuthShell({
               <Logo linked={false} variant="light" />
               <div className="flex items-center gap-3 font-serif text-xs uppercase tracking-[0.3em] text-gold">
                 <span className="h-px w-8 bg-gold/60" />
-                Plate {plateNumber}
+                RC 9701348
               </div>
             </div>
 
             <div className="max-w-md space-y-6">
               <div className="h-px w-16 bg-gold" />
               <p className="font-serif text-xs uppercase tracking-[0.35em] text-gold">
-                Will Papers &middot; Vol. I
+                Castle eWill &amp; Trust
               </p>
               <h2 className="font-serif text-4xl leading-[1.05] tracking-tight">
                 Your legacy,{" "}
@@ -64,17 +62,9 @@ export function AuthShell({
               </p>
             </div>
 
-            <div className="flex items-end justify-between border-t border-navy-foreground/15 pt-6">
-              <div>
-                <p className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold/80">
-                  Caption
-                </p>
-                <p className="mt-1 max-w-xs text-xs italic leading-relaxed text-navy-foreground/70">
-                  {plateCaption}
-                </p>
-              </div>
-              <p className="font-serif text-xs tracking-[0.3em] text-navy-foreground/50">
-                &sect; {plateNumber}
+            <div className="border-t border-navy-foreground/15 pt-6">
+              <p className="max-w-xs text-xs italic leading-relaxed text-navy-foreground/70">
+                {plateCaption}
               </p>
             </div>
           </div>

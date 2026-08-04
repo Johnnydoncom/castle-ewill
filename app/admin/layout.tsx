@@ -36,10 +36,10 @@ export default async function AdminLayout({
   return (
     <DashboardShell
       nav={adminNav}
-      eyebrow="Registry of"
+      eyebrow="Signed in as"
       personName={admin.name}
       personMeta={`${admin.email} · Administrator`}
-      headerKicker="Will Papers · Registry"
+      headerKicker="Castle eWill & Trust"
       headerTitle="Administrator Console"
       footer={{
         title: "Review queue",

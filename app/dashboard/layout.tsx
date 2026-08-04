@@ -23,10 +23,10 @@ export default async function DashboardLayout({
   return (
     <DashboardShell
       nav={nav}
-      eyebrow="Chambers of"
+      eyebrow="Signed in as"
       personName={user.name}
       personMeta={user.email}
-      headerKicker="Will Papers · Vol. I"
+      headerKicker="Castle eWill & Trust"
       headerTitle="Private Dashboard"
       footer={{
         title: "Counsel available",

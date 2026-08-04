@@ -18,7 +18,7 @@ export default async function ResetPasswordPage({
 
   return (
     <AuthShell
-      eyebrow="Folio III · Recovery"
+      eyebrow="Password Recovery"
       title={
         <>
           Choose a new <span className="italic text-gold">password.</span>
@@ -26,7 +26,6 @@ export default async function ResetPasswordPage({
       }
       intro="Pick something long and memorable. Length protects an account far better than exotic symbols."
       plateImage="/images/office-interior.jpg"
-      plateNumber="III"
       plateCaption="A good password is a long one you can actually remember."
       footer={
         <>

@@ -124,7 +124,7 @@ export function DashboardShell({
           </button>
         </div>
 
-        {/* User / Chambers Badge */}
+        {/* User badge */}
         <div className="border-b border-border/50 px-4 py-4">
           {!collapsed ? (
             <div className="flex items-center gap-3 rounded-xl border border-gold/20 bg-gradient-to-r from-gold/5 via-gold/[0.02] to-transparent p-3 shadow-xs">
