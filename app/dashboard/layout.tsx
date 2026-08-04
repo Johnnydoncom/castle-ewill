@@ -1,5 +1,5 @@
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
-import { requireUser } from "@/lib/actions/guards";
+import { requireCustomer } from "@/lib/actions/guards";
 
 /** Per-user data throughout — never prerendered, never cached across requests. */
 export const dynamic = "force-dynamic";
@@ -18,7 +18,7 @@ export default async function DashboardLayout({
 }: {
   children: React.ReactNode;
 }) {
-  const user = await requireUser();
+  const user = await requireCustomer();
 
   return (
     <DashboardShell

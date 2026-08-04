@@ -60,10 +60,41 @@ export async function requireUser(): Promise<SessionUser> {
 }
 
 export async function requireAdmin(): Promise<SessionUser> {
-  const user = await requireUser();
-  if (user.role !== "admin") {
+  const profile = await getProfile();
+
+  // The admin console has its own sign-in page — an unauthenticated visitor
+  // is sent there, not to the customer login, so they never see the wrong
+  // form for the door they knocked on.
+  if (!profile) {
+    redirect("/admin/login");
+  }
+
+  if (profile.role !== "admin") {
     redirect("/dashboard");
   }
+
+  return {
+    id: profile.id,
+    email: profile.email,
+    name: profile.name ?? profile.email,
+    role: profile.role,
+  };
+}
+
+/**
+ * The customer-portal counterpart to `requireAdmin()`: signed in, and not an
+ * administrator. An admin account has no Will of its own to draft, so
+ * `/dashboard` has nothing for it — sent to `/admin` instead, the same way
+ * `requireAdmin()` sends a non-admin back to `/dashboard`. Neither role can
+ * end up on the other's console by visiting a URL directly.
+ */
+export async function requireCustomer(): Promise<SessionUser> {
+  const user = await requireUser();
+
+  if (user.role === "admin") {
+    redirect("/admin");
+  }
+
   return user;
 }
 

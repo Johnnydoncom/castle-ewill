@@ -32,9 +32,17 @@ export async function uploadDocumentAction(
 
   if (!kind) return errorState("Choose what kind of document this is.");
 
+  const identityDocumentType = String(formData.get("identityDocumentType") ?? "");
+  if (kind === "identity_document" && !identityDocumentType) {
+    return errorState("Choose which kind of ID this is.", {
+      identity_document_type: ["Choose which kind of ID this is."],
+    });
+  }
+
   const body = new FormData();
   body.set("file", file);
   body.set("kind", kind);
+  if (identityDocumentType) body.set("identity_document_type", identityDocumentType);
 
   const willId = formData.get("willId");
   if (typeof willId === "string" && willId) body.set("will_id", willId);

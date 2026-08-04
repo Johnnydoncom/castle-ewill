@@ -9,6 +9,8 @@ import { type FormState } from "@/lib/actions/state";
 import {
   ACCEPT_ATTRIBUTE,
   DOCUMENT_KIND_LABELS,
+  IDENTITY_DOCUMENT_TYPE_LABELS,
+  IDENTITY_DOCUMENT_TYPES,
   MAX_UPLOAD_BYTES,
   UPLOADABLE_KINDS,
   describeFileProblem,
@@ -69,6 +71,7 @@ function UploadForm() {
   const [state, action] = useFormAction(uploadDocumentAction);
   const [clientError, setClientError] = useState<string | null>(null);
   const [selected, setSelected] = useState<File | null>(null);
+  const [kind, setKind] = useState<string>(UPLOADABLE_KINDS[0].value);
   const inputRef = useRef<HTMLInputElement>(null);
 
   function onFileChange(event: React.ChangeEvent<HTMLInputElement>) {
@@ -98,24 +101,25 @@ function UploadForm() {
           Document type
         </p>
         <div className="space-y-2">
-          {UPLOADABLE_KINDS.map((kind, index) => (
+          {UPLOADABLE_KINDS.map((option, index) => (
             <label
-              key={kind.value}
+              key={option.value}
               className="flex cursor-pointer items-start gap-3 border border-border p-4 transition-colors hover:border-gold has-[:checked]:border-gold has-[:checked]:bg-gold/5"
             >
               <input
                 type="radio"
                 name="kind"
-                value={kind.value}
+                value={option.value}
                 defaultChecked={index === 0}
+                onChange={() => setKind(option.value)}
                 className="mt-1 h-4 w-4 shrink-0 border-border text-navy focus:ring-gold"
               />
               <span>
                 <span className="block font-serif text-base text-navy">
-                  {kind.label}
+                  {option.label}
                 </span>
                 <span className="mt-0.5 block text-xs leading-relaxed text-muted-foreground">
-                  {kind.hint}
+                  {option.hint}
                 </span>
               </span>
             </label>
@@ -125,6 +129,38 @@ function UploadForm() {
           <p className="text-xs text-destructive">{state.fieldErrors.kind[0]}</p>
         )}
       </div>
+
+      {kind === "identity_document" && (
+        <div className="space-y-2">
+          <label
+            htmlFor="identity-document-type"
+            className="font-serif text-[10px] uppercase tracking-[0.28em] text-navy"
+          >
+            Which ID is this?
+          </label>
+          <select
+            id="identity-document-type"
+            name="identityDocumentType"
+            required
+            defaultValue=""
+            className="w-full border-0 border-b border-border bg-transparent px-0 py-2.5 font-serif text-lg text-navy focus:border-gold focus:outline-none focus:ring-0"
+          >
+            <option value="" disabled>
+              Choose a document type…
+            </option>
+            {IDENTITY_DOCUMENT_TYPES.map((type) => (
+              <option key={type.value} value={type.value}>
+                {type.label}
+              </option>
+            ))}
+          </select>
+          {state.fieldErrors?.identity_document_type && (
+            <p className="text-xs text-destructive">
+              {state.fieldErrors.identity_document_type[0]}
+            </p>
+          )}
+        </div>
+      )}
 
       <div className="space-y-2">
         <label
@@ -191,8 +227,10 @@ function DocumentRow({ record }: { record: VaultDocument }) {
           {record.file_name}
         </p>
         <p className="mt-0.5 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
-          {DOCUMENT_KIND_LABELS[record.kind] ?? record.kind} &middot;{" "}
-          {formatBytes(record.size_bytes)} &middot;{" "}
+          {DOCUMENT_KIND_LABELS[record.kind] ?? record.kind}
+          {record.identity_document_type &&
+            ` (${IDENTITY_DOCUMENT_TYPE_LABELS[record.identity_document_type] ?? record.identity_document_type})`}{" "}
+          &middot; {formatBytes(record.size_bytes)} &middot;{" "}
           {new Date(record.created_at).toLocaleDateString("en-GB", {
             day: "numeric",
             month: "short",

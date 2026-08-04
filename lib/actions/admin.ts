@@ -298,6 +298,8 @@ export type AdminVerificationRow = {
      */
     reference_document_id: string | null;
     reference_kind: "id_document" | "enrolled_selfie" | null;
+    /** Which kind of ID the client said the reference is — null for an enrolled-selfie reference. */
+    reference_document_type: string | null;
     created_at: string | null;
   };
   client: { id: string; name: string | null; email: string };

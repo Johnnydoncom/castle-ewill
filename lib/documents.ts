@@ -57,6 +57,29 @@ export const DOCUMENT_KIND_LABELS: Record<string, string> = {
   signed_will: "Signed Will",
 };
 
+/**
+ * Which government-issued document a client is uploading for KYC.
+ *
+ * Asked *before* the file picker opens, not inferred from the image
+ * afterwards — a reviewer scanning the identity queue needs to know at a
+ * glance whether they're comparing a passport photo page or a driver's
+ * licence, and asking is far cheaper than running OCR on every capture.
+ * Matches `Document::IDENTITY_DOCUMENT_TYPES` on the backend exactly.
+ */
+export const IDENTITY_DOCUMENT_TYPES = [
+  { value: "passport", label: "International passport" },
+  { value: "drivers_license", label: "Driver's licence" },
+  { value: "national_id", label: "National ID (NIN slip)" },
+  { value: "voters_card", label: "Voter's card (PVC)" },
+  { value: "other", label: "Other government-issued ID" },
+] as const;
+
+export type IdentityDocumentType = (typeof IDENTITY_DOCUMENT_TYPES)[number]["value"];
+
+export const IDENTITY_DOCUMENT_TYPE_LABELS: Record<string, string> = Object.fromEntries(
+  IDENTITY_DOCUMENT_TYPES.map((t) => [t.value, t.label]),
+);
+
 export function extensionOf(fileName: string): string {
   const parts = fileName.toLowerCase().split(".");
   return parts.length > 1 ? parts[parts.length - 1] : "";

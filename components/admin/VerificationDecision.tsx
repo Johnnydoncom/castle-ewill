@@ -54,16 +54,26 @@ const REFERENCE_KIND_LABEL: Record<string, string> = {
   enrolled_selfie: "their enrolled selfie",
 };
 
+const IDENTITY_DOCUMENT_TYPE_LABEL: Record<string, string> = {
+  passport: "Passport",
+  drivers_license: "Driver's licence",
+  national_id: "National ID",
+  voters_card: "Voter's card",
+  other: "Other ID",
+};
+
 export function VerificationDecision({
   verificationId,
   captureDocumentId,
   referenceDocumentId,
   referenceKind,
+  referenceDocumentType,
 }: {
   verificationId: string;
   captureDocumentId: string | null;
   referenceDocumentId?: string | null;
   referenceKind?: "id_document" | "enrolled_selfie" | null;
+  referenceDocumentType?: string | null;
 }) {
   const [rejecting, setRejecting] = useState(false);
 
@@ -93,9 +103,14 @@ export function VerificationDecision({
         {referenceDocumentId ? (
           <a
             href={`${apiBase}/documents/${referenceDocumentId}/download`}
-            className="inline-block text-xs text-navy underline underline-offset-4 hover:text-gold"
+            className="inline-flex items-center gap-1.5 text-xs text-navy underline underline-offset-4 hover:text-gold"
           >
             View {REFERENCE_KIND_LABEL[referenceKind ?? ""] ?? "the reference image"}
+            {referenceDocumentType && (
+              <span className="rounded-sm border border-gold/40 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-gold no-underline">
+                {IDENTITY_DOCUMENT_TYPE_LABEL[referenceDocumentType] ?? referenceDocumentType}
+              </span>
+            )}
           </a>
         ) : (
           <span className="text-xs italic text-muted-foreground">

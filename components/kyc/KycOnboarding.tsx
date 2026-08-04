@@ -8,19 +8,24 @@ import { useFormAction } from "@/hooks/use-api-form";
 import { type FormState } from "@/lib/actions/state";
 import {
   ACCEPT_ATTRIBUTE,
+  IDENTITY_DOCUMENT_TYPES,
   MAX_UPLOAD_BYTES,
   describeFileProblem,
   formatBytes,
+  type IdentityDocumentType,
 } from "@/lib/documents";
 import { uploadDocumentAction } from "@/lib/actions/documents.client";
 import { LivenessCheck } from "@/components/verification/LivenessCheck";
 
 /**
- * The KYC onboarding flow: an identity document, then a liveness check
- * compared against it.
+ * The KYC onboarding flow: pick which ID this is, upload it, then a liveness
+ * check compared against it.
  *
  * Deliberately not the full `DocumentVault` — this is a single fixed-kind
- * upload with nowhere else to go, not a general document manager.
+ * upload with nowhere else to go, not a general document manager. The
+ * document-type step exists so the admin identity queue can sort and label
+ * captures ("Passport" vs "Driver's licence") without opening every file —
+ * see `Document::IDENTITY_DOCUMENT_TYPES` on the backend.
  */
 
 function Banner({ state }: { state: FormState }) {
@@ -53,7 +58,7 @@ function UploadButton({ disabled }: { disabled: boolean }) {
     <button
       type="submit"
       disabled={pending || disabled}
-      className="flex h-13 items-center justify-center gap-3 bg-navy px-8 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy-foreground transition-colors hover:bg-navy/90 disabled:cursor-not-allowed disabled:opacity-60"
+      className="flex h-13 w-full items-center justify-center gap-3 bg-navy px-8 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy-foreground transition-colors hover:bg-navy/90 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
     >
       {pending ? (
         <span
@@ -63,18 +68,72 @@ function UploadButton({ disabled }: { disabled: boolean }) {
       ) : (
         <Upload className="h-4 w-4" />
       )}
-      {pending ? "Uploading…" : "Upload identity document"}
+      {pending ? "Uploading…" : "Upload this document"}
     </button>
   );
 }
 
-function IdUploadStep({ onUploaded }: { onUploaded: () => void }) {
+/** Step 1: which document, as clickable cards rather than a bare select — the choice that drives everything after it deserves the same visual weight as the file picker. */
+function DocumentTypeStep({
+  onChosen,
+}: {
+  onChosen: (type: IdentityDocumentType) => void;
+}) {
+  return (
+    <div className="border border-border bg-background p-6 sm:p-8">
+      <div className="flex items-start gap-3">
+        <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-gold" />
+        <div className="min-w-0 flex-1">
+          <h2 className="font-serif text-xl text-navy">
+            Which ID will you use?
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            Choose the document you&apos;ll photograph next. This is the
+            anchor we compare your identity check against — you only need to
+            do this once.
+          </p>
+
+          <div className="mt-6 space-y-2">
+            {IDENTITY_DOCUMENT_TYPES.map((type) => (
+              <button
+                key={type.value}
+                type="button"
+                onClick={() => onChosen(type.value)}
+                className="flex w-full cursor-pointer items-center justify-between border border-border p-4 text-left transition-colors hover:border-gold hover:bg-gold/5"
+              >
+                <span className="font-serif text-base text-navy">
+                  {type.label}
+                </span>
+                <span aria-hidden className="text-gold">
+                  &rarr;
+                </span>
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/** Step 2: the file itself, for the type already chosen in step 1. */
+function UploadStep({
+  documentType,
+  onBack,
+  onUploaded,
+}: {
+  documentType: IdentityDocumentType;
+  onBack: () => void;
+  onUploaded: () => void;
+}) {
   const [state, action] = useFormAction(uploadDocumentAction, {
     onSuccess: onUploaded,
   });
   const [clientError, setClientError] = useState<string | null>(null);
   const [selected, setSelected] = useState<File | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  const label = IDENTITY_DOCUMENT_TYPES.find((t) => t.value === documentType)?.label;
 
   function onFileChange(event: React.ChangeEvent<HTMLInputElement>) {
     const file = event.target.files?.[0] ?? null;
@@ -89,17 +148,23 @@ function IdUploadStep({ onUploaded }: { onUploaded: () => void }) {
       <div className="flex items-start gap-3">
         <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-gold" />
         <div className="min-w-0 flex-1">
-          <h2 className="font-serif text-xl text-navy">
-            Upload an identity document
-          </h2>
+          <div className="flex items-center justify-between gap-3">
+            <h2 className="font-serif text-xl text-navy">Upload your {label}</h2>
+            <button
+              type="button"
+              onClick={onBack}
+              className="shrink-0 text-xs uppercase tracking-[0.15em] text-muted-foreground underline underline-offset-4 hover:text-gold"
+            >
+              Change
+            </button>
+          </div>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            A passport, driver&apos;s licence, national ID or voter&apos;s
-            card. This is the anchor we compare your identity check against —
-            you only need to do this once.
+            A clear photo or scan, all four corners visible.
           </p>
 
           <form action={action} className="mt-6 space-y-6">
             <input type="hidden" name="kind" value="identity_document" />
+            <input type="hidden" name="identityDocumentType" value={documentType} />
             <Banner state={state} />
 
             <div className="space-y-2">
@@ -145,28 +210,94 @@ function IdUploadStep({ onUploaded }: { onUploaded: () => void }) {
   );
 }
 
+function RejectionNotice({
+  reason,
+  onReupload,
+}: {
+  reason: string;
+  onReupload: () => void;
+}) {
+  return (
+    <div className="flex items-start gap-3 border-l-2 border-destructive bg-destructive/5 px-5 py-4 text-sm text-navy">
+      <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
+      <div className="flex-1">
+        <p className="leading-relaxed">
+          Your last attempt was not accepted: <em>{reason}</em>
+        </p>
+        <button
+          type="button"
+          onClick={onReupload}
+          className="mt-2 text-xs font-medium uppercase tracking-[0.15em] text-navy underline underline-offset-4 hover:text-gold"
+        >
+          Upload a different document
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function KycOnboarding({
   hasIdDocument,
+  rejectionReason,
 }: {
   hasIdDocument: boolean;
+  /** Set when the most recent kyc-purpose attempt was rejected — surfaced so the client knows what to fix. */
+  rejectionReason?: string | null;
 }) {
   const [idOnFile, setIdOnFile] = useState(hasIdDocument);
+  const [documentType, setDocumentType] = useState<IdentityDocumentType | null>(null);
+  // A rejection might have been about the document itself, not the liveness
+  // check — offered once, rather than forcing a re-upload nobody asked for.
+  const [reuploading, setReuploading] = useState(false);
+  // `rejectionReason` is a server prop, stale the instant a fresh upload
+  // completes client-side — once acted on, it must not reappear next to the
+  // liveness check for a document the client just replaced.
+  const [noticeDismissed, setNoticeDismissed] = useState(false);
 
-  if (!idOnFile) {
-    return <IdUploadStep onUploaded={() => setIdOnFile(true)} />;
+  const notice = rejectionReason && !noticeDismissed && !reuploading && (
+    <RejectionNotice reason={rejectionReason} onReupload={() => setReuploading(true)} />
+  );
+
+  if (!idOnFile || reuploading) {
+    if (!documentType) {
+      return (
+        <div className="space-y-6">
+          {notice}
+          <DocumentTypeStep onChosen={setDocumentType} />
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-6">
+        {notice}
+        <UploadStep
+          documentType={documentType}
+          onBack={() => setDocumentType(null)}
+          onUploaded={() => {
+            setIdOnFile(true);
+            setReuploading(false);
+            setNoticeDismissed(true);
+          }}
+        />
+      </div>
+    );
   }
 
   return (
-    <LivenessCheck
-      title="Verify your identity"
-      description="Now let's confirm it's really you. You'll be asked to perform a few short movements on camera, compared against the document you just uploaded."
-      footerNote="The image captured is encrypted and stored in your vault. Once approved, it becomes the reference we check against each time you submit or amend your Will."
-      onVerified={() => {
-        // A full reload rather than a client-side refresh: this is the
-        // moment `is_kyc_verified` flips, and every server component down
-        // the tree (the dashboard banner, the Will gate) should see it.
-        window.location.href = "/dashboard/kyc";
-      }}
-    />
+    <div className="space-y-6">
+      {notice}
+      <LivenessCheck
+        title="Verify your identity"
+        description="Now let's confirm it's really you. You'll be asked to perform a few short movements on camera, compared against the document you just uploaded."
+        footerNote="The image captured is encrypted and stored in your vault. Once approved, it becomes the reference we check against each time you submit or amend your Will."
+        onVerified={() => {
+          // A full reload rather than a client-side refresh: this is the
+          // moment `is_kyc_verified` flips, and every server component down
+          // the tree (the dashboard banner, the Will gate) should see it.
+          window.location.href = "/dashboard/kyc";
+        }}
+      />
+    </div>
   );
 }

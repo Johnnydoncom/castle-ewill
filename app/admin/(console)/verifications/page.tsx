@@ -201,6 +201,7 @@ export default async function AdminVerificationsPage({
                     captureDocumentId={verification.capture_document_id}
                     referenceDocumentId={verification.reference_document_id}
                     referenceKind={verification.reference_kind}
+                    referenceDocumentType={verification.reference_document_type}
                   />
                 </div>
               )}

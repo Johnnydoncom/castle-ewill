@@ -23,6 +23,7 @@ export type VaultDocument = {
   document_number?: string | null;
   version?: number;
   kind: string;
+  identity_document_type?: string | null;
   file_name: string;
   mime_type: string;
   size_bytes: number;

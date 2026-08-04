@@ -29,8 +29,10 @@ export default async function AdminLayout({
 }: {
   children: React.ReactNode;
 }) {
-  // Middleware already gates /admin, but authorisation is re-asserted here so
-  // the pages cannot be reached if the matcher is ever changed.
+  // There is no edge middleware — Laravel's session cookie is opaque to
+  // Next, so this server-side check against `GET /me` is the only gate.
+  // `/admin/login` sits outside the `(console)` group specifically so it is
+  // never wrapped by this layout and never calls this.
   const admin = await requireAdmin();
 
   return (

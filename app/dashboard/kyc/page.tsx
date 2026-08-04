@@ -60,7 +60,15 @@ export default async function KycPage() {
           </p>
         </div>
       ) : (
-        <KycOnboarding hasIdDocument={hasIdDocument} />
+        <KycOnboarding
+          hasIdDocument={hasIdDocument}
+          rejectionReason={
+            verification.latest?.status === "failed" &&
+            verification.latest.purpose === "kyc"
+              ? verification.latest.failure_reason
+              : null
+          }
+        />
       )}
     </div>
   );

@@ -178,6 +178,8 @@ function describeSignInError(code: string | undefined): string {
   }
 }
 
+type LoginResponse = { data: { user: { id: string; role: "user" | "admin" } } };
+
 export async function signInAction(
   _previous: FormState,
   formData: FormData,
@@ -193,10 +195,8 @@ export async function signInAction(
   }
 
   const callbackUrl = String(formData.get("callbackUrl") ?? "");
-  // A path only. An absolute URL here would be an open redirect.
-  const target = callbackUrl.startsWith("/") ? callbackUrl : "/dashboard";
 
-  const result = await api<{ data: { user: { id: string } } }>("/auth/login", {
+  const result = await api<LoginResponse>("/auth/login", {
     method: "POST",
     body: { email, password, totp: String(formData.get("totp") ?? "") },
   });
@@ -224,7 +224,84 @@ export async function signInAction(
     return errorState(describeSignInError(result.code));
   }
 
+  /*
+   * An administrator always lands on the console, regardless of what brought
+   * them to this form — this is the customer portal's login, and `/dashboard`
+   * has nothing for an admin account to do. `requireCustomer()` would bounce
+   * them there anyway; deciding it here just skips the extra hop. Anyone else
+   * goes to `callbackUrl` when one was given (a path only — an absolute URL
+   * here would be an open redirect) or `/dashboard` otherwise.
+   */
+  const isAdmin = result.data.data.user.role === "admin";
+  const target = isAdmin
+    ? "/admin"
+    : callbackUrl.startsWith("/")
+      ? callbackUrl
+      : "/dashboard";
+
   return redirectState(target, "Signed in.");
+}
+
+/**
+ * The admin console's own sign-in, kept separate from `signInAction` so a
+ * customer account is refused here outright rather than quietly landing on
+ * the wrong dashboard. Same Sanctum session underneath — Laravel does not
+ * have two login endpoints — but a successful authentication that turns out
+ * not to belong to an administrator is immediately signed back out, so
+ * nothing about this door is a softer version of the customer one.
+ */
+export async function adminSignInAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const password = String(formData.get("password") ?? "");
+
+  if (!email || !password) {
+    return errorState("Please correct the highlighted fields.", {
+      ...(email ? {} : { email: ["Enter a valid email address"] }),
+      ...(password ? {} : { password: ["Enter your password"] }),
+    });
+  }
+
+  const result = await api<LoginResponse>("/auth/login", {
+    method: "POST",
+    body: { email, password, totp: String(formData.get("totp") ?? "") },
+  });
+
+  if (!result.ok) {
+    if (result.code === "two_factor_required") {
+      return {
+        status: "error",
+        message: "Enter the six-digit code from your authenticator app.",
+        data: { challenge: "totp" },
+      };
+    }
+
+    if (result.code === "two_factor_invalid") {
+      return {
+        status: "error",
+        message:
+          "That code was not accepted. Check your device clock and try the current code.",
+        data: { challenge: "totp" },
+        fieldErrors: { totp: ["Incorrect code"] },
+      };
+    }
+
+    return errorState(describeSignInError(result.code));
+  }
+
+  if (result.data.data.user.role !== "admin") {
+    // The credentials were genuine, so this is not a login failure — but the
+    // session just opened is for a customer account, and this door does not
+    // hand those out. Revoked immediately rather than left signed in on the
+    // console's origin with nowhere sanctioned to go.
+    await api("/auth/logout", { method: "POST" });
+
+    return errorState("This sign-in is for administrators only.");
+  }
+
+  return redirectState("/admin", "Signed in.");
 }
 
 /**
