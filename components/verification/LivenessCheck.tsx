@@ -38,6 +38,56 @@ const MODEL_URL =
 
 type Phase = "idle" | "loading" | "running" | "submitting" | "done" | "error";
 
+/**
+ * MediaPipe's WASM runtime (Emscripten-compiled TFLite/absl/XNNPACK) writes
+ * its own diagnostic logging straight to `console.error`/`console.warn`,
+ * with no public option on `FaceLandmarker` to redirect it — it is a
+ * property of the compiled module, not of this library's TS API. Next's dev
+ * overlay treats any `console.error` call during the page's lifetime as a
+ * crash and pops up over the camera view, so routine startup diagnostics —
+ * "delegate created", "GL context initialised", "graph running" — read as a
+ * broken feature.
+ *
+ * Confirmed by directly capturing this library's actual console output
+ * (Playwright, both the `GPU` delegate this component requests and a `CPU`
+ * probe to force the fallback path) rather than assumed from the one
+ * message text a bug report happened to quote — MediaPipe logs through (at
+ * least) two distinct native formats, neither of which is a JavaScript
+ * `Error`:
+ *
+ *  - absl/glog-style: a level letter + 4-digit date + timestamp, e.g.
+ *    `W0804 20:16:36.148999 2186832 face_landmarker_graph.cc:180] ...`.
+ *    `I`/`W` observed in practice; deliberately not `E`/`F` (error/fatal) —
+ *    if the module ever logs a *genuine* failure this way, it must still
+ *    reach the console and this filter must not hide it.
+ *  - Plain level-prefixed: `INFO: Created TensorFlow Lite XNNPACK delegate
+ *    for CPU.` — TFLite's own delegate-creation logger.
+ *  - A short list of specific benign lines with neither prefix, e.g.
+ *    `Graph successfully started running.`, seen directly in the capture.
+ *
+ * Matching on these observed shapes (not the exact sentence) is what keeps
+ * this from silently breaking the next time MediaPipe changes its wording —
+ * the shape of "this is the native logger talking", not today's phrasing,
+ * is the durable signal.
+ */
+const GLOG_INFO_OR_WARNING = /^[IW]\d{4}\s+\d{2}:\d{2}:\d{2}\.\d+/;
+const PLAIN_INFO_OR_WARNING_PREFIX = /^(INFO|WARNING):/i;
+const KNOWN_BENIGN_MEDIAPIPE_LINES =
+  /graph successfully started running\.?$/i;
+
+function isBenignWasmLog(args: unknown[]): boolean {
+  const first = args[0];
+  if (typeof first !== "string") return false;
+
+  const text = first.trim();
+
+  return (
+    GLOG_INFO_OR_WARNING.test(text) ||
+    PLAIN_INFO_OR_WARNING_PREFIX.test(text) ||
+    KNOWN_BENIGN_MEDIAPIPE_LINES.test(text)
+  );
+}
+
 export function LivenessCheck({
   onVerified,
   title = "Identity check",
@@ -55,6 +105,15 @@ export function LivenessCheck({
   const rafRef = useRef<number | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const landmarkerRef = useRef<any>(null);
+  // Holds the real `console.error`/`console.warn` while MediaPipe's WASM
+  // module is loaded and running, so `restoreConsole()` can put them back
+  // exactly as they were — every other console message, including a
+  // genuine error thrown anywhere else on the page, passes through
+  // unchanged the entire time.
+  const originalConsoleRef = useRef<{
+    error: typeof console.error;
+    warn: typeof console.warn;
+  } | null>(null);
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [message, setMessage] = useState<string | null>(null);
@@ -68,12 +127,20 @@ export function LivenessCheck({
     observed: false,
   });
 
+  const restoreConsole = useCallback(() => {
+    if (!originalConsoleRef.current) return;
+    console.error = originalConsoleRef.current.error;
+    console.warn = originalConsoleRef.current.warn;
+    originalConsoleRef.current = null;
+  }, []);
+
   const cleanup = useCallback(() => {
     if (rafRef.current !== null) cancelAnimationFrame(rafRef.current);
     rafRef.current = null;
     streamRef.current?.getTracks().forEach((track) => track.stop());
     streamRef.current = null;
-  }, []);
+    restoreConsole();
+  }, [restoreConsole]);
 
   useEffect(() => cleanup, [cleanup]);
 
@@ -152,6 +219,23 @@ export function LivenessCheck({
     setChallenges(issued);
 
     try {
+      // Installed before the WASM module loads and restored in `cleanup()`
+      // — covering delegate creation *and* every `detectForVideo` call in
+      // the tick loop below, since the CPU-fallback notice this filters
+      // fires from inside the compiled module on whichever call actually
+      // triggers it, not necessarily the first.
+      if (!originalConsoleRef.current) {
+        originalConsoleRef.current = { error: console.error, warn: console.warn };
+        console.error = (...args: unknown[]) => {
+          if (isBenignWasmLog(args)) return;
+          originalConsoleRef.current!.error(...args);
+        };
+        console.warn = (...args: unknown[]) => {
+          if (isBenignWasmLog(args)) return;
+          originalConsoleRef.current!.warn(...args);
+        };
+      }
+
       const vision = await import("@mediapipe/tasks-vision");
       const fileset = await vision.FilesetResolver.forVisionTasks(WASM_BASE);
       landmarkerRef.current = await vision.FaceLandmarker.createFromOptions(
