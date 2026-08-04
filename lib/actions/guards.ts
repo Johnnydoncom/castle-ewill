@@ -10,6 +10,10 @@ export type SessionUser = {
   email: string;
   name: string;
   role: "user" | "admin";
+  /** Only ever populated by `requireAdmin()` — a superadmin passes every permission check. */
+  isSuperAdmin?: boolean;
+  /** Only ever populated by `requireAdmin()`. Full catalog when `isSuperAdmin`. */
+  permissions?: string[];
 };
 
 /**
@@ -34,6 +38,9 @@ export type Profile = {
   two_factor_enabled: boolean;
   created_at: string | null;
   last_login_at?: string | null;
+  /** Present only on the caller's own record when `role: "admin"` — see UserResource. */
+  is_superadmin?: boolean;
+  permissions?: string[];
 };
 
 /**
@@ -78,7 +85,41 @@ export async function requireAdmin(): Promise<SessionUser> {
     email: profile.email,
     name: profile.name ?? profile.email,
     role: profile.role,
+    isSuperAdmin: profile.is_superadmin ?? false,
+    permissions: profile.permissions ?? [],
   };
+}
+
+/**
+ * The section-level counterpart to `requireAdmin()`.
+ *
+ * `requireAdmin()` only establishes *an* admin session; it says nothing
+ * about which console sections this particular admin may use. Every section
+ * page calls this instead, so a delegated admin who pastes in a URL they
+ * were not granted is sent back to Overview rather than shown an empty
+ * table that looks like "no records" instead of "no access". The API's own
+ * `permission:` middleware is the actual guarantee — this is what keeps the
+ * page from rendering a broken screen in the meantime.
+ */
+export async function requireAdminPermission(permission: string): Promise<SessionUser> {
+  const admin = await requireAdmin();
+
+  if (!admin.isSuperAdmin && !admin.permissions?.includes(permission)) {
+    redirect("/admin");
+  }
+
+  return admin;
+}
+
+/** The admin-management screens — superadmin only, never a delegable permission. */
+export async function requireSuperAdmin(): Promise<SessionUser> {
+  const admin = await requireAdmin();
+
+  if (!admin.isSuperAdmin) {
+    redirect("/admin");
+  }
+
+  return admin;
 }
 
 /**

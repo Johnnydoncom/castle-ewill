@@ -5,6 +5,7 @@ import { PageHead } from "@/components/dashboard/PageHead";
 import { StatusBadge } from "@/components/admin/DataTable";
 import { BankAccountForm } from "@/components/admin/BankAccountForm";
 import { getAdminHealth } from "@/lib/actions/admin";
+import { requireAdminPermission } from "@/lib/actions/guards";
 import { COMPANY } from "@/lib/company";
 
 export const metadata: Metadata = {
@@ -22,6 +23,8 @@ export const metadata: Metadata = {
 export const dynamic = "force-dynamic";
 
 export default async function AdminSettingsPage() {
+  await requireAdminPermission("manage_settings");
+
   const { checks, bank_account: bank } = await getAdminHealth();
 
   return (

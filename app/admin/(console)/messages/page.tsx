@@ -6,6 +6,7 @@ import { PageHead } from "@/components/dashboard/PageHead";
 import { Pagination, StatusBadge, formatDate } from "@/components/admin/DataTable";
 import { ContactStatus } from "@/components/admin/ContactStatus";
 import { listContactMessages } from "@/lib/actions/admin";
+import { requireAdminPermission } from "@/lib/actions/guards";
 
 export const metadata: Metadata = {
   title: "Messages",
@@ -34,6 +35,8 @@ export default async function AdminMessagesPage({
 }: {
   searchParams: Promise<{ status?: string; page?: string }>;
 }) {
+  await requireAdminPermission("manage_messages");
+
   const { status, page: pageParam } = await searchParams;
   const page = Math.max(Number(pageParam) || 1, 1);
   const active = status ?? "new";

@@ -12,6 +12,7 @@ import {
   paymentStatusTone,
 } from "@/components/admin/DataTable";
 import { listPayments } from "@/lib/actions/admin";
+import { requireAdminPermission } from "@/lib/actions/guards";
 import { ConfirmTransfer } from "@/components/admin/ConfirmTransfer";
 
 export const metadata: Metadata = {
@@ -26,6 +27,8 @@ export default async function AdminPaymentsPage({
 }: {
   searchParams: Promise<{ page?: string }>;
 }) {
+  await requireAdminPermission("manage_payments");
+
   const { page: pageParam } = await searchParams;
   const page = Math.max(Number(pageParam) || 1, 1);
 

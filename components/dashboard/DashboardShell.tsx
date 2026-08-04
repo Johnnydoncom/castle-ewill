@@ -17,6 +17,7 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Scale,
+  KeyRound,
 } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { useFormAction } from "@/hooks/use-api-form";
@@ -36,6 +37,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   payments: CreditCard,
   messages: MessageSquare,
   settings: Settings,
+  admins: KeyRound,
 };
 
 export type ShellNavItem = {

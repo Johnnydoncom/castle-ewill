@@ -9,7 +9,7 @@ import {
   formatDate,
 } from "@/components/admin/DataTable";
 import { listClients } from "@/lib/actions/admin";
-import { requireAdmin } from "@/lib/actions/guards";
+import { requireAdminPermission } from "@/lib/actions/guards";
 import { ClientStatusToggle } from "@/components/admin/ClientStatusToggle";
 
 export const metadata: Metadata = {
@@ -24,7 +24,7 @@ export default async function AdminClientsPage({
 }: {
   searchParams: Promise<{ q?: string; page?: string }>;
 }) {
-  const admin = await requireAdmin();
+  const admin = await requireAdminPermission("manage_clients");
   const { q, page: pageParam } = await searchParams;
   const page = Math.max(Number(pageParam) || 1, 1);
 

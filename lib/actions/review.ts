@@ -200,6 +200,68 @@ export async function setBankAccountAction(
   });
 }
 
+/* -------------------------------------------------------------------------- */
+/*  Admin accounts — superadmin only                                          */
+/* -------------------------------------------------------------------------- */
+
+/** Creates a new admin account, scoped to the given sections, and emails an invitation. */
+export async function createAdminAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const name = String(formData.get("name") ?? "").trim();
+  const email = String(formData.get("email") ?? "").trim();
+  const permissions = formData.getAll("permissions").map(String);
+
+  if (!name || !email) {
+    return errorState("Enter a name and email address.", {
+      ...(name ? {} : { name: ["Required"] }),
+      ...(email ? {} : { email: ["Required"] }),
+    });
+  }
+
+  return apiMutation("/admin/admins", {
+    body: { name, email, permissions },
+  });
+}
+
+/** Replaces one admin's permission set wholesale. */
+export async function updateAdminPermissionsAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const userId = String(formData.get("userId") ?? "");
+  const permissions = formData.getAll("permissions").map(String);
+
+  if (!userId) return errorState("That admin could not be found.");
+
+  return apiMutation(`/admin/admins/${userId}/permissions`, {
+    method: "PUT",
+    body: { permissions },
+  });
+}
+
+/** Suspends or reactivates a delegated admin account. */
+export async function setAdminStatusAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const userId = String(formData.get("userId") ?? "");
+  const status = String(formData.get("status") ?? "");
+
+  if (!userId || (status !== "active" && status !== "suspended")) {
+    return errorState("That request was not valid.");
+  }
+
+  return apiMutation(`/admin/admins/${userId}/status`, {
+    body: { status },
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Contact messages                                                          */
+/* -------------------------------------------------------------------------- */
+
 /** Moves a contact message through new → in progress → closed. */
 export async function setContactStatusAction(
   _previous: FormState,

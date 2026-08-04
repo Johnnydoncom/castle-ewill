@@ -30,7 +30,8 @@ export function AuthShell({
           <div className="absolute inset-0">
             <Image
               src={plateImage}
-              alt=""
+              alt="Sign in to your account"
+              loading="eager"
               fill
               className="object-cover opacity-40"
               sizes="50vw"

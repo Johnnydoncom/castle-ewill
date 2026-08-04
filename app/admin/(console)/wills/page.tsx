@@ -11,6 +11,7 @@ import {
   willStatusTone,
 } from "@/components/admin/DataTable";
 import { listWills } from "@/lib/actions/admin";
+import { requireAdminPermission } from "@/lib/actions/guards";
 import { WILL_STATUS_LABELS } from "@/lib/will/reference";
 
 export const metadata: Metadata = {
@@ -41,6 +42,8 @@ export default async function AdminWillsPage({
 }: {
   searchParams: Promise<{ status?: string; page?: string }>;
 }) {
+  await requireAdminPermission("manage_wills");
+
   const { status, page: pageParam } = await searchParams;
   const page = Math.max(Number(pageParam) || 1, 1);
 

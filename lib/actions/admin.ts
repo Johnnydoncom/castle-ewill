@@ -255,22 +255,26 @@ export async function listPayments(options: {
   page?: number;
   perPage?: number;
 }): Promise<Paginated<AdminPaymentRow> & { success_kobo: number }> {
-  const result = await api<
-    Paginated<AdminPaymentRow> & { meta?: { success_kobo?: number } }
-  >("/admin/payments", {
-    query: {
-      status: options.status,
-      provider: options.provider,
-      page: options.page,
-      per_page: options.perPage,
+  const result = await api<{ data: Paginated<AdminPaymentRow>; success_kobo?: number }>(
+    "/admin/payments",
+    {
+      query: {
+        status: options.status,
+        provider: options.provider,
+        page: options.page,
+        per_page: options.perPage,
+      },
     },
-  });
+  );
 
   if (!result.ok) {
     return { ...emptyPage<AdminPaymentRow>(), success_kobo: 0 };
   }
 
-  return { ...result.data, success_kobo: result.data.meta?.success_kobo ?? 0 };
+  return {
+    ...result.data.data,
+    success_kobo: result.data.success_kobo ?? 0,
+  };
 }
 
 /* -------------------------------------------------------------------------- */
@@ -356,4 +360,30 @@ export async function listContactMessages(options: {
       },
     },
   );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Admin accounts — superadmin only                                          */
+/* -------------------------------------------------------------------------- */
+
+export type AdminAccountRow = {
+  admin: {
+    id: string;
+    name: string | null;
+    email: string;
+    status: "active" | "suspended" | "deleted";
+    created_at: string | null;
+  };
+  is_superadmin: boolean;
+  permissions: string[];
+};
+
+/**
+ * Every admin account. Not paginated — the client-facing `/admin/clients`
+ * list can grow without bound, but the number of staff with console access
+ * is small by nature, so a flat array matches what `AdminAccountController::index()`
+ * actually returns.
+ */
+export async function listAdmins(): Promise<AdminAccountRow[]> {
+  return apiData<AdminAccountRow[]>("/admin/admins", []);
 }

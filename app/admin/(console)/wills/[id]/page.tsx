@@ -3,7 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Download } from "lucide-react";
 
-import { requireAdmin } from "@/lib/actions/guards";
+import { requireAdminPermission } from "@/lib/actions/guards";
 import { getWillForReview } from "@/lib/actions/admin";
 import { WILL_STATUS_LABELS } from "@/lib/will/reference";
 import { PageHead } from "@/components/dashboard/PageHead";
@@ -25,7 +25,7 @@ export default async function AdminWillDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireAdmin();
+  await requireAdminPermission("manage_wills");
   const { id } = await params;
 
   /*

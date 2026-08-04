@@ -5,6 +5,7 @@ import { PageHead } from "@/components/dashboard/PageHead";
 import { Pagination, StatusBadge, formatDate } from "@/components/admin/DataTable";
 import { VerificationDecision } from "@/components/admin/VerificationDecision";
 import { listVerifications } from "@/lib/actions/admin";
+import { requireAdminPermission } from "@/lib/actions/guards";
 
 export const metadata: Metadata = {
   title: "Identity checks",
@@ -56,6 +57,8 @@ export default async function AdminVerificationsPage({
 }: {
   searchParams: Promise<{ status?: string; purpose?: string; page?: string }>;
 }) {
+  await requireAdminPermission("manage_verifications");
+
   const { status, purpose, page: pageParam } = await searchParams;
   const page = Math.max(Number(pageParam) || 1, 1);
   const active = status ?? "pending";
