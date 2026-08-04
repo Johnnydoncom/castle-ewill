@@ -29,6 +29,9 @@ export default async function KycPage() {
   const hasIdDocument = documents.some(
     (document) => document.kind === "identity_document",
   );
+  const hasPassportPhoto = documents.some(
+    (document) => document.kind === "passport_photograph",
+  );
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
@@ -62,6 +65,7 @@ export default async function KycPage() {
       ) : (
         <KycOnboarding
           hasIdDocument={hasIdDocument}
+          hasPassportPhoto={hasPassportPhoto}
           rejectionReason={
             verification.latest?.status === "failed" &&
             verification.latest.purpose === "kyc"

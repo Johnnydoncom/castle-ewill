@@ -200,6 +200,16 @@ export async function setBankAccountAction(
   });
 }
 
+export async function setVerificationProviderAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  return apiMutation("/admin/settings/verification-provider", {
+    method: "PUT",
+    body: { provider: String(formData.get("provider") ?? "") },
+  });
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Admin accounts — superadmin only                                          */
 /* -------------------------------------------------------------------------- */

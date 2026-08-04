@@ -14,13 +14,33 @@ export type LivenessChallenge = {
   prompt: string;
 };
 
-export async function startVerificationAction(): Promise<
+export type KycIdentity = {
+  legalFullName: string;
+  dateOfBirth: string;
+  idNumber: string;
+};
+
+/**
+ * `identity` is required by the backend only for a client's first-ever
+ * attempt (the `kyc`-purpose one) — every routine Will-submission recheck
+ * after that ignores it, so callers past onboarding can simply omit it.
+ */
+export async function startVerificationAction(identity?: KycIdentity): Promise<
   | { status: "error"; message: string }
   | { status: "success"; attemptId: string; challenges: LivenessChallenge[] }
 > {
   const result = await api<{
     data: { attempt_id: string; challenges: LivenessChallenge[] };
-  }>("/verification/start", { method: "POST" });
+  }>("/verification/start", {
+    method: "POST",
+    body: identity
+      ? {
+          legal_full_name: identity.legalFullName,
+          date_of_birth: identity.dateOfBirth,
+          id_number: identity.idNumber,
+        }
+      : undefined,
+  });
 
   if (!result.ok) {
     return { status: "error", message: result.message };

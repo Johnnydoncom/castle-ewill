@@ -4,7 +4,8 @@ import { CheckCircle2, XCircle } from "lucide-react";
 import { PageHead } from "@/components/dashboard/PageHead";
 import { StatusBadge } from "@/components/admin/DataTable";
 import { BankAccountForm } from "@/components/admin/BankAccountForm";
-import { getAdminHealth } from "@/lib/actions/admin";
+import { VerificationProviderForm } from "@/components/admin/VerificationProviderForm";
+import { getAdminHealth, getActiveVerificationProvider } from "@/lib/actions/admin";
 import { requireAdminPermission } from "@/lib/actions/guards";
 import { COMPANY } from "@/lib/company";
 
@@ -25,7 +26,10 @@ export const dynamic = "force-dynamic";
 export default async function AdminSettingsPage() {
   await requireAdminPermission("manage_settings");
 
-  const { checks, bank_account: bank } = await getAdminHealth();
+  const [{ checks, bank_account: bank }, activeProvider] = await Promise.all([
+    getAdminHealth(),
+    getActiveVerificationProvider(),
+  ]);
 
   return (
     <div className="space-y-10">
@@ -107,6 +111,18 @@ export default async function AdminSettingsPage() {
 
         <div className="border border-border bg-background p-6 sm:p-8">
           <BankAccountForm account={bank} />
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="font-serif text-xl text-navy">Identity verification</h2>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Which vendor runs the automated leg of every KYC and Will-submission
+          check.
+        </p>
+
+        <div className="border border-border bg-background p-6 sm:p-8">
+          <VerificationProviderForm current={activeProvider} />
         </div>
       </section>
     </div>

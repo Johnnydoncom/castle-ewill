@@ -140,6 +140,18 @@ export async function getAdminHealth(): Promise<AdminHealth> {
   });
 }
 
+export type VerificationProviderName = "dojah" | "smile_id" | "manual_review";
+
+/** Which KYC vendor is currently live — see `Setting::activeVerificationProvider()`. */
+export async function getActiveVerificationProvider(): Promise<VerificationProviderName> {
+  const { provider } = await apiData<{ provider: VerificationProviderName }>(
+    "/admin/settings/verification-provider",
+    { provider: "manual_review" },
+  );
+
+  return provider;
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Wills                                                                      */
 /* -------------------------------------------------------------------------- */
