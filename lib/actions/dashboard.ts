@@ -44,6 +44,7 @@ export type DashboardData = {
   account: {
     is_email_verified: boolean;
     is_phone_verified: boolean;
+    is_kyc_verified: boolean;
     two_factor_enabled: boolean;
     /** 0–100, computed server-side from the same record described above. */
     profile_completion: number;
@@ -61,6 +62,7 @@ const empty: DashboardData = {
   account: {
     is_email_verified: false,
     is_phone_verified: false,
+    is_kyc_verified: false,
     two_factor_enabled: false,
     profile_completion: 0,
   },

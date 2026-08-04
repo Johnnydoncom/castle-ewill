@@ -1,6 +1,12 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowRight, Download, FileText, ShieldCheck } from "lucide-react";
+import {
+  ArrowRight,
+  Download,
+  FileText,
+  ShieldAlert,
+  ShieldCheck,
+} from "lucide-react";
 
 import { requireUser } from "@/lib/actions/guards";
 import { getDashboardData } from "@/lib/actions/dashboard";
@@ -47,6 +53,20 @@ export default async function DashboardPage({
   return (
     <div className="space-y-10">
       <PaymentBanner outcome={paymentOutcome} />
+
+      {!data.account.is_kyc_verified && (
+        <Link
+          href="/dashboard/kyc"
+          className="flex items-start gap-3 border-l-2 border-gold bg-gold/5 px-5 py-4 text-sm text-navy transition-colors hover:bg-gold/10"
+        >
+          <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+          <span className="leading-relaxed">
+            <span className="font-medium">Verify your identity</span> to start
+            your Will — a one-time check, usually done in a few minutes.
+          </span>
+          <ArrowRight className="ml-auto mt-0.5 h-4 w-4 shrink-0" />
+        </Link>
+      )}
 
       <PageHead
         kicker="Overview"

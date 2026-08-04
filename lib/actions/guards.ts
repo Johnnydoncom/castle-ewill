@@ -30,6 +30,7 @@ export type Profile = {
   status: "active" | "suspended" | "deleted";
   is_email_verified: boolean;
   is_phone_verified: boolean;
+  is_kyc_verified: boolean;
   two_factor_enabled: boolean;
   created_at: string | null;
   last_login_at?: string | null;

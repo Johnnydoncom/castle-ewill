@@ -33,6 +33,17 @@ const FILTERS = [
   { value: "all", label: "All" },
 ] as const;
 
+const PURPOSE_FILTERS = [
+  { value: "all", label: "All" },
+  { value: "kyc", label: "KYC" },
+  { value: "will_submission", label: "Will submission" },
+] as const;
+
+const PURPOSE_LABELS: Record<string, string> = {
+  kyc: "KYC",
+  will_submission: "Will submission",
+};
+
 function statusTone(status: string): "success" | "warn" | "danger" | "neutral" {
   if (status === "passed") return "success";
   if (status === "pending") return "warn";
@@ -43,16 +54,18 @@ function statusTone(status: string): "success" | "warn" | "danger" | "neutral" {
 export default async function AdminVerificationsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ status?: string; page?: string }>;
+  searchParams: Promise<{ status?: string; purpose?: string; page?: string }>;
 }) {
-  const { status, page: pageParam } = await searchParams;
+  const { status, purpose, page: pageParam } = await searchParams;
   const page = Math.max(Number(pageParam) || 1, 1);
   const active = status ?? "pending";
+  const activePurpose = purpose ?? "all";
 
   // `"all"` is sent explicitly. Omitting the parameter means "the queue" to the
   // API, which is the right default but the wrong answer for this filter.
   const { data: rows, total } = await listVerifications({
     status: active,
+    purpose: activePurpose,
     page,
     perPage: PER_PAGE,
   });
@@ -66,23 +79,49 @@ export default async function AdminVerificationsPage({
       />
 
       <nav className="flex flex-wrap gap-2" aria-label="Filter by outcome">
-        {FILTERS.map((filter) => (
-          <Link
-            key={filter.value}
-            href={
-              filter.value === "pending"
-                ? "/admin/verifications"
-                : `/admin/verifications?status=${filter.value}`
-            }
-            className={`border px-4 py-1.5 text-xs uppercase tracking-[0.15em] transition-colors ${
-              active === filter.value
-                ? "border-navy bg-navy text-navy-foreground"
-                : "border-border text-muted-foreground hover:border-gold hover:text-gold"
-            }`}
-          >
-            {filter.label}
-          </Link>
-        ))}
+        {FILTERS.map((filter) => {
+          const params = new URLSearchParams();
+          if (filter.value !== "pending") params.set("status", filter.value);
+          if (activePurpose !== "all") params.set("purpose", activePurpose);
+          const query = params.toString();
+
+          return (
+            <Link
+              key={filter.value}
+              href={query ? `/admin/verifications?${query}` : "/admin/verifications"}
+              className={`border px-4 py-1.5 text-xs uppercase tracking-[0.15em] transition-colors ${
+                active === filter.value
+                  ? "border-navy bg-navy text-navy-foreground"
+                  : "border-border text-muted-foreground hover:border-gold hover:text-gold"
+              }`}
+            >
+              {filter.label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      <nav className="flex flex-wrap gap-2" aria-label="Filter by purpose">
+        {PURPOSE_FILTERS.map((filter) => {
+          const params = new URLSearchParams();
+          if (active !== "pending") params.set("status", active);
+          if (filter.value !== "all") params.set("purpose", filter.value);
+          const query = params.toString();
+
+          return (
+            <Link
+              key={filter.value}
+              href={query ? `/admin/verifications?${query}` : "/admin/verifications"}
+              className={`border px-4 py-1.5 text-xs uppercase tracking-[0.15em] transition-colors ${
+                activePurpose === filter.value
+                  ? "border-gold bg-gold/10 text-navy"
+                  : "border-border text-muted-foreground hover:border-gold hover:text-gold"
+              }`}
+            >
+              {filter.label}
+            </Link>
+          );
+        })}
       </nav>
 
       {rows.length === 0 ? (
@@ -144,10 +183,15 @@ export default async function AdminVerificationsPage({
                   </p>
                 </div>
 
-                <StatusBadge
-                  label={verification.status}
-                  tone={statusTone(verification.status)}
-                />
+                <div className="flex shrink-0 flex-col items-end gap-1.5">
+                  <StatusBadge
+                    label={verification.status}
+                    tone={statusTone(verification.status)}
+                  />
+                  <span className="border border-border px-2 py-0.5 text-[10px] uppercase tracking-[0.15em] text-muted-foreground">
+                    {PURPOSE_LABELS[verification.purpose] ?? verification.purpose}
+                  </span>
+                </div>
               </div>
 
               {verification.status === "pending" && (
@@ -170,7 +214,7 @@ export default async function AdminVerificationsPage({
         perPage={PER_PAGE}
         total={total}
         basePath="/admin/verifications"
-        extraParams={{ status }}
+        extraParams={{ status, purpose }}
       />
 
       <section className="border-l-2 border-gold/40 bg-gold/5 px-6 py-5">

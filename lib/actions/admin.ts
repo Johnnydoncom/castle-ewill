@@ -282,6 +282,8 @@ export type AdminVerificationRow = {
     id: string;
     status: "pending" | "passed" | "failed" | "expired";
     provider: string;
+    /** `kyc` gates starting a Will; `will_submission` is the lighter per-submission recheck. */
+    purpose: "kyc" | "will_submission";
     challenges: string[] | null;
     completed_challenges: string[] | null;
     failure_reason: string | null;
@@ -303,6 +305,7 @@ export type AdminVerificationRow = {
 
 export async function listVerifications(options: {
   status?: string;
+  purpose?: string;
   page?: number;
   perPage?: number;
 } = {}): Promise<Paginated<AdminVerificationRow>> {
@@ -312,6 +315,7 @@ export async function listVerifications(options: {
     {
       query: {
         status: options.status,
+        purpose: options.purpose,
         page: options.page,
         per_page: options.perPage,
       },

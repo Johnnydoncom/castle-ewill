@@ -5,6 +5,7 @@ import { Download, FileText } from "lucide-react";
 
 import { getVerificationStatus } from "@/lib/actions/verification";
 import { LivenessCheck } from "@/components/verification/LivenessCheck";
+import { getProfile } from "@/lib/actions/guards";
 import { getOrCreateDraft } from "@/lib/actions/will";
 import {
   applicableSteps,
@@ -43,6 +44,16 @@ export default async function WillBuilderPage({
   searchParams: Promise<{ step?: string }>;
 }) {
   const { step: stepParam } = await searchParams;
+
+  /*
+   * Frontend convenience only — the actual gate is the `kyc.verified`
+   * middleware on the backend's `wills` route group. This just avoids
+   * rendering the wizard for a moment before the API refuses it.
+   */
+  const profile = await getProfile();
+  if (!profile?.is_kyc_verified) {
+    redirect("/dashboard/kyc");
+  }
 
   // Scoped to the caller by the API. Returns the active draft, creating one on
   // first visit, with every child collection and the computed progress.

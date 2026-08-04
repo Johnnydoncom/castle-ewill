@@ -20,6 +20,8 @@ export type VerificationRecord = {
   id: string;
   status: "pending" | "passed" | "failed" | "expired";
   provider: string;
+  /** `kyc` gates starting a Will; `will_submission` is the lighter per-submission recheck. */
+  purpose: "kyc" | "will_submission";
   challenges: string[] | null;
   completed_challenges: string[] | null;
   failure_reason: string | null;

@@ -40,8 +40,14 @@ type Phase = "idle" | "loading" | "running" | "submitting" | "done" | "error";
 
 export function LivenessCheck({
   onVerified,
+  title = "Identity check",
+  description = "Before your Will can be submitted we need to confirm it is really you. You will be asked to perform a few short movements on camera.",
+  footerNote = "The image captured is encrypted and stored in your vault. It is used only to confirm your identity against the ID document you uploaded.",
 }: {
   onVerified?: () => void;
+  title?: string;
+  description?: string;
+  footerNote?: string;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -230,10 +236,9 @@ export function LivenessCheck({
       <div className="flex items-start gap-3">
         <Camera className="mt-0.5 h-5 w-5 shrink-0 text-gold" />
         <div className="min-w-0 flex-1">
-          <h2 className="font-serif text-xl text-navy">Identity check</h2>
+          <h2 className="font-serif text-xl text-navy">{title}</h2>
           <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Before your Will can be submitted we need to confirm it is really
-            you. You will be asked to perform a few short movements on camera.
+            {description}
           </p>
 
           <div className="mt-6 grid gap-6 sm:grid-cols-[280px_1fr]">
@@ -332,8 +337,7 @@ export function LivenessCheck({
           </div>
 
           <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
-            The image captured is encrypted and stored in your vault. It is used
-            only to confirm your identity against the ID document you uploaded.
+            {footerNote}
           </p>
         </div>
       </div>
