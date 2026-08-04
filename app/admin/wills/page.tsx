@@ -20,8 +20,15 @@ export const metadata: Metadata = {
 
 const PER_PAGE = 25;
 
+/*
+ * `"all"` rather than an empty string.
+ *
+ * The API's default — no `status` at all — is the outstanding *queue*, which is
+ * what the review screen should open on. This page is the archive, so it asks
+ * for everything explicitly.
+ */
 const FILTERS = [
-  { value: "", label: "All" },
+  { value: "all", label: "All" },
   { value: "draft", label: "Draft" },
   { value: "submitted", label: "Submitted" },
   { value: "under_review", label: "Under review" },
@@ -37,24 +44,30 @@ export default async function AdminWillsPage({
   const { status, page: pageParam } = await searchParams;
   const page = Math.max(Number(pageParam) || 1, 1);
 
-  const { rows, total } = await listWills({ status, page, perPage: PER_PAGE });
+  const { data: rows, total } = await listWills({
+    status: (status as Parameters<typeof listWills>[0]["status"]) ?? "all",
+    page,
+    perPage: PER_PAGE,
+  });
 
   return (
     <div className="space-y-8">
       <PageHead
-        kicker="Registry · Section III"
+        kicker="Registry · Wills"
         title="Wills"
         blurb="Every document on the platform, from first draft to executed instrument."
       />
 
       <nav className="flex flex-wrap gap-2" aria-label="Filter by status">
         {FILTERS.map((filter) => {
-          const active = (status ?? "") === filter.value;
+          const active = (status ?? "all") === filter.value;
           return (
             <Link
               key={filter.label}
               href={
-                filter.value ? `/admin/wills?status=${filter.value}` : "/admin/wills"
+                filter.value === "all"
+                  ? "/admin/wills"
+                  : `/admin/wills?status=${filter.value}`
               }
               className={`border px-4 py-1.5 text-xs uppercase tracking-[0.15em] transition-colors ${
                 active
@@ -73,7 +86,7 @@ export default async function AdminWillsPage({
         isEmpty={rows.length === 0}
         empty="No Wills match this filter."
       >
-        {rows.map(({ will, clientName, clientEmail }) => (
+        {rows.map(({ will, client }) => (
           <tr key={will.id}>
             <Cell>
               <Link
@@ -84,9 +97,9 @@ export default async function AdminWillsPage({
               </Link>
             </Cell>
             <Cell>
-              <span className="font-medium">{clientName ?? "—"}</span>
+              <span className="font-medium">{client.name ?? "—"}</span>
               <span className="block text-xs text-muted-foreground">
-                {clientEmail}
+                {client.email}
               </span>
             </Cell>
             <Cell>
@@ -100,16 +113,16 @@ export default async function AdminWillsPage({
                 <span className="h-1 w-16 bg-border">
                   <span
                     className="block h-full bg-gold"
-                    style={{ width: `${will.completionPercent}%` }}
+                    style={{ width: `${will.completion_percent}%` }}
                   />
                 </span>
-                {will.completionPercent}%
+                {will.completion_percent}%
               </span>
             </Cell>
-            <Cell muted>{formatDate(will.updatedAt)}</Cell>
+            <Cell muted>{formatDate(will.updated_at)}</Cell>
             <Cell>
               <Link
-                href={`/api/wills/${will.id}/pdf`}
+                href={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${will.id}/pdf`}
                 className="text-xs uppercase tracking-wider text-navy underline underline-offset-4 hover:text-gold"
               >
                 PDF

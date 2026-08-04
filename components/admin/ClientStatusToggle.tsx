@@ -1,10 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
-
+import { useFormAction } from "@/hooks/use-api-form";
 import { setClientStatusAction } from "@/lib/actions/review";
-import { idleState } from "@/lib/actions/state";
+
+import { useFormStatus } from "react-dom";
 
 function Submit({ suspended }: { suspended: boolean }) {
   const { pending } = useFormStatus();
@@ -35,7 +34,7 @@ export function ClientStatusToggle({
   isSelf: boolean;
   isAdmin: boolean;
 }) {
-  const [state, action] = useActionState(setClientStatusAction, idleState);
+  const [state, action] = useFormAction(setClientStatusAction);
 
   // The server refuses both cases too; hiding the control avoids offering an
   // action that can only fail.

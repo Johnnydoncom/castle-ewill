@@ -1,16 +1,14 @@
 "use client";
 
-import { useActionState } from "react";
-
+import { useFormAction } from "@/hooks/use-api-form";
 import { requestPasswordResetAction } from "@/lib/actions/auth";
-import { idleState } from "@/lib/actions/state";
 import { Field, FormBanner, SubmitButton } from "./FormControls";
 
 export function ForgotPasswordForm() {
-  const [state, action] = useActionState(
-    requestPasswordResetAction,
-    idleState,
-  );
+  // Nothing on this page reflects server state, so skip the RSC refresh.
+  const [state, action] = useFormAction(requestPasswordResetAction, {
+    refresh: false,
+  });
 
   return (
     <form action={action} className="space-y-6" noValidate>

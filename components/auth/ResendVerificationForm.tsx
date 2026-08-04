@@ -1,9 +1,7 @@
 "use client";
 
-import { useActionState } from "react";
-
+import { useFormAction } from "@/hooks/use-api-form";
 import { resendVerificationAction } from "@/lib/actions/auth";
-import { idleState } from "@/lib/actions/state";
 import { Field, FormBanner, SubmitButton } from "./FormControls";
 
 export function ResendVerificationForm({
@@ -11,7 +9,9 @@ export function ResendVerificationForm({
 }: {
   defaultEmail?: string;
 }) {
-  const [state, action] = useActionState(resendVerificationAction, idleState);
+  const [state, action] = useFormAction(resendVerificationAction, {
+    refresh: false,
+  });
 
   return (
     <form action={action} className="space-y-6" noValidate>

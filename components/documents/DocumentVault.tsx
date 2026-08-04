@@ -1,14 +1,11 @@
 "use client";
 
-import { useActionState, useRef, useState } from "react";
+import { useFormAction } from "@/hooks/use-api-form";
+import { useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
 import { AlertCircle, CheckCircle2, Download, Trash2, Upload } from "lucide-react";
 
-import {
-  deleteDocumentAction,
-  uploadDocumentAction,
-} from "@/lib/actions/documents";
-import { idleState, type FormState } from "@/lib/actions/state";
+import { type FormState } from "@/lib/actions/state";
 import {
   ACCEPT_ATTRIBUTE,
   DOCUMENT_KIND_LABELS,
@@ -17,7 +14,11 @@ import {
   describeFileProblem,
   formatBytes,
 } from "@/lib/documents";
-import type { DocumentRecord } from "@/lib/db/schema";
+import { type VaultDocument } from "@/lib/actions/documents";
+import {
+  uploadDocumentAction,
+  deleteDocumentAction,
+} from "@/lib/actions/documents.client";
 
 function Banner({ state }: { state: FormState }) {
   if (state.status === "idle" || !state.message) return null;
@@ -65,7 +66,7 @@ function UploadButton({ disabled }: { disabled: boolean }) {
 }
 
 function UploadForm() {
-  const [state, action] = useActionState(uploadDocumentAction, idleState);
+  const [state, action] = useFormAction(uploadDocumentAction);
   const [clientError, setClientError] = useState<string | null>(null);
   const [selected, setSelected] = useState<File | null>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -180,37 +181,73 @@ function DeleteButton() {
   );
 }
 
-function DocumentRow({ record }: { record: DocumentRecord }) {
-  const [state, action] = useActionState(deleteDocumentAction, idleState);
+function DocumentRow({ record }: { record: VaultDocument }) {
+  const [state, action] = useFormAction(deleteDocumentAction);
 
   return (
     <li className="grid gap-3 px-5 py-4 sm:flex sm:items-center sm:justify-between">
       <div className="min-w-0">
         <p className="truncate text-sm font-medium text-navy">
-          {record.fileName}
+          {record.file_name}
         </p>
         <p className="mt-0.5 text-[11px] uppercase tracking-[0.18em] text-muted-foreground">
           {DOCUMENT_KIND_LABELS[record.kind] ?? record.kind} &middot;{" "}
-          {formatBytes(record.sizeBytes)} &middot;{" "}
-          {record.createdAt.toLocaleDateString("en-GB", {
+          {formatBytes(record.size_bytes)} &middot;{" "}
+          {new Date(record.created_at).toLocaleDateString("en-GB", {
             day: "numeric",
             month: "short",
             year: "numeric",
           })}
         </p>
+        {record.document_number && (
+          <p className="mt-1 font-mono text-[11px] tracking-wider text-muted-foreground">
+            {record.document_number}
+            {record.version && record.version > 1 ? ` · v${record.version}` : ""}
+          </p>
+        )}
+        {record.revisions && record.revisions.length > 0 && (
+          <details className="mt-1.5">
+            <summary className="cursor-pointer text-xs text-navy underline underline-offset-4">
+              {record.revisions.length} previous version
+              {record.revisions.length > 1 ? "s" : ""}
+            </summary>
+            <ul className="mt-1.5 space-y-1">
+              {[...record.revisions].reverse().map((revision) => (
+                <li
+                  key={revision.version}
+                  className="text-[11px] text-muted-foreground"
+                >
+                  v{revision.version} &middot; {revision.file_name} &middot;{" "}
+                  {formatBytes(revision.size_bytes)}
+                  {revision.superseded_at && (
+                    <>
+                      {" "}
+                      &middot;{" "}
+                      {new Date(revision.superseded_at).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })}
+                    </>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </details>
+        )}
         {state.status === "error" && state.message && (
           <p className="mt-1 text-xs text-destructive">{state.message}</p>
         )}
       </div>
 
       <div className="flex shrink-0 items-center gap-4">
-        {record.isEncrypted && (
+        {record.is_encrypted && (
           <span className="hidden border border-border px-2.5 py-0.5 text-[10px] uppercase tracking-[0.15em] text-muted-foreground sm:inline-block">
             Encrypted
           </span>
         )}
         <a
-          href={`/api/documents/${record.id}`}
+          href={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/documents/${record.id}/download`}
           className="inline-flex items-center gap-1.5 text-xs text-navy underline underline-offset-4 transition-colors hover:text-gold"
         >
           <Download className="h-3.5 w-3.5" />
@@ -225,7 +262,7 @@ function DocumentRow({ record }: { record: DocumentRecord }) {
   );
 }
 
-export function DocumentVault({ records }: { records: DocumentRecord[] }) {
+export function DocumentVault({ records }: { records: VaultDocument[] }) {
   return (
     <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr] lg:gap-10">
       <section className="space-y-4">

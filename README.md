@@ -237,21 +237,35 @@ assert pagination, so the layout engine is exercised, not just typechecked.
 
 **Not yet done**
 
+- **Assets are unwired.** The `assets` table and `assetSchema` exist but no
+  wizard step, action or PDF clause imports them, so "Do you own land / shares /
+  digital assets?" from the brief is unanswered.
+- **Trustees.** "Appoint trustees" appears in the brief's dashboard list; only
+  marketing copy references it.
+- **Scheduled review reminders.** The 12-month / marriage / birth / property
+  triggers are rendered as guidance, but nothing schedules them — there is no
+  job runner in the project.
+- **Admin queue for `manual_review` face verifications.** Records and captures
+  exist; there is no approve/reject screen.
+
 
 
 ## Verification
 
-`npm run typecheck` and `npm run lint` pass clean across the whole project.
+All four gates pass locally (Windows, Node 22, Next 16.2.12):
 
-**Please run `npm test` and `npm run build` locally before deploying.** Neither
-could be completed in the environment this was authored in: the sandbox raises
-SIGBUS when memory-mapping Next's 91 MB SWC binary, and its Vitest install began
-core-dumping on even a trivial `expect(1 + 1).toBe(2)`. Both are native-binary
-failures in that sandbox rather than faults in this code — the test suite ran
-green there earlier in the same session. The Paystack signature logic added
-after Vitest broke was verified by executing the same HMAC comparison directly
-in Node against all six cases the test file asserts.
+| Gate                | Result                        |
+| ------------------- | ----------------------------- |
+| `npm run typecheck` | clean                         |
+| `npm run lint`      | 0 errors, 6 warnings          |
+| `npm test`          | 112 passing across 10 files   |
+| `npm run build`     | succeeds — 20 static, 18 dynamic routes |
 
-`npm run build` could not be executed in the environment this was authored in —
-the sandbox raises SIGBUS when memory-mapping Next's 91 MB SWC binary, while
-other native modules load fine. **Run `npm run build` locally before deploying.**
+The seed has been run against a live MySQL database and re-run to confirm it is
+idempotent. `/pricing` and `/blog` were verified to render seeded rows, and
+`/dashboard` and `/admin` to redirect anonymous visitors to `/login`.
+
+The first successful build exposed two faults that `tsc` and Vitest cannot see,
+both since fixed and documented in `CLAUDE.md`: a `server-only` module reached a
+client bundle through a shared helper, and database-backed pages were being
+prerendered at build time.

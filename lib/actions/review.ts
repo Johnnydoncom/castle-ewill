@@ -1,340 +1,218 @@
-"use server";
-
-import { eq } from "drizzle-orm";
-import { revalidatePath } from "next/cache";
-import { z } from "zod";
-
-import { db } from "@/lib/db";
-import { notifications, users, wills } from "@/lib/db/schema";
-import { newId } from "@/lib/ids";
-import { getEnv } from "@/lib/env";
-import { recordAudit } from "@/lib/security/audit";
-import { sendMail } from "@/lib/mail/mailer";
-import {
-  willApprovedTemplate,
-  willChangesRequestedTemplate,
-} from "@/lib/mail/templates";
-import { getFullWill, recordRevision } from "@/lib/will/repository";
-import { requireAdmin } from "./guards";
-import {
-  errorState,
-  successState,
-  zodFieldErrors,
-  type FormState,
-} from "./state";
+import { apiMutation } from "@/lib/api/browser";
+import { errorState, type FormState } from "./state";
 
 /**
- * Administrative transitions on a submitted Will.
+ * Administrative transitions on a Will, delegated to the API.
  *
- * Every action re-asserts `requireAdmin()` rather than trusting that the caller
- * arrived from an admin page — a server action is a public endpoint.
+ * The state machine and its guards live in the backend
+ * (`App\Services\Will\WillReviewService`), which is where they have to be: a
+ * reviewer is a signed-in user like any other, and "only an approved Will may
+ * be marked executed" is a rule about the record, not about the screen.
+ *
+ * The backend also refuses an administrator reviewing their own Will. That is
+ * enforced by a policy, not by hiding a button here.
  */
 
-/** Loads the Will plus its owner. Admin scope, so ownership is not filtered. */
-async function loadForReview(willId: string) {
-  const will = await getFullWill(willId, null);
-  if (!will) return null;
+async function act(
+  willId: string,
+  action: "start-review" | "approve" | "request-changes" | "mark-executed",
+  body?: Record<string, unknown>,
+): Promise<FormState> {
+  if (!willId) return errorState("That Will could not be found.");
 
-  const [owner] = await db
-    .select({ id: users.id, name: users.name, email: users.email })
-    .from(users)
-    .where(eq(users.id, will.userId))
-    .limit(1);
-
-  return owner ? { will, owner } : null;
-}
-
-async function notify(
-  userId: string,
-  title: string,
-  body: string,
-  href: string,
-): Promise<void> {
-  await db.insert(notifications).values({
-    id: newId(),
-    userId,
-    type: "will_review",
-    title,
+  const state = await apiMutation(`/admin/wills/${willId}/${action}`, {
     body,
-    href,
+    onError: (result) => ({
+      status: "error",
+      /*
+       * An illegal transition comes back as 422 with copy the reviewer can act
+       * on — "This Will is still a draft and has not been submitted for
+       * review." Passed through rather than restated, so there is one wording
+       * of each rule.
+       *
+       * A 404 means either no such Will or one the caller may not review; the
+       * two are deliberately indistinguishable.
+       */
+      message:
+        result.status === 404
+          ? "That Will could not be found."
+          : Object.values(result.fieldErrors ?? {})[0]?.[0] ?? result.message,
+      fieldErrors: result.fieldErrors,
+    }),
   });
+
+  return state;
 }
 
-/* -------------------------------------------------------------------------- */
-/*  Approve                                                                    */
-/* -------------------------------------------------------------------------- */
+export async function startReviewAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  return act(String(formData.get("willId") ?? ""), "start-review");
+}
 
 export async function approveWillAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const admin = await requireAdmin();
-  const willId = String(formData.get("willId") ?? "");
-
-  const loaded = await loadForReview(willId);
-  if (!loaded) return errorState("That Will could not be found.");
-
-  const { will, owner } = loaded;
-
-  if (will.status === "approved" || will.status === "executed") {
-    return successState("This Will has already been approved.");
-  }
-
-  if (will.status === "draft") {
-    return errorState(
-      "This Will is still a draft and has not been submitted for review.",
-    );
-  }
-
-  await db
-    .update(wills)
-    .set({ status: "approved", approvedAt: new Date() })
-    .where(eq(wills.id, will.id));
-
-  await recordRevision(will.id, admin.id, "Approved by reviewer");
-
-  const url = `${getEnv().APP_URL}/dashboard/will`;
-
-  await notify(
-    owner.id,
-    "Your Will has been approved",
-    `Will ${will.reference} has completed review and is ready to download and sign.`,
-    "/dashboard/will",
-  );
-
-  // A mail failure must not roll back an approval that is already recorded.
-  try {
-    await sendMail({
-      to: owner.email,
-      ...willApprovedTemplate(owner.name ?? "there", will.reference, url),
-    });
-  } catch (error) {
-    console.error("[review] approval email failed", error);
-  }
-
-  await recordAudit({
-    userId: admin.id,
-    action: "will.approved",
-    entityType: "will",
-    entityId: will.id,
-    metadata: { reference: will.reference },
-  });
-
-  revalidatePath("/admin");
-  revalidatePath("/admin/wills");
-  revalidatePath(`/admin/wills/${will.id}`);
-
-  return successState(`${will.reference} approved.`);
+  return act(String(formData.get("willId") ?? ""), "approve");
 }
-
-/* -------------------------------------------------------------------------- */
-/*  Request changes                                                            */
-/* -------------------------------------------------------------------------- */
-
-const changesSchema = z.object({
-  reason: z
-    .string()
-    .trim()
-    .min(10, "Explain what needs to change, in at least a sentence")
-    .max(2000),
-});
 
 export async function requestChangesAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const admin = await requireAdmin();
-  const willId = String(formData.get("willId") ?? "");
+  const reason = String(formData.get("reason") ?? "").trim();
 
-  const parsed = changesSchema.safeParse({ reason: formData.get("reason") });
-  if (!parsed.success) {
-    return errorState(
-      "Tell the client what needs to change.",
-      zodFieldErrors(parsed.error.issues),
-    );
-  }
-
-  const loaded = await loadForReview(willId);
-  if (!loaded) return errorState("That Will could not be found.");
-
-  const { will, owner } = loaded;
-
-  if (will.status === "draft") {
-    return errorState("This Will is already back with the client.");
-  }
-
-  // Returning to draft re-opens the wizard. The version is incremented so the
-  // next submission is recorded as a distinct revision rather than overwriting.
-  await db
-    .update(wills)
-    .set({
-      status: "draft",
-      version: will.version + 1,
-      confirmedAccurate: false,
-      submittedAt: null,
-    })
-    .where(eq(wills.id, will.id));
-
-  await recordRevision(
-    will.id,
-    admin.id,
-    `Changes requested: ${parsed.data.reason.slice(0, 200)}`,
-  );
-
-  const url = `${getEnv().APP_URL}/dashboard/will`;
-
-  await notify(
-    owner.id,
-    "Changes requested on your Will",
-    parsed.data.reason,
-    "/dashboard/will",
-  );
-
-  try {
-    await sendMail({
-      to: owner.email,
-      ...willChangesRequestedTemplate(
-        owner.name ?? "there",
-        will.reference,
-        parsed.data.reason,
-        url,
-      ),
+  // Checked here for an immediate inline message; the backend enforces the
+  // same minimum, and its verdict is the one that counts.
+  if (reason.length < 10) {
+    return errorState("Tell the client what needs to change.", {
+      reason: ["Explain what needs to change, in at least a sentence"],
     });
-  } catch (error) {
-    console.error("[review] changes-requested email failed", error);
   }
 
-  await recordAudit({
-    userId: admin.id,
-    action: "will.changes_requested",
-    entityType: "will",
-    entityId: will.id,
-    metadata: { reference: will.reference, reason: parsed.data.reason },
-  });
-
-  revalidatePath("/admin");
-  revalidatePath("/admin/wills");
-  revalidatePath(`/admin/wills/${will.id}`);
-
-  return successState(`Changes requested on ${will.reference}.`);
+  return act(String(formData.get("willId") ?? ""), "request-changes", { reason });
 }
-
-/* -------------------------------------------------------------------------- */
-/*  Mark executed                                                              */
-/* -------------------------------------------------------------------------- */
 
 export async function markExecutedAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const admin = await requireAdmin();
-  const willId = String(formData.get("willId") ?? "");
-
-  const loaded = await loadForReview(willId);
-  if (!loaded) return errorState("That Will could not be found.");
-
-  const { will, owner } = loaded;
-
-  // "Executed" means signed and witnessed, which can only follow approval.
-  if (will.status !== "approved") {
-    return errorState(
-      "Only an approved Will can be marked as executed. Approve it first.",
-    );
-  }
-
-  await db
-    .update(wills)
-    .set({ status: "executed" })
-    .where(eq(wills.id, will.id));
-
-  await recordRevision(will.id, admin.id, "Marked as executed");
-
-  await notify(
-    owner.id,
-    "Your Will has been recorded as executed",
-    `Will ${will.reference} is now recorded as signed and witnessed.`,
-    "/dashboard/will",
-  );
-
-  await recordAudit({
-    userId: admin.id,
-    action: "will.executed",
-    entityType: "will",
-    entityId: will.id,
-    metadata: { reference: will.reference },
-  });
-
-  revalidatePath("/admin/wills");
-  revalidatePath(`/admin/wills/${will.id}`);
-
-  return successState(`${will.reference} marked as executed.`);
+  return act(String(formData.get("willId") ?? ""), "mark-executed");
 }
 
 /* -------------------------------------------------------------------------- */
 /*  Client status                                                              */
 /* -------------------------------------------------------------------------- */
 
-const statusSchema = z.object({
-  userId: z.string().min(1),
-  status: z.enum(["active", "suspended"]),
-});
-
 export async function setClientStatusAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const admin = await requireAdmin();
+  const userId = String(formData.get("userId") ?? "");
+  const status = String(formData.get("status") ?? "");
 
-  const parsed = statusSchema.safeParse({
-    userId: formData.get("userId"),
-    status: formData.get("status"),
-  });
-  if (!parsed.success) return errorState("That request was not valid.");
-
-  // An administrator locking themselves out is an easy accident to prevent.
-  if (parsed.data.userId === admin.id) {
-    return errorState("You cannot change the status of your own account.");
+  if (!userId || (status !== "active" && status !== "suspended")) {
+    return errorState("That request was not valid.");
   }
 
-  const [target] = await db
-    .select({ id: users.id, email: users.email, role: users.role })
-    .from(users)
-    .where(eq(users.id, parsed.data.userId))
-    .limit(1);
+  /*
+   * The two refusals that matter — an administrator suspending themselves, and
+   * suspending another administrator — are enforced in the backend, not here.
+   * Both are foreseeable accidents rather than attacks, and both would lock the
+   * registry out of its own console.
+   */
+  return apiMutation(`/admin/clients/${userId}/status`, {
+    body: { status },
+  });
+}
 
-  if (!target) return errorState("That client could not be found.");
+/* -------------------------------------------------------------------------- */
+/*  Verification queue                                                         */
+/* -------------------------------------------------------------------------- */
 
-  if (target.role === "admin") {
-    return errorState(
-      "Administrator accounts cannot be suspended from this screen.",
-    );
+/**
+ * Records a human decision on a pending liveness attempt.
+ *
+ * This is the screen that makes `VERIFICATION_PROVIDER=manual_review` honest
+ * rather than a euphemism for "not checked". A rejection requires a reason, so
+ * the client is told what to fix rather than simply refused.
+ */
+export async function decideVerificationAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const verificationId = String(formData.get("verificationId") ?? "");
+  const decision = String(formData.get("decision") ?? "");
+
+  if (!verificationId || (decision !== "approve" && decision !== "reject")) {
+    return errorState("That request was not valid.");
   }
 
-  await db
-    .update(users)
-    .set({
-      status: parsed.data.status,
-      // Suspending clears any lockout so reactivation is a clean slate.
-      failedLoginAttempts: 0,
-      lockedUntil: null,
-    })
-    .where(eq(users.id, target.id));
+  const reason = String(formData.get("reason") ?? "").trim();
 
-  await recordAudit({
-    userId: admin.id,
-    action:
-      parsed.data.status === "suspended"
-        ? "user.suspended"
-        : "user.reactivated",
-    entityType: "user",
-    entityId: target.id,
-  });
+  if (decision === "reject" && reason.length < 5) {
+    return errorState("Give a reason so the client knows what to correct.", {
+      reason: ["A short reason is required"],
+    });
+  }
 
-  revalidatePath("/admin/users");
-
-  return successState(
-    parsed.data.status === "suspended"
-      ? `${target.email} has been suspended.`
-      : `${target.email} has been reactivated.`,
+  return apiMutation(
+    `/admin/verifications/${verificationId}/${decision}`,
+    { body: decision === "reject" ? { reason } : undefined },
   );
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Payments                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Confirms a bank transfer.
+ *
+ * The only path by which a payment becomes successful without a provider saying
+ * so — because for a bank transfer there is no provider to ask. The backend
+ * refuses to apply it to a card payment, which would otherwise bypass the
+ * amount check against the provider's own record.
+ */
+export async function confirmBankTransferAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const paymentId = String(
+    formData.get("paymentId") ?? formData.get("reference") ?? "",
+  );
+
+  if (!paymentId) return errorState("That payment could not be found.");
+
+  return apiMutation(
+    `/admin/payments/${paymentId}/confirm-transfer`,
+    { body: { note: String(formData.get("note") ?? "") || null } },
+  );
+}
+
+/** Publishes the bank account clients are asked to transfer to. */
+export async function setBankAccountAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  return apiMutation("/admin/settings/bank-account", {
+    method: "PUT",
+    body: {
+      bank_name: String(formData.get("bankName") ?? ""),
+      account_name: String(formData.get("accountName") ?? ""),
+      account_number: String(formData.get("accountNumber") ?? ""),
+      instructions: String(formData.get("instructions") ?? "") || null,
+    },
+    onError: (result) => ({
+      status: "error",
+      message: result.message,
+      fieldErrors: result.fieldErrors
+        ? Object.fromEntries(
+          Object.entries(result.fieldErrors).map(([key, messages]) => [
+            key.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase()),
+            messages,
+          ]),
+        )
+        : undefined,
+    }),
+  });
+}
+
+/** Moves a contact message through new → in progress → closed. */
+export async function setContactStatusAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const messageId = String(formData.get("messageId") ?? "");
+  const status = String(formData.get("status") ?? "");
+
+  if (!messageId || !["new", "in_progress", "closed"].includes(status)) {
+    return errorState("That request was not valid.");
+  }
+
+  return apiMutation(`/admin/contact-messages/${messageId}/status`, {
+    body: { status },
+  });
 }

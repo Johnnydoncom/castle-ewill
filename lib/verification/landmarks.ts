@@ -113,6 +113,22 @@ export function smileRatio(points: Point[]): number {
  * still requiring a deliberate movement. A neutral face sits well inside all of
  * them.
  */
+/**
+ * Prompts for the challenge names the API issues.
+ *
+ * A local copy so the UI can render immediately and stays legible if a prompt
+ * is missing from a response. The API sends its own prompt with each challenge
+ * and that is the one to prefer — the *sequence* is the server's to choose, and
+ * this file must never be the thing that decides what is asked.
+ */
+export const CHALLENGE_PROMPTS: Record<ChallengeName, string> = {
+  turn_left: "Slowly turn your head to the left",
+  turn_right: "Slowly turn your head to the right",
+  open_mouth: "Open your mouth wide",
+  blink: "Blink both eyes",
+  smile: "Smile",
+};
+
 export const THRESHOLD = {
   yaw: 0.35,
   mouthOpen: 0.5,

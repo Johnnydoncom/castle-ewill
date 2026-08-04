@@ -19,7 +19,7 @@ export function Logo({
   const content = (
     <span className={`inline-flex items-center gap-3 ${className}`}>
       <Image
-        src="/images/castle-ewill-logo.svg"
+        src="/images/castle-ewill-logo.png"
         alt="Castle eWill & Trust"
         width={size}
         height={size}
@@ -29,16 +29,14 @@ export function Logo({
       {withWordmark && (
         <span className="flex flex-col leading-none">
           <span
-            className={`font-serif text-lg tracking-tight ${
-              variant === "light" ? "text-navy-foreground" : "text-navy"
-            }`}
+            className={`font-serif text-lg tracking-tight ${variant === "light" ? "text-navy-foreground" : "text-navy"
+              }`}
           >
             Castle
           </span>
           <span
-            className={`text-[10px] uppercase tracking-[0.2em] ${
-              variant === "light" ? "text-gold" : "text-gold"
-            }`}
+            className={`text-[10px] uppercase tracking-[0.2em] ${variant === "light" ? "text-gold" : "text-gold"
+              }`}
           >
             eWill &amp; Trust
           </span>

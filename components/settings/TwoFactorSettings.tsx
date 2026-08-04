@@ -1,6 +1,7 @@
 "use client";
 
-import { useActionState, useState, useTransition } from "react";
+import { useFormAction } from "@/hooks/use-api-form";
+import { useState, useTransition } from "react";
 import { useFormStatus } from "react-dom";
 import { AlertCircle, CheckCircle2, ShieldCheck } from "lucide-react";
 
@@ -10,7 +11,7 @@ import {
   disableTwoFactorAction,
   type TwoFactorSetup,
 } from "@/lib/actions/two-factor";
-import { idleState, type FormState } from "@/lib/actions/state";
+import { type FormState } from "@/lib/actions/state";
 
 function Note({ state }: { state: FormState }) {
   if (state.status === "idle" || !state.message) return null;
@@ -44,14 +45,8 @@ function Submit({ label, busy }: { label: string; busy: string }) {
 export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
   const [setup, setSetup] = useState<TwoFactorSetup | null>(null);
   const [starting, startTransition] = useTransition();
-  const [confirmState, confirm] = useActionState(
-    confirmTwoFactorAction,
-    idleState,
-  );
-  const [disableState, disable] = useActionState(
-    disableTwoFactorAction,
-    idleState,
-  );
+  const [confirmState, confirm] = useFormAction(confirmTwoFactorAction);
+  const [disableState, disable] = useFormAction(disableTwoFactorAction);
 
   const nowEnabled =
     (enabled || confirmState.status === "success") &&
@@ -160,7 +155,17 @@ export function TwoFactorSettings({ enabled }: { enabled: boolean }) {
                 disabled={starting}
                 onClick={() =>
                   startTransition(async () => {
-                    setSetup(await beginTwoFactorSetupAction());
+                    try {
+                      setSetup(
+                        await beginTwoFactorSetupAction(),
+                      );
+                    } catch {
+                      setSetup({
+                        status: "error",
+                        message:
+                          "We could not start the setup just now. Please try again.",
+                      });
+                    }
                   })
                 }
                 className="flex h-11 items-center justify-center border border-border px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy transition-colors hover:border-gold hover:text-gold disabled:opacity-60"

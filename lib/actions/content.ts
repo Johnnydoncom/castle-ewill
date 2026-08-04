@@ -1,60 +1,96 @@
+
 import "server-only";
 
-import { asc, desc, eq } from "drizzle-orm";
-
-import { db } from "@/lib/db";
-import { plans, posts } from "@/lib/db/schema";
-import type { Plan, Post } from "@/lib/db/schema";
+import { api, apiData } from "@/lib/api/client";
 
 /**
- * Public content reads.
+ * Public content reads, delegated to the API.
  *
  * These pages are visited by anonymous traffic, so each function degrades to an
- * empty list if the database is unreachable rather than throwing a 500 on the
- * marketing site. The failure is logged for operators.
+ * empty list when the backend is unreachable rather than taking the marketing
+ * site down with a 500. `apiData` already logs the failure for operators.
+ *
+ * Every call is unauthenticated — there is no session on these pages, and the
+ * endpoints behind them are public reads.
  */
 
+export type Plan = {
+  id: string;
+  slug: string;
+  name: string;
+  tagline: string | null;
+  description: string | null;
+  price_kobo: number;
+  price_formatted: string;
+  currency: string;
+  features: string[];
+  is_popular: boolean;
+  sort_order: number;
+};
+
+export type Post = {
+  id: string;
+  slug: string;
+  title: string;
+  category: string;
+  excerpt: string;
+  /** Absent from the index listing — only the single-post read carries it. */
+  body?: string;
+  reading_minutes: number;
+  published_at: string;
+};
+
+export type PaymentProviders = {
+  paystack: boolean;
+  flutterwave: boolean;
+  bank_transfer: boolean;
+};
+
 export async function listActivePlans(): Promise<Plan[]> {
-  try {
-    return await db
-      .select()
-      .from(plans)
-      .where(eq(plans.isActive, true))
-      .orderBy(asc(plans.sortOrder));
-  } catch (error) {
-    console.error("[content] failed to load plans", error);
-    return [];
-  }
+  return apiData<Plan[]>("/plans", [], { authenticated: false });
+}
+
+/**
+ * Which payment methods are actually configured.
+ *
+ * Booleans, derived server-side from whether the credentials are present — the
+ * keys themselves never leave the backend. Used to hide a checkout button that
+ * would only ever answer "not enabled yet".
+ */
+export async function getPaymentProviders(): Promise<PaymentProviders> {
+  const result = await api<{ meta?: { providers?: PaymentProviders } }>("/plans", {
+    authenticated: false,
+  });
+
+  const fallback: PaymentProviders = {
+    paystack: false,
+    flutterwave: false,
+    bank_transfer: true,
+  };
+
+  return result.ok ? (result.data.meta?.providers ?? fallback) : fallback;
 }
 
 export async function listPublishedPosts(limit = 24): Promise<Post[]> {
-  try {
-    return await db
-      .select()
-      .from(posts)
-      .where(eq(posts.isPublished, true))
-      .orderBy(desc(posts.publishedAt))
-      .limit(limit);
-  } catch (error) {
-    console.error("[content] failed to load posts", error);
-    return [];
-  }
+  const posts = await apiData<Post[]>("/posts", [], { authenticated: false });
+
+  return posts.slice(0, limit);
 }
 
 export async function getPostBySlug(slug: string): Promise<Post | null> {
-  try {
-    const [post] = await db
-      .select()
-      .from(posts)
-      .where(eq(posts.slug, slug))
-      .limit(1);
-    return post?.isPublished ? post : null;
-  } catch (error) {
-    console.error("[content] failed to load post", error);
-    return null;
-  }
+  return apiData<Post | null>(`/posts/${encodeURIComponent(slug)}`, null, {
+    authenticated: false,
+  });
 }
 
+/**
+ * Kobo to a displayed naira figure.
+ *
+ * Kept for the places that render a raw kobo value. Where the API already
+ * supplies `price_formatted`, prefer that — the backend and the frontend
+ * disagreeing about rounding is exactly the sort of thing a client notices on
+ * an invoice.
+ */
 export function formatNaira(kobo: number): string {
   return `₦${(kobo / 100).toLocaleString("en-NG", { maximumFractionDigits: 0 })}`;
 }

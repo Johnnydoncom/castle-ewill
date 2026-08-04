@@ -3,11 +3,8 @@ import { CheckCircle2, XCircle } from "lucide-react";
 
 import { PageHead } from "@/components/dashboard/PageHead";
 import { StatusBadge } from "@/components/admin/DataTable";
-import { verifyMailConnection } from "@/lib/mail/mailer";
-import { getEnv } from "@/lib/env";
-import { getStorage } from "@/lib/storage";
-import { db } from "@/lib/db";
-import { settings } from "@/lib/db/schema";
+import { BankAccountForm } from "@/components/admin/BankAccountForm";
+import { getAdminHealth } from "@/lib/actions/admin";
 import { COMPANY } from "@/lib/company";
 
 export const metadata: Metadata = {
@@ -15,62 +12,22 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-/** Live health checks rather than a static "all systems green" panel. */
-async function checkDatabase(): Promise<{ ok: boolean; detail: string }> {
-  try {
-    const rows = await db.select().from(settings).limit(1);
-    return {
-      ok: true,
-      detail: `Connected · ${rows.length} setting(s) readable`,
-    };
-  } catch (error) {
-    return {
-      ok: false,
-      detail: error instanceof Error ? error.message : "Connection failed",
-    };
-  }
-}
+/**
+ * Dependency health, read from the backend.
+ *
+ * The checks have to run there. This tier no longer holds a database
+ * connection, an SMTP account, a vault key or a payment secret — a check
+ * performed from here would be checking nothing and reporting green.
+ */
+export const dynamic = "force-dynamic";
 
 export default async function AdminSettingsPage() {
-  const env = getEnv();
-  const [mail, database] = await Promise.all([
-    verifyMailConnection(),
-    checkDatabase(),
-  ]);
-
-  const storage = getStorage();
-
-  const checks = [
-    {
-      name: "Database",
-      ok: database.ok,
-      detail: database.detail,
-    },
-    {
-      name: "Email (SMTP)",
-      ok: mail.ok,
-      detail: mail.ok
-        ? `Connected to ${env.SMTP_HOST}`
-        : mail.error,
-    },
-    {
-      name: "Document storage",
-      ok: true,
-      detail: `Provider: ${storage.name} · documents encrypted with AES-256-GCM before upload`,
-    },
-    {
-      name: "Payments",
-      ok: Boolean(env.PAYSTACK_SECRET_KEY),
-      detail: env.PAYSTACK_SECRET_KEY
-        ? "Paystack keys present"
-        : "Not configured — payment flows are phase 2",
-    },
-  ];
+  const { checks, bank_account: bank } = await getAdminHealth();
 
   return (
     <div className="space-y-10">
       <PageHead
-        kicker="Registry · Section V"
+        kicker="Registry · Settings"
         title="Settings"
         blurb="Platform configuration and the health of every external dependency."
       />
@@ -128,31 +85,26 @@ export default async function AdminSettingsPage() {
           ))}
         </dl>
         <p className="text-xs italic text-muted-foreground">
-          These values come from <code>lib/company.ts</code>, the single source
-          of truth used by every page, email footer and generated document.
+          These values come from <code>lib/company.ts</code> here and
+          <code>config/company.php</code> in the backend — the two sources of
+          truth for markup and for generated documents respectively. They must
+          agree; the generated Will is the one that has to be right.
         </p>
       </section>
 
       <section className="space-y-4">
-        <h2 className="font-serif text-xl text-navy">Environment</h2>
-        <dl className="divide-y divide-border border border-border bg-background">
-          {[
-            ["Mode", env.NODE_ENV],
-            ["Public URL", env.APP_URL],
-            ["Storage provider", env.STORAGE_PROVIDER],
-            ["Database pool size", String(env.DATABASE_POOL_SIZE)],
-          ].map(([label, value]) => (
-            <div
-              key={label}
-              className="grid gap-1 px-5 py-4 sm:grid-cols-[200px_1fr] sm:gap-4"
-            >
-              <dt className="font-serif text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-                {label}
-              </dt>
-              <dd className="text-sm text-navy">{value}</dd>
-            </div>
-          ))}
-        </dl>
+        <h2 className="font-serif text-xl text-navy">Bank transfer details</h2>
+
+        {!bank.configured && (
+          <p className="border-l-2 border-destructive bg-destructive/5 px-5 py-4 text-sm leading-relaxed text-navy">
+            Not yet configured. Clients choosing bank transfer are shown a notice
+            asking them to call, rather than an account number that is not ours.
+          </p>
+        )}
+
+        <div className="border border-border bg-background p-6 sm:p-8">
+          <BankAccountForm account={bank} />
+        </div>
       </section>
     </div>
   );

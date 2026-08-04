@@ -78,7 +78,30 @@ these as code faults:
 - `@rollup/rollup-linux-x64-gnu` was missing entirely, then Vitest began
   core-dumping on a trivial test and never recovered.
 
-`npm run build` has never been executed anywhere. Run it locally.
+**Resolved 2026-07-31:** `npm run build`, `npm test` (112 passing), `tsc --noEmit`
+and ESLint all pass locally on Windows. The first real build exposed two faults
+the sandbox had hidden — see "Build and runtime rules" below.
+
+## Build and runtime rules
+
+- **Never delete an `import "server-only"` to make the bundler stop
+  complaining.** It means a client component is importing a server module;
+  split the pure half out instead. `lib/auth/password-policy.ts` (schema,
+  strength meter, bcrypt cost) exists for exactly this reason, with the bcrypt
+  functions left behind the guard in `lib/auth/password.ts`.
+- `server-only` also throws under plain Node/tsx, so **scripts must not import
+  guarded modules**. The seed hashes with bcrypt directly, sharing
+  `PASSWORD_COST` so the work factor cannot drift.
+- Env for standalone scripts loads through `scripts/load-env.ts`, imported
+  *first*. ES modules evaluate imports before any statement in the file, so an
+  inline `config()` call would run after `@/lib/db` had already built its pool
+  from an empty `process.env`. `drizzle.config.ts` uses the same loader.
+- Application code must never import `dotenv` — it is a devDependency, and Next
+  loads `.env*` natively.
+- Pages that read the database or the session are `export const dynamic =
+  "force-dynamic"` (admin and dashboard layouts, pricing, blog). `getEnv()`
+  returns placeholder values during `next build`, so anything prerendered
+  would either fail or bake in empty content.
 
 ## Will status transitions
 

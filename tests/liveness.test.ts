@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  CHALLENGE_PROMPTS,
   LANDMARK,
   THRESHOLD,
   eyeAspectRatio,
@@ -8,10 +9,19 @@ import {
   satisfies,
   smileRatio,
   yawRatio,
+  type ChallengeName,
   type Point,
 } from "@/lib/verification/landmarks";
-import { pickChallenges } from "@/lib/verification";
-import { ALL_CHALLENGES } from "@/lib/verification/types";
+
+/**
+ * The challenges the client can detect.
+ *
+ * Sequence *selection* moved to the backend with the rest of the domain — a
+ * sequence the browser chose could be satisfied with a recording the attacker
+ * already had. What is still tested here is the geometry: whether a given frame
+ * satisfies a given challenge, which is the part that runs in the browser.
+ */
+const ALL_CHALLENGES = Object.keys(CHALLENGE_PROMPTS) as ChallengeName[];
 
 /** Synthetic 468-point mesh with the handful of landmarks we actually read. */
 function face({
@@ -103,22 +113,31 @@ describe("robustness", () => {
   });
 });
 
-describe("challenge selection", () => {
-  it("returns the requested number of distinct challenges", () => {
-    const picked = pickChallenges(3);
-    expect(picked).toHaveLength(3);
-    expect(new Set(picked).size).toBe(3);
-    for (const c of picked) expect(ALL_CHALLENGES).toContain(c);
+/*
+ * Challenge *selection* is no longer tested here.
+ *
+ * It moved to the backend — `App\Services\Verification\LivenessChallenge` and
+ * its Pest test — because that is where it has to live: a sequence chosen by
+ * the browser could be satisfied with a recording the attacker already had.
+ * The property that matters (the sequence varies between attempts, so a
+ * recording cannot be replayed) is asserted there.
+ *
+ * What this file still covers is the geometry, which genuinely runs in the
+ * browser and is the piece a camera and a WebAssembly runtime would otherwise
+ * be needed to exercise.
+ */
+describe("challenge prompts", () => {
+  it("has a prompt for every challenge the detector understands", () => {
+    for (const challenge of ALL_CHALLENGES) {
+      expect(CHALLENGE_PROMPTS[challenge]).toBeTruthy();
+      // Every prompt is read aloud to a nervous person in front of a camera.
+      expect(CHALLENGE_PROMPTS[challenge].length).toBeGreaterThan(4);
+    }
   });
 
-  it("varies between attempts, so a recording cannot be replayed", () => {
-    const sequences = new Set(
-      Array.from({ length: 40 }, () => pickChallenges(3).join(",")),
+  it("covers exactly the five the backend can issue", () => {
+    expect(ALL_CHALLENGES.sort()).toEqual(
+      ["blink", "open_mouth", "smile", "turn_left", "turn_right"].sort(),
     );
-    expect(sequences.size).toBeGreaterThan(1);
-  });
-
-  it("never asks for more challenges than exist", () => {
-    expect(pickChallenges(99)).toHaveLength(ALL_CHALLENGES.length);
   });
 });

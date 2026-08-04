@@ -1,17 +1,9 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { eq } from "drizzle-orm";
 import { ArrowRight, Download, FileText, ShieldCheck } from "lucide-react";
 
-import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
 import { requireUser } from "@/lib/actions/guards";
-import {
-  getDashboardData,
-  profileCompletion,
-} from "@/lib/actions/dashboard";
-import { getFullWill, toCompletionInput } from "@/lib/will/repository";
-import { nextIncompleteStep } from "@/lib/will/completion";
+import { getDashboardData } from "@/lib/actions/dashboard";
 import { WILL_STATUS_LABELS } from "@/lib/will/reference";
 import { REVIEW_TRIGGERS } from "@/lib/company";
 import { PageHead } from "@/components/dashboard/PageHead";
@@ -22,17 +14,18 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-function formatDate(value: Date | null): string {
+/** ISO-8601 from the API to something a person reads. */
+function formatDate(value: string | null | undefined): string {
   if (!value) return "—";
-  return value.toLocaleDateString("en-GB", {
+
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+
+  return date.toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",
   });
-}
-
-function formatNaira(kobo: number): string {
-  return `₦${(kobo / 100).toLocaleString("en-NG")}`;
 }
 
 export default async function DashboardPage({
@@ -42,24 +35,14 @@ export default async function DashboardPage({
 }) {
   const { payment: paymentOutcome } = await searchParams;
   const sessionUser = await requireUser();
-  const data = await getDashboardData(sessionUser.id);
 
-  const [profile] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, sessionUser.id))
-    .limit(1);
+  // One round trip. The API scopes everything to the bearer token, so there is
+  // no user id to pass and none to get wrong.
+  const data = await getDashboardData();
 
-  const activeWill = data.activeWill;
-  const fullWill = activeWill
-    ? await getFullWill(activeWill.id, sessionUser.id)
-    : null;
-
-  const resumeStep = fullWill
-    ? nextIncompleteStep(toCompletionInput(fullWill))
-    : 1;
-
-  const profilePercent = profile ? profileCompletion(profile) : 0;
+  const activeWill = data.primary_will?.will ?? null;
+  const resumeStep = data.primary_will?.next_step ?? 1;
+  const profilePercent = data.account.profile_completion;
 
   return (
     <div className="space-y-10">
@@ -89,7 +72,7 @@ export default async function DashboardPage({
                 {activeWill.title}
               </h2>
               <p className="mt-1 text-sm text-muted-foreground">
-                Last updated {formatDate(activeWill.updatedAt)}
+                Last updated {formatDate(activeWill.updated_at)}
               </p>
 
               <div className="mt-8">
@@ -98,19 +81,19 @@ export default async function DashboardPage({
                     Completion
                   </span>
                   <span className="font-serif text-2xl text-navy">
-                    {activeWill.completionPercent}%
+                    {activeWill.completion_percent}%
                   </span>
                 </div>
                 <div
                   role="progressbar"
-                  aria-valuenow={activeWill.completionPercent}
+                  aria-valuenow={activeWill.completion_percent}
                   aria-valuemin={0}
                   aria-valuemax={100}
                   className="h-1.5 w-full bg-border"
                 >
                   <div
                     className="h-full bg-gold transition-all"
-                    style={{ width: `${activeWill.completionPercent}%` }}
+                    style={{ width: `${activeWill.completion_percent}%` }}
                   />
                 </div>
               </div>
@@ -121,7 +104,7 @@ export default async function DashboardPage({
                     href={`/dashboard/will?step=${resumeStep}`}
                     className="group inline-flex items-center gap-3 bg-navy px-7 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy-foreground transition-colors hover:bg-navy/90"
                   >
-                    {activeWill.completionPercent === 0
+                    {activeWill.completion_percent === 0
                       ? "Begin your Will"
                       : "Continue drafting"}
                     <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
@@ -135,7 +118,7 @@ export default async function DashboardPage({
                   </Link>
                 )}
                 <Link
-                  href={`/api/wills/${activeWill.id}/pdf`}
+                  href={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${activeWill.id}/pdf`}
                   className="inline-flex items-center gap-2 border border-border px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy transition-colors hover:border-gold hover:text-gold"
                 >
                   <Download className="h-4 w-4" />
@@ -176,9 +159,12 @@ export default async function DashboardPage({
 
           <ul className="mt-6 space-y-3 border-t border-border pt-6">
             {[
-              { label: "Email confirmed", done: Boolean(profile?.emailVerifiedAt) },
-              { label: "Phone number added", done: Boolean(profile?.phone) },
-              { label: "Photograph uploaded", done: Boolean(profile?.image) },
+              { label: "Email confirmed", done: data.account.is_email_verified },
+              { label: "Phone number added", done: data.account.is_phone_verified },
+              {
+                label: "Two-factor authentication",
+                done: data.account.two_factor_enabled,
+              },
             ].map((item) => (
               <li
                 key={item.label}
@@ -210,9 +196,9 @@ export default async function DashboardPage({
         <div className="border border-border bg-background p-8">
           <div className="flex items-center justify-between">
             <h3 className="font-serif text-lg text-navy">Notifications</h3>
-            {data.unreadCount > 0 && (
+            {data.unread_notifications > 0 && (
               <span className="bg-gold px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider text-navy">
-                {data.unreadCount} new
+                {data.unread_notifications} new
               </span>
             )}
           </div>
@@ -226,7 +212,7 @@ export default async function DashboardPage({
                     {item.body}
                   </p>
                   <p className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground/70">
-                    {formatDate(item.createdAt)}
+                    {formatDate(item.created_at)}
                   </p>
                 </li>
               ))}
@@ -249,7 +235,7 @@ export default async function DashboardPage({
                 >
                   <div>
                     <p className="text-sm text-navy">
-                      {formatNaira(payment.amountKobo)}
+                      {payment.amount_formatted}
                     </p>
                     <p className="text-[10px] uppercase tracking-wider text-muted-foreground">
                       {payment.reference}

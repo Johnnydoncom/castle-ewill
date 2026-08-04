@@ -1,13 +1,16 @@
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
 import { requireUser } from "@/lib/actions/guards";
 
+/** Per-user data throughout — never prerendered, never cached across requests. */
+export const dynamic = "force-dynamic";
+
 const nav = [
-  { href: "/dashboard", label: "Overview", numeral: "I" },
-  { href: "/dashboard/will", label: "Will Builder", numeral: "II" },
-  { href: "/dashboard/documents", label: "Documents", numeral: "III" },
-  { href: "/dashboard/witnesses", label: "Witnesses", numeral: "IV" },
-  { href: "/dashboard/advisors", label: "Advisors", numeral: "V" },
-  { href: "/dashboard/settings", label: "Settings", numeral: "VI" },
+  { href: "/dashboard", label: "Overview", icon: "overview" },
+  { href: "/dashboard/will", label: "Will Builder", icon: "will" },
+  { href: "/dashboard/documents", label: "Documents", icon: "documents" },
+  { href: "/dashboard/witnesses", label: "Witnesses", icon: "witnesses" },
+  { href: "/dashboard/advisors", label: "Advisors", icon: "advisors" },
+  { href: "/dashboard/settings", label: "Settings", icon: "settings" },
 ] as const;
 
 export default async function DashboardLayout({

@@ -1,14 +1,12 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useFormAction } from "@/hooks/use-api-form";
+import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import { AlertCircle, CheckCircle2, Smartphone } from "lucide-react";
 
-import {
-  confirmPhoneCodeAction,
-  sendPhoneCodeAction,
-} from "@/lib/actions/phone";
-import { idleState, type FormState } from "@/lib/actions/state";
+import { sendPhoneCodeAction, confirmPhoneCodeAction } from "@/lib/actions/phone";
+import { type FormState } from "@/lib/actions/state";
 
 function Note({ state }: { state: FormState }) {
   if (state.status === "idle" || !state.message) return null;
@@ -45,11 +43,8 @@ export function PhoneVerification({
   phone: string | null;
   verified: boolean;
 }) {
-  const [sendState, send] = useActionState(sendPhoneCodeAction, idleState);
-  const [confirmState, confirm] = useActionState(
-    confirmPhoneCodeAction,
-    idleState,
-  );
+  const [sendState, send] = useFormAction(sendPhoneCodeAction);
+  const [confirmState, confirm] = useFormAction(confirmPhoneCodeAction);
   const [codeSent, setCodeSent] = useState(false);
 
   const nowVerified = verified || confirmState.status === "success";

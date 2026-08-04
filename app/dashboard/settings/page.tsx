@@ -1,14 +1,13 @@
 import type { Metadata } from "next";
-import { eq } from "drizzle-orm";
 import { MailCheck, MailWarning } from "lucide-react";
 
-import { db } from "@/lib/db";
-import { users } from "@/lib/db/schema";
-import { requireUser } from "@/lib/actions/guards";
+import { getProfile, requireUser } from "@/lib/actions/guards";
 import { profileCompletion } from "@/lib/actions/dashboard";
+import { listWills } from "@/lib/actions/will";
 import { PageHead } from "@/components/dashboard/PageHead";
 import { TwoFactorSettings } from "@/components/settings/TwoFactorSettings";
 import { PhoneVerification } from "@/components/settings/PhoneVerification";
+import { LifeEventForm } from "@/components/settings/LifeEventForm";
 
 export const metadata: Metadata = {
   title: "Settings",
@@ -18,19 +17,35 @@ export const metadata: Metadata = {
 export default async function SettingsPage() {
   const sessionUser = await requireUser();
 
-  const [profile] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, sessionUser.id))
-    .limit(1);
+  /*
+   * Read live rather than from the session cookie. The cookie was minted at
+   * sign-in and may be a week old — it would still show "unverified" to someone
+   * who confirmed their address ten minutes ago.
+   */
+  const profile = await getProfile();
 
-  const percent = profile ? profileCompletion(profile) : 0;
-  const verified = Boolean(profile?.emailVerifiedAt);
+  const percent = profile
+    ? profileCompletion({
+        name: profile.name,
+        email: profile.email,
+        phone: profile.phone,
+        isEmailVerified: profile.is_email_verified,
+        image: profile.image,
+      })
+    : 0;
+  const verified = Boolean(profile?.is_email_verified);
+
+  // A life event is only worth reporting once there is an approved Will to
+  // review — reviewing a draft nobody has finished makes no sense.
+  const wills = await listWills();
+  const reviewableWill = wills.find(
+    (w) => w.status === "approved" || w.status === "executed",
+  );
 
   return (
     <div className="space-y-10">
       <PageHead
-        kicker="Section VI"
+        kicker="Account Settings"
         title="Settings"
         blurb="Your account details and the controls that protect them."
       />
@@ -66,8 +81,8 @@ export default async function SettingsPage() {
             ["Phone", profile?.phone ?? "Not provided"],
             [
               "Member since",
-              profile?.createdAt
-                ? profile.createdAt.toLocaleDateString("en-GB", {
+              profile?.created_at
+                ? new Date(profile.created_at).toLocaleDateString("en-GB", {
                     day: "numeric",
                     month: "long",
                     year: "numeric",
@@ -90,10 +105,12 @@ export default async function SettingsPage() {
 
       <PhoneVerification
         phone={profile?.phone ?? null}
-        verified={Boolean(profile?.phoneVerifiedAt)}
+        verified={Boolean(profile?.is_phone_verified)}
       />
 
-      <TwoFactorSettings enabled={Boolean(profile?.twoFactorEnabled)} />
+      <TwoFactorSettings enabled={Boolean(profile?.two_factor_enabled)} />
+
+      {reviewableWill && <LifeEventForm willId={reviewableWill.id} />}
 
       <section className="border-l-2 border-gold/40 bg-gold/5 px-6 py-5">
         <p className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">

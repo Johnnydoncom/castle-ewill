@@ -1,15 +1,19 @@
 import Link from "next/link";
 
-import type { FullWill } from "@/lib/will/repository";
+import type { ApiWill } from "@/lib/actions/will";
 import { WILL_STATUS_LABELS } from "@/lib/will/reference";
-import { stepCompletions } from "@/lib/will/completion";
-import { toCompletionInput } from "@/lib/will/repository";
 import { WILL_STEPS } from "@/lib/will/steps";
 
-/** Read-only summary rendered on step 9, with edit links back to each step. */
-export function ReviewSummary({ will }: { will: FullWill }) {
+/**
+ * Read-only summary rendered on step 9, with edit links back to each step.
+ *
+ * The per-step tick marks come from `will.progress`, computed by the API using
+ * the same rules that gate submission — so a section shown as complete here is
+ * one the server agrees is complete.
+ */
+export function ReviewSummary({ will }: { will: ApiWill }) {
   const completions = new Map(
-    stepCompletions(toCompletionInput(will)).map((c) => [c.step, c]),
+    (will.progress?.steps ?? []).map((c) => [c.step, c]),
   );
 
   const sections: Array<{ step: number; title: string; rows: string[] }> = [
@@ -17,9 +21,9 @@ export function ReviewSummary({ will }: { will: FullWill }) {
       step: 1,
       title: "Personal details",
       rows: [
-        will.fullLegalName ?? "—",
-        will.dateOfBirth ? `Born ${will.dateOfBirth}` : "Date of birth missing",
-        [will.addressLine1, will.city, will.state].filter(Boolean).join(", ") ||
+        will.personal.full_legal_name ?? "—",
+        will.personal.date_of_birth ? `Born ${will.personal.date_of_birth}` : "Date of birth missing",
+        [will.personal.address_line1, will.personal.city, will.personal.state].filter(Boolean).join(", ") ||
           "Address missing",
       ],
     },
@@ -27,13 +31,13 @@ export function ReviewSummary({ will }: { will: FullWill }) {
       step: 2,
       title: "Declaration",
       rows: [
-        will.declaredLastWill
+        will.declaration.declared_last_will
           ? "Declared as Last Will and Testament"
           : "Not yet declared",
-        will.revokesPriorWills
+        will.declaration.revokes_prior_wills
           ? "Prior Wills revoked"
           : "Prior Wills not revoked",
-        will.confirmedSoundMind
+        will.declaration.confirmed_sound_mind
           ? "Sound mind and legal age confirmed"
           : "Capacity not confirmed",
       ],
@@ -44,7 +48,7 @@ export function ReviewSummary({ will }: { will: FullWill }) {
       rows: will.executors.length
         ? will.executors.map(
             (e) =>
-              `${e.fullName}${e.isAlternate ? " (alternate)" : ""} — ${e.address}`,
+              `${e.full_name}${e.is_alternate ? " (alternate)" : ""} — ${e.address}`,
           )
         : ["No executors appointed"],
     },
@@ -54,10 +58,10 @@ export function ReviewSummary({ will }: { will: FullWill }) {
       rows: will.beneficiaries.length
         ? will.beneficiaries.map(
             (b) =>
-              `${b.fullName} (${b.relationship}) — ${
-                b.isContingent
+              `${b.full_name} (${b.relationship}) — ${
+                b.is_contingent
                   ? "contingent"
-                  : `${Number(b.sharePercent)}%`
+                  : `${Number(b.share_percent)}%`
               }`,
           )
         : ["No beneficiaries named"],
@@ -66,12 +70,12 @@ export function ReviewSummary({ will }: { will: FullWill }) {
       step: 5,
       title: "Guardianship",
       rows:
-        will.hasMinorChildren === false
+        will.has_minor_children === false
           ? ["No minor children — section not applicable"]
           : will.guardians.length
             ? will.guardians.map(
                 (g) =>
-                  `${g.fullName}${g.isAlternate ? " (alternate)" : ""} — ${g.address}`,
+                  `${g.full_name}${g.is_alternate ? " (alternate)" : ""} — ${g.address}`,
               )
             : ["No guardian appointed"],
     },
@@ -80,7 +84,7 @@ export function ReviewSummary({ will }: { will: FullWill }) {
       title: "Specific bequests",
       rows: will.bequests.length
         ? will.bequests.map(
-            (b) => `${b.itemDescription} → ${b.recipientName}`,
+            (b) => `${b.item_description} → ${b.recipient_name}`,
           )
         : ["None recorded (optional)"],
     },
@@ -88,18 +92,18 @@ export function ReviewSummary({ will }: { will: FullWill }) {
       step: 7,
       title: "Funeral wishes",
       rows: [
-        will.funeralPreference
-          ? will.funeralPreference.charAt(0).toUpperCase() +
-            will.funeralPreference.slice(1)
+        will.funeral_preference
+          ? will.funeral_preference.charAt(0).toUpperCase() +
+            will.funeral_preference.slice(1)
           : "No preference recorded",
-        will.funeralInstructions ?? "",
+        will.funeral_instructions ?? "",
       ].filter(Boolean),
     },
     {
       step: 8,
       title: "Witnesses",
       rows: will.witnesses.length
-        ? will.witnesses.map((w) => `${w.fullName} — ${w.address}`)
+        ? will.witnesses.map((w) => `${w.full_name} — ${w.address}`)
         : ["No witnesses recorded"],
     },
   ];
@@ -109,7 +113,7 @@ export function ReviewSummary({ will }: { will: FullWill }) {
       {sections
         .filter(
           (section) =>
-            !(section.step === 5 && will.hasMinorChildren === false && false),
+            !(section.step === 5 && will.has_minor_children === false && false),
         )
         .map((section) => {
           const status = completions.get(section.step);

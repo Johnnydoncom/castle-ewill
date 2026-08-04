@@ -1,12 +1,8 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { eq } from "drizzle-orm";
 import { CalendarClock, Mail, MessageSquare, Phone } from "lucide-react";
 
-import { db } from "@/lib/db";
-import { willRevisions } from "@/lib/db/schema";
-import { requireUser } from "@/lib/actions/guards";
-import { getOrCreateDraft } from "@/lib/will/repository";
+import { getOrCreateDraft, getWill } from "@/lib/actions/will";
 import { WILL_STATUS_LABELS } from "@/lib/will/reference";
 import { COMPANY } from "@/lib/company";
 import { PageHead } from "@/components/dashboard/PageHead";
@@ -17,23 +13,40 @@ export const metadata: Metadata = {
 };
 
 export default async function AdvisorsPage() {
-  const user = await requireUser();
-  const will = await getOrCreateDraft(user.id, user.name);
+  const draft = await getOrCreateDraft();
 
   // The reviewer's own notes, recorded against each revision. These are the
-  // real review log — nothing here is illustrative.
-  const revisions = await db
-    .select()
-    .from(willRevisions)
-    .where(eq(willRevisions.willId, will.id))
-    .orderBy(willRevisions.version);
+  // real review log — nothing on this page is illustrative, and no advisor is
+  // invented. The API returns summaries only; the snapshots stay with the
+  // registry.
+  const will = draft ? await getWill(draft.id) : null;
+  const revisions = will?.revisions ?? [];
 
-  const inReview = will.status === "submitted" || will.status === "under_review";
+  const inReview =
+    will?.status === "submitted" || will?.status === "under_review";
+
+  if (!will) {
+    return (
+      <div className="space-y-10">
+        <PageHead
+          kicker="Counsel & Advisors"
+          title="Counsel"
+          blurb="Where your Will stands with our review team, and how to reach us when you need to talk it through."
+        />
+        <section className="border border-border bg-background p-6 sm:p-8">
+          <h2 className="font-serif text-xl text-navy">Your Will is still a draft.</h2>
+          <p className="mt-2 max-w-xl text-sm leading-relaxed text-muted-foreground">
+            You have not started a Will yet. Begin from the builder and a reviewer will look it over once submitted.
+          </p>
+        </section>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-10">
       <PageHead
-        kicker="Section V"
+        kicker="Counsel & Advisors"
         title="Counsel"
         blurb="Where your Will stands with our review team, and how to reach us when you need to talk it through."
       />
@@ -42,7 +55,7 @@ export default async function AdvisorsPage() {
         <div className="flex flex-wrap items-start justify-between gap-4">
           <div>
             <p className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">
-              {will.reference}
+              {will?.reference ?? "—"}
             </p>
             <h2 className="mt-2 font-serif text-xl text-navy">
               {inReview
@@ -92,13 +105,15 @@ export default async function AdvisorsPage() {
         ) : (
           <ul className="divide-y divide-border border border-border bg-background">
             {revisions.map((revision) => (
-              <li key={revision.id} className="grid gap-2 px-5 py-4 sm:flex sm:gap-6">
+              <li key={revision.version} className="grid gap-2 px-5 py-4 sm:flex sm:gap-6">
                 <span className="w-32 shrink-0 font-serif text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                  {revision.createdAt.toLocaleDateString("en-GB", {
-                    day: "numeric",
-                    month: "short",
-                    year: "numeric",
-                  })}
+                  {revision.created_at
+                    ? new Date(revision.created_at).toLocaleDateString("en-GB", {
+                        day: "numeric",
+                        month: "short",
+                        year: "numeric",
+                      })
+                    : "—"}
                 </span>
                 <div className="min-w-0 flex-1">
                   <p className="text-sm text-navy">

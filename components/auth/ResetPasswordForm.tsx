@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
 
+import { useFormAction } from "@/hooks/use-api-form";
 import { resetPasswordAction } from "@/lib/actions/auth";
-import { idleState } from "@/lib/actions/state";
 import { FormBanner, PasswordField, SubmitButton } from "./FormControls";
 
 export function ResetPasswordForm({ token }: { token: string }) {
-  const [state, action] = useActionState(resetPasswordAction, idleState);
+  const [state, action] = useFormAction(resetPasswordAction, {
+    refresh: false,
+  });
 
   if (state.status === "success") {
     return (

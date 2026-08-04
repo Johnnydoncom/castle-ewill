@@ -1,14 +1,13 @@
 "use client";
 
-import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
-
+import { useFormAction } from "@/hooks/use-api-form";
 import {
-  startBankTransferAction,
   startCheckoutAction,
   startFlutterwaveCheckoutAction,
-} from "@/lib/actions/payments";
-import { idleState } from "@/lib/actions/state";
+  startBankTransferAction,
+} from "@/lib/actions/payments.client";
+
+import { useFormStatus } from "react-dom";
 
 function Submit({ label, featured }: { label: string; featured: boolean }) {
   const { pending } = useFormStatus();
@@ -68,15 +67,9 @@ export function CheckoutButton({
   /** Resolved on the server; the option is hidden rather than shown broken. */
   flutterwaveEnabled?: boolean;
 }) {
-  const [cardState, card] = useActionState(startCheckoutAction, idleState);
-  const [flwState, flutterwave] = useActionState(
-    startFlutterwaveCheckoutAction,
-    idleState,
-  );
-  const [transferState, transfer] = useActionState(
-    startBankTransferAction,
-    idleState,
-  );
+  const [cardState, card] = useFormAction(startCheckoutAction);
+  const [flwState, flutterwave] = useFormAction(startFlutterwaveCheckoutAction);
+  const [transferState, transfer] = useFormAction(startBankTransferAction);
 
   const error =
     [cardState, flwState, transferState].find((s) => s.status === "error")

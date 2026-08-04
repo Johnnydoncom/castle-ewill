@@ -6,15 +6,17 @@ import { AlertCircle, Camera, CheckCircle2, Loader2 } from "lucide-react";
 import {
   startVerificationAction,
   submitVerificationAction,
-} from "@/lib/actions/verification";
+} from "@/lib/actions/verification.client";
+import { idleState } from "@/lib/actions/state";
+
 import {
   satisfies,
   THRESHOLD,
   eyeAspectRatio,
+  CHALLENGE_PROMPTS,
   type ChallengeName,
   type Point,
 } from "@/lib/verification/landmarks";
-import { CHALLENGE_PROMPTS } from "@/lib/verification/types";
 
 /**
  * Active liveness challenge.
@@ -102,10 +104,7 @@ export function LivenessCheck({
       formData.set("capture", new File([blob], "capture.jpg", { type: "image/jpeg" }));
       for (const challenge of done) formData.append("completed", challenge);
 
-      const result = await submitVerificationAction(
-        { status: "idle" },
-        formData,
-      );
+      const result = await submitVerificationAction(idleState, formData);
 
       if (result.status === "success") {
         setPhase("done");
@@ -126,13 +125,25 @@ export function LivenessCheck({
     blinkStateRef.current = { sawClosed: false, observed: false };
 
     const started = await startVerificationAction();
+
     if (started.status === "error") {
       setPhase("error");
       setMessage(started.message);
       return;
     }
 
-    setChallenges(started.challenges as ChallengeName[]);
+    /*
+     * Narrowed to consts here, not read off `started` later.
+     *
+     * `started` is a `let` holding a union, and TypeScript discards the
+     * narrowing above once it is referenced inside the animation-frame closure
+     * — a closure could in principle see a reassigned value. Capturing both
+     * fields now keeps the types honest and the intent obvious.
+     */
+    const attemptId = started.attemptId;
+    const issued = started.challenges.map((c) => c.name as ChallengeName);
+
+    setChallenges(issued);
 
     try {
       const vision = await import("@mediapipe/tasks-vision");
@@ -174,7 +185,7 @@ export function LivenessCheck({
         const points: Point[] | undefined = result?.faceLandmarks?.[0];
 
         if (points && points.length > 0) {
-          const current = (started.challenges as ChallengeName[])[index];
+          const current = issued[index];
 
           if (current === "blink") {
             const ear = eyeAspectRatio(points);
@@ -190,8 +201,8 @@ export function LivenessCheck({
             index += 1;
             blinkStateRef.current = { sawClosed: false, observed: false };
 
-            if (index >= (started.challenges as ChallengeName[]).length) {
-              void finish(done, started.attemptId);
+            if (index >= issued.length) {
+              void finish(done, attemptId);
               return;
             }
           }

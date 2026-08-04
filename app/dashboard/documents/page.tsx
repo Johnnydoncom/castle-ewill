@@ -3,7 +3,6 @@ import { KeyRound, Lock, ShieldCheck } from "lucide-react";
 
 import { PageHead } from "@/components/dashboard/PageHead";
 import { DocumentVault } from "@/components/documents/DocumentVault";
-import { requireUser } from "@/lib/actions/guards";
 import { listUserDocuments } from "@/lib/actions/documents";
 import { formatBytes } from "@/lib/documents";
 
@@ -13,10 +12,10 @@ export const metadata: Metadata = {
 };
 
 export default async function DocumentsPage() {
-  const user = await requireUser();
-  const records = await listUserDocuments(user.id);
+  // Scoped to the caller by the API — never by an id passed from here.
+  const records = await listUserDocuments();
 
-  const totalBytes = records.reduce((sum, r) => sum + r.sizeBytes, 0);
+  const totalBytes = records.reduce((sum, r) => sum + r.size_bytes, 0);
 
   const stats = [
     {
@@ -31,7 +30,7 @@ export default async function DocumentsPage() {
   return (
     <div className="space-y-10">
       <PageHead
-        kicker="Section III"
+        kicker="Document Vault"
         title="Sealed Vault"
         blurb="Everything you upload is encrypted before it leaves this server, and released only to the executors you name."
       />

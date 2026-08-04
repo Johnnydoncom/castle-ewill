@@ -2,18 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Download, FileText } from "lucide-react";
 
-import { requireUser } from "@/lib/actions/guards";
-import {
-  getActiveVerification,
-  getLatestVerification,
-} from "@/lib/actions/verification";
+import { getVerificationStatus } from "@/lib/actions/verification";
 import { LivenessCheck } from "@/components/verification/LivenessCheck";
-import {
-  getFullWill,
-  getOrCreateDraft,
-  toCompletionInput,
-} from "@/lib/will/repository";
-import { completionPercent, stepCompletions } from "@/lib/will/completion";
+import { getOrCreateDraft } from "@/lib/actions/will";
 import {
   applicableSteps,
   previousStep,
@@ -49,15 +40,13 @@ export default async function WillBuilderPage({
 }: {
   searchParams: Promise<{ step?: string }>;
 }) {
-  const user = await requireUser();
   const { step: stepParam } = await searchParams;
 
-  const draft = await getOrCreateDraft(user.id, user.name);
-  const will = await getFullWill(draft.id, user.id);
+  // Scoped to the caller by the API. Returns the active draft, creating one on
+  // first visit, with every child collection and the computed progress.
+  const will = await getOrCreateDraft();
 
   if (!will) {
-    // getOrCreateDraft just wrote this row; an absence here means the record was
-    // removed between the two reads.
     return (
       <div className="mx-auto max-w-2xl px-6 py-24 text-center">
         <p className="font-serif text-lg text-navy">
@@ -71,21 +60,28 @@ export default async function WillBuilderPage({
   const current =
     Number.isInteger(requested) && requested >= 1 && requested <= TOTAL_STEPS
       ? requested
-      : will.currentStep;
+      : will.current_step;
 
-  // Only needed on the final step, but resolved here so the server decides
-  // what the review screen may offer.
-  const verification =
-    current === 9 ? await getActiveVerification(user.id) : null;
-  const latestVerification =
-    current === 9 ? await getLatestVerification(user.id) : null;
+  /*
+   * Only needed on the final step. Fetched here rather than inside the review
+   * component so the *server* decides what that screen may offer — and note
+   * that this only governs what is rendered: the submission endpoint enforces
+   * the same gate regardless of what this page shows.
+   */
+  const verification = current === 9 ? await getVerificationStatus() : null;
 
-  const steps = applicableSteps(will.hasMinorChildren);
+  const steps = applicableSteps(will.has_minor_children);
   const definition = stepByNumber(current) ?? steps[0];
-  const completions = stepCompletions(toCompletionInput(will));
-  const percent = completionPercent(toCompletionInput(will));
 
-  const backStep = previousStep(current, will.hasMinorChildren);
+  /*
+   * Progress comes from the API, computed by the same rules that gate
+   * submission. A locally computed ring showing 100% beside a server that
+   * refuses the submission is worse than no ring at all.
+   */
+  const completions = will.progress?.steps ?? [];
+  const percent = will.progress?.percent ?? will.completion_percent;
+
+  const backStep = previousStep(current, will.has_minor_children);
   const backHref =
     current > 1 ? `/dashboard/will?step=${backStep}` : undefined;
 
@@ -115,7 +111,7 @@ export default async function WillBuilderPage({
           </p>
           <div className="mt-6 flex flex-wrap gap-3">
             <Link
-              href={`/api/wills/${will.id}/pdf`}
+              href={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${will.id}/pdf`}
               className="inline-flex items-center gap-2 bg-navy px-6 py-3 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy-foreground transition-colors hover:bg-navy/90"
             >
               <Download className="h-4 w-4" />
@@ -160,7 +156,7 @@ export default async function WillBuilderPage({
             <ReviewStep {...stepProps}>
               <ReviewSummary will={will} />
 
-              {verification ? (
+              {verification?.is_verified ? (
                 <div className="flex items-start gap-3 border-l-2 border-success bg-success/5 px-5 py-4 text-sm text-navy">
                   <span aria-hidden className="mt-0.5 text-success">
                     &#10003;
@@ -169,7 +165,7 @@ export default async function WillBuilderPage({
                     Identity verified. You can submit your Will below.
                   </p>
                 </div>
-              ) : latestVerification?.status === "pending" ? (
+              ) : verification?.latest?.status === "pending" ? (
                 <div className="border-l-2 border-gold bg-gold/5 px-5 py-4 text-sm leading-relaxed text-navy">
                   Your identity check has been recorded and is awaiting review.
                   We will email you as soon as it is approved, and you can submit

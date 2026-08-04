@@ -1,8 +1,13 @@
 /**
- * Shared shape for server-action results consumed by `useActionState`.
+ * Shared shape for mutation results, consumed by `useActionState`.
  *
  * `fieldErrors` is keyed by form field so the client can render messages
  * inline; `message` carries form-level outcomes.
+ *
+ * This is the JSON body every mutating API route returns. `useActionState`
+ * accepts any async `(prev, formData) => state` function, not only a server
+ * action, so moving from actions to routes left this contract — and every form
+ * that renders it — unchanged.
  */
 export type FormState = {
   status: "idle" | "success" | "error";
@@ -10,6 +15,12 @@ export type FormState = {
   fieldErrors?: Record<string, string[]>;
   /** Optional payload, e.g. the email a verification link was sent to. */
   data?: Record<string, string>;
+  /**
+   * Where the browser should navigate on success. A route handler cannot
+   * `redirect()` the caller of a `fetch`, so the destination is returned and
+   * `useApiForm` performs the navigation.
+   */
+  redirect?: string;
 };
 
 export const idleState: FormState = { status: "idle" };
@@ -26,6 +37,11 @@ export function successState(
   data?: Record<string, string>,
 ): FormState {
   return { status: "success", message, data };
+}
+
+/** Success that also moves the browser somewhere — the API-route equivalent of `redirect()`. */
+export function redirectState(to: string, message = ""): FormState {
+  return { status: "success", message, redirect: to };
 }
 
 /** Flattens a ZodError into the `fieldErrors` shape. */

@@ -1,10 +1,9 @@
 "use client";
 
-import { useActionState } from "react";
-import { useFormStatus } from "react-dom";
+import { useFormAction } from "@/hooks/use-api-form";
+import { confirmBankTransferAction } from "@/lib/actions/review";
 
-import { confirmBankTransferAction } from "@/lib/actions/payments";
-import { idleState } from "@/lib/actions/state";
+import { useFormStatus } from "react-dom";
 
 function Submit() {
   const { pending } = useFormStatus();
@@ -25,7 +24,7 @@ function Submit() {
  * this too.
  */
 export function ConfirmTransfer({ reference }: { reference: string }) {
-  const [state, action] = useActionState(confirmBankTransferAction, idleState);
+  const [state, action] = useFormAction(confirmBankTransferAction);
 
   if (state.status === "success") {
     return <span className="text-xs text-success">Confirmed</span>;

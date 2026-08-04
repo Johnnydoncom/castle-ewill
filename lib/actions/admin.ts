@@ -1,260 +1,346 @@
-import "server-only";
+"use server";
 
-import { and, count, desc, eq, gte, inArray, like, or, sql } from "drizzle-orm";
-
-import { db } from "@/lib/db";
-import {
-  auditLogs,
-  contactMessages,
-  payments,
-  users,
-  wills,
-} from "@/lib/db/schema";
-import type { AuditLog, Payment, User, Will } from "@/lib/db/schema";
+import { api, apiData } from "@/lib/api/client";
+import type { PaymentRecord } from "./payments";
+import type { ApiWill, WillStatus } from "./will";
 
 /**
- * Admin read models.
+ * Admin read models, delegated to the API.
  *
- * Every query here is deliberately unscoped by user — these callers have
- * already passed `requireAdmin()`. Aggregates are computed in SQL rather than
- * by loading rows and counting in JS, so the console stays responsive as the
- * table grows.
+ * Every endpoint behind these lives under `/admin/*`, which answers **404**
+ * rather than 403 to a non-administrator. That has a consequence worth naming:
+ * a failure here is indistinguishable from an empty result, by design. These
+ * functions therefore degrade to empty rather than throwing — a console page
+ * that renders "no clients" for someone who should not be looking at it is the
+ * intended outcome, not a bug to work around.
+ *
+ * Aggregates are computed in SQL on the backend, so the console stays
+ * responsive as the tables grow.
  */
 
-export type AdminStats = {
-  totalClients: number;
-  newClientsThisMonth: number;
-  totalWills: number;
-  willsAwaitingReview: number;
-  willsExecuted: number;
-  revenueKobo: number;
-  openMessages: number;
+type Paginated<T> = {
+  data: T[];
+  current_page: number;
+  last_page: number;
+  per_page: number;
+  total: number;
 };
 
-const startOfMonth = () => {
-  const now = new Date();
-  return new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+const emptyPage = <T>(): Paginated<T> => ({
+  data: [],
+  current_page: 1,
+  last_page: 1,
+  per_page: 25,
+  total: 0,
+});
+
+/* -------------------------------------------------------------------------- */
+/*  Overview                                                                   */
+/* -------------------------------------------------------------------------- */
+
+export type AuditEntry = {
+  id: string;
+  action: string;
+  entity_type: string | null;
+  entity_id: string | null;
+  ip_address: string | null;
+  actor: { id: string; name: string | null; email: string } | null;
+  created_at: string | null;
+};
+
+export type AdminStats = {
+  total_clients: number;
+  new_clients_this_month: number;
+  total_wills: number;
+  wills_awaiting_review: number;
+  wills_executed: number;
+  wills_by_status: Record<string, number>;
+  revenue_kobo: number;
+  revenue_formatted: string;
+  open_messages: number;
+  will_trend: Array<{ month: string; total: number }>;
+  recent_audit: AuditEntry[];
+};
+
+const emptyStats: AdminStats = {
+  total_clients: 0,
+  new_clients_this_month: 0,
+  total_wills: 0,
+  wills_awaiting_review: 0,
+  wills_executed: 0,
+  wills_by_status: {},
+  revenue_kobo: 0,
+  revenue_formatted: "₦0.00",
+  open_messages: 0,
+  will_trend: [],
+  recent_audit: [],
 };
 
 export async function getAdminStats(): Promise<AdminStats> {
-  const [
-    clientRows,
-    newClientRows,
-    willRows,
-    reviewRows,
-    executedRows,
-    revenueRows,
-    messageRows,
-  ] = await Promise.all([
-    db.select({ value: count() }).from(users).where(eq(users.role, "user")),
-    db
-      .select({ value: count() })
-      .from(users)
-      .where(and(eq(users.role, "user"), gte(users.createdAt, startOfMonth()))),
-    db.select({ value: count() }).from(wills),
-    db
-      .select({ value: count() })
-      .from(wills)
-      .where(inArray(wills.status, ["submitted", "under_review"])),
-    db.select({ value: count() }).from(wills).where(eq(wills.status, "executed")),
-    db
-      .select({
-        value: sql<string>`COALESCE(SUM(${payments.amountKobo}), 0)`,
-      })
-      .from(payments)
-      .where(eq(payments.status, "success")),
-    db
-      .select({ value: count() })
-      .from(contactMessages)
-      .where(eq(contactMessages.status, "new")),
-  ]);
-
-  return {
-    totalClients: clientRows[0]?.value ?? 0,
-    newClientsThisMonth: newClientRows[0]?.value ?? 0,
-    totalWills: willRows[0]?.value ?? 0,
-    willsAwaitingReview: reviewRows[0]?.value ?? 0,
-    willsExecuted: executedRows[0]?.value ?? 0,
-    revenueKobo: Number(revenueRows[0]?.value ?? 0),
-    openMessages: messageRows[0]?.value ?? 0,
-  };
+  return apiData<AdminStats>("/admin/overview", emptyStats);
 }
 
-export type QueueEntry = {
-  will: Will;
-  clientName: string | null;
-  clientEmail: string;
+/** Recent audit entries. Carried on the overview, so no second round trip. */
+export async function listRecentAudit(limit = 20): Promise<AuditEntry[]> {
+  const stats = await getAdminStats();
+
+  return stats.recent_audit.slice(0, limit);
+}
+
+export async function getWillTrend(): Promise<
+  Array<{ month: string; total: number }>
+> {
+  return (await getAdminStats()).will_trend;
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Health                                                                     */
+/* -------------------------------------------------------------------------- */
+
+export type HealthCheck = { name: string; ok: boolean; detail: string };
+
+export type AdminHealth = {
+  checks: HealthCheck[];
+  bank_account: {
+    bank_name: string;
+    account_name: string;
+    account_number: string;
+    instructions: string | null;
+    configured: boolean;
+  };
 };
 
-/** Wills submitted or in review, oldest first — the queue is worked FIFO. */
-export async function getReviewQueue(limit = 10): Promise<QueueEntry[]> {
-  const rows = await db
-    .select({
-      will: wills,
-      clientName: users.name,
-      clientEmail: users.email,
-    })
-    .from(wills)
-    .innerJoin(users, eq(wills.userId, users.id))
-    .where(inArray(wills.status, ["submitted", "under_review"]))
-    .orderBy(wills.submittedAt)
-    .limit(limit);
-
-  return rows;
+/**
+ * Live dependency checks, performed by the backend.
+ *
+ * They have to run there: the frontend no longer holds a database connection,
+ * an SMTP account, a vault key or a payment secret, and a check it could
+ * perform from here would be checking nothing.
+ *
+ * The fallback is deliberately a *failure*, not an empty list — a settings page
+ * that renders blank when it cannot reach the backend would read as "nothing to
+ * report".
+ */
+export async function getAdminHealth(): Promise<AdminHealth> {
+  return apiData<AdminHealth>("/admin/health", {
+    checks: [
+      {
+        name: "Backend API",
+        ok: false,
+        detail: "Could not reach the API. No dependency could be checked.",
+      },
+    ],
+    bank_account: {
+      bank_name: "Unknown",
+      account_name: "Unknown",
+      account_number: "—",
+      instructions: null,
+      configured: false,
+    },
+  });
 }
 
-export type ClientRow = User & { willCount: number };
+/* -------------------------------------------------------------------------- */
+/*  Wills                                                                      */
+/* -------------------------------------------------------------------------- */
+
+export type AdminWillRow = {
+  will: ApiWill;
+  client: { id: string; name: string | null; email: string };
+};
+
+/**
+ * The review queue: submitted and in-review Wills, oldest first.
+ *
+ * FIFO because somebody is waiting. Sorting the newest to the top would let an
+ * old submission sink out of sight.
+ */
+export async function getReviewQueue(limit = 10): Promise<AdminWillRow[]> {
+  const page = await apiData<Paginated<AdminWillRow>>(
+    "/admin/wills",
+    emptyPage<AdminWillRow>(),
+    { query: { per_page: limit } },
+  );
+
+  return page.data;
+}
+
+export async function listWills(options: {
+  /** Omit for the outstanding queue; `"all"` for the full archive. */
+  status?: WillStatus | "all";
+  page?: number;
+  perPage?: number;
+}): Promise<Paginated<AdminWillRow>> {
+  return apiData<Paginated<AdminWillRow>>(
+    "/admin/wills",
+    emptyPage<AdminWillRow>(),
+    {
+      query: {
+        status: options.status,
+        page: options.page,
+        per_page: options.perPage,
+      },
+    },
+  );
+}
+
+export type AdminWillDetail = {
+  will: ApiWill;
+  client: { id: string; name: string | null; email: string; status: string };
+  revisions: Array<{
+    version: number;
+    summary: string | null;
+    created_at: string | null;
+  }>;
+};
+
+export async function getWillForReview(
+  willId: string,
+): Promise<AdminWillDetail | null> {
+  return apiData<AdminWillDetail | null>(`/admin/wills/${willId}`, null);
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Clients                                                                    */
+/* -------------------------------------------------------------------------- */
+
+export type ClientRow = {
+  id: string;
+  name: string | null;
+  email: string;
+  phone: string | null;
+  role: "user" | "admin";
+  status: "active" | "suspended" | "deleted";
+  is_email_verified: boolean;
+  is_phone_verified: boolean;
+  two_factor_enabled: boolean;
+  wills_count: number;
+  created_at: string | null;
+  last_login_at?: string | null;
+};
 
 export async function listClients(options: {
   search?: string;
   page?: number;
   perPage?: number;
-}): Promise<{ rows: ClientRow[]; total: number }> {
-  const perPage = Math.min(options.perPage ?? 25, 100);
-  const page = Math.max(options.page ?? 1, 1);
-  const term = options.search?.trim();
-
-  const filter = term
-    ? or(like(users.name, `%${term}%`), like(users.email, `%${term}%`))
-    : undefined;
-
-  const [rows, totalRows] = await Promise.all([
-    db
-      .select({
-        user: users,
-        willCount: sql<number>`(SELECT COUNT(*) FROM ${wills} WHERE ${wills.userId} = ${users.id})`,
-      })
-      .from(users)
-      .where(filter)
-      .orderBy(desc(users.createdAt))
-      .limit(perPage)
-      .offset((page - 1) * perPage),
-    db.select({ value: count() }).from(users).where(filter),
-  ]);
-
-  return {
-    rows: rows.map((r) => ({ ...r.user, willCount: Number(r.willCount) })),
-    total: totalRows[0]?.value ?? 0,
-  };
+}): Promise<Paginated<ClientRow>> {
+  return apiData<Paginated<ClientRow>>("/admin/clients", emptyPage<ClientRow>(), {
+    query: {
+      search: options.search,
+      page: options.page,
+      per_page: options.perPage,
+    },
+  });
 }
 
-export type AdminWillRow = {
-  will: Will;
-  clientName: string | null;
-  clientEmail: string;
+/* -------------------------------------------------------------------------- */
+/*  Payments                                                                   */
+/* -------------------------------------------------------------------------- */
+
+export type AdminPaymentRow = PaymentRecord & {
+  client?: { id: string; name: string | null; email: string };
+  metadata?: Record<string, unknown> | null;
 };
 
-export async function listWills(options: {
+/**
+ * Every payment on the platform.
+ *
+ * `success_kobo` is the settled total across the filter, not the sum of the
+ * current page — it is the figure an operator reconciles against the bank, and
+ * a page-local subtotal would be meaningless there.
+ */
+export async function listPayments(options: {
+  status?: string;
+  provider?: string;
+  page?: number;
+  perPage?: number;
+}): Promise<Paginated<AdminPaymentRow> & { success_kobo: number }> {
+  const result = await api<
+    Paginated<AdminPaymentRow> & { meta?: { success_kobo?: number } }
+  >("/admin/payments", {
+    query: {
+      status: options.status,
+      provider: options.provider,
+      page: options.page,
+      per_page: options.perPage,
+    },
+  });
+
+  if (!result.ok) {
+    return { ...emptyPage<AdminPaymentRow>(), success_kobo: 0 };
+  }
+
+  return { ...result.data, success_kobo: result.data.meta?.success_kobo ?? 0 };
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Verification queue                                                         */
+/* -------------------------------------------------------------------------- */
+
+export type AdminVerificationRow = {
+  verification: {
+    id: string;
+    status: "pending" | "passed" | "failed" | "expired";
+    provider: string;
+    challenges: string[] | null;
+    completed_challenges: string[] | null;
+    failure_reason: string | null;
+    match_score: number | null;
+    liveness_score: number | null;
+    /** The captured frame lives in the vault; this is its document id. */
+    capture_document_id: string | null;
+    created_at: string | null;
+  };
+  client: { id: string; name: string | null; email: string };
+};
+
+export async function listVerifications(options: {
   status?: string;
   page?: number;
   perPage?: number;
-}): Promise<{ rows: AdminWillRow[]; total: number }> {
-  const perPage = Math.min(options.perPage ?? 25, 100);
-  const page = Math.max(options.page ?? 1, 1);
-
-  const validStatuses = [
-    "draft",
-    "submitted",
-    "under_review",
-    "approved",
-    "executed",
-    "archived",
-  ] as const;
-
-  const status = validStatuses.find((s) => s === options.status);
-  const filter = status ? eq(wills.status, status) : undefined;
-
-  const [rows, totalRows] = await Promise.all([
-    db
-      .select({ will: wills, clientName: users.name, clientEmail: users.email })
-      .from(wills)
-      .innerJoin(users, eq(wills.userId, users.id))
-      .where(filter)
-      .orderBy(desc(wills.updatedAt))
-      .limit(perPage)
-      .offset((page - 1) * perPage),
-    db.select({ value: count() }).from(wills).where(filter),
-  ]);
-
-  return { rows, total: totalRows[0]?.value ?? 0 };
+} = {}): Promise<Paginated<AdminVerificationRow>> {
+  return apiData<Paginated<AdminVerificationRow>>(
+    "/admin/verifications",
+    emptyPage<AdminVerificationRow>(),
+    {
+      query: {
+        status: options.status,
+        page: options.page,
+        per_page: options.perPage,
+      },
+    },
+  );
 }
 
-export type AdminPaymentRow = {
-  payment: Payment;
-  clientName: string | null;
-  clientEmail: string;
+/* -------------------------------------------------------------------------- */
+/*  Contact messages                                                           */
+/* -------------------------------------------------------------------------- */
+
+export type ContactMessageRow = {
+  id: string;
+  name: string;
+  email: string;
+  phone: string | null;
+  subject: string;
+  message: string;
+  status: "new" | "in_progress" | "closed";
+  created_at: string;
 };
 
-export async function listPayments(options: {
+export async function listContactMessages(options: {
+  status?: string;
   page?: number;
   perPage?: number;
-}): Promise<{ rows: AdminPaymentRow[]; total: number; successKobo: number }> {
-  const perPage = Math.min(options.perPage ?? 25, 100);
-  const page = Math.max(options.page ?? 1, 1);
-
-  const [rows, totalRows, successRows] = await Promise.all([
-    db
-      .select({
-        payment: payments,
-        clientName: users.name,
-        clientEmail: users.email,
-      })
-      .from(payments)
-      .innerJoin(users, eq(payments.userId, users.id))
-      .orderBy(desc(payments.createdAt))
-      .limit(perPage)
-      .offset((page - 1) * perPage),
-    db.select({ value: count() }).from(payments),
-    db
-      .select({ value: sql<string>`COALESCE(SUM(${payments.amountKobo}), 0)` })
-      .from(payments)
-      .where(eq(payments.status, "success")),
-  ]);
-
-  return {
-    rows,
-    total: totalRows[0]?.value ?? 0,
-    successKobo: Number(successRows[0]?.value ?? 0),
-  };
-}
-
-export async function listRecentAudit(limit = 20): Promise<AuditLog[]> {
-  return db
-    .select()
-    .from(auditLogs)
-    .orderBy(desc(auditLogs.createdAt))
-    .limit(limit);
-}
-
-/** Wills created per month for the last six months, for the overview chart. */
-export async function getWillTrend(): Promise<
-  Array<{ month: string; total: number }>
-> {
-  const since = new Date();
-  since.setUTCMonth(since.getUTCMonth() - 5);
-  since.setUTCDate(1);
-  since.setUTCHours(0, 0, 0, 0);
-
-  const rows = await db
-    .select({
-      month: sql<string>`DATE_FORMAT(${wills.createdAt}, '%Y-%m')`,
-      total: count(),
-    })
-    .from(wills)
-    .where(gte(wills.createdAt, since))
-    .groupBy(sql`DATE_FORMAT(${wills.createdAt}, '%Y-%m')`)
-    .orderBy(sql`DATE_FORMAT(${wills.createdAt}, '%Y-%m')`);
-
-  // Fill gaps so a quiet month renders as zero rather than disappearing.
-  const byMonth = new Map(rows.map((r) => [r.month, Number(r.total)]));
-  const result: Array<{ month: string; total: number }> = [];
-
-  for (let i = 0; i < 6; i++) {
-    const date = new Date(since);
-    date.setUTCMonth(since.getUTCMonth() + i);
-    const key = `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, "0")}`;
-    result.push({ month: key, total: byMonth.get(key) ?? 0 });
-  }
-
-  return result;
+} = {}): Promise<Paginated<ContactMessageRow>> {
+  return apiData<Paginated<ContactMessageRow>>(
+    "/admin/contact-messages",
+    emptyPage<ContactMessageRow>(),
+    {
+      query: {
+        status: options.status,
+        page: options.page,
+        per_page: options.perPage,
+      },
+    },
+  );
 }

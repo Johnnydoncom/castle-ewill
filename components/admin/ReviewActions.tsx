@@ -1,15 +1,16 @@
 "use client";
 
-import { useActionState, useState } from "react";
+import { useFormAction } from "@/hooks/use-api-form";
+import { useState } from "react";
 import { useFormStatus } from "react-dom";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 
 import {
   approveWillAction,
-  markExecutedAction,
   requestChangesAction,
+  markExecutedAction,
 } from "@/lib/actions/review";
-import { idleState, type FormState } from "@/lib/actions/state";
+import { type FormState } from "@/lib/actions/state";
 
 function Result({ state }: { state: FormState }) {
   if (state.status === "idle" || !state.message) return null;
@@ -63,15 +64,9 @@ export function ReviewActions({
   willId: string;
   status: string;
 }) {
-  const [approveState, approve] = useActionState(approveWillAction, idleState);
-  const [changesState, requestChanges] = useActionState(
-    requestChangesAction,
-    idleState,
-  );
-  const [executedState, markExecuted] = useActionState(
-    markExecutedAction,
-    idleState,
-  );
+  const [approveState, approve] = useFormAction(approveWillAction);
+  const [changesState, requestChanges] = useFormAction(requestChangesAction);
+  const [executedState, markExecuted] = useFormAction(markExecutedAction);
   const [showChanges, setShowChanges] = useState(false);
 
   const inReview = status === "submitted" || status === "under_review";

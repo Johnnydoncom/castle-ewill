@@ -32,6 +32,13 @@ export function PaymentBanner({ outcome }: { outcome?: string }) {
       tone: "error",
       text: "We could not identify that payment. If money has left your account, contact us and we will trace it.",
     },
+    // The provider returned the browser with no reference in the query string.
+    // Deliberately not phrased as a failure: the webhook settles independently,
+    // so the payment may well be fine and we simply cannot match it here.
+    unknown: {
+      tone: "info",
+      text: "We could not match that payment to your account from the link you returned on. If it went through, it will appear below shortly.",
+    },
   };
 
   const entry = config[outcome];

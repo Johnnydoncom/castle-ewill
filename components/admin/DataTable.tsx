@@ -198,9 +198,19 @@ export function formatNaira(kobo: number): string {
   return `₦${(kobo / 100).toLocaleString("en-NG", { maximumFractionDigits: 0 })}`;
 }
 
-export function formatDate(value: Date | null | undefined): string {
+/**
+ * Dates now arrive from the API as ISO-8601 strings rather than as `Date`
+ * objects from a driver, so both are accepted. An unparseable value renders as
+ * a dash rather than "Invalid Date", which is not something to show an operator
+ * in a registry console.
+ */
+export function formatDate(value: Date | string | null | undefined): string {
   if (!value) return "—";
-  return value.toLocaleDateString("en-GB", {
+
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return "—";
+
+  return date.toLocaleDateString("en-GB", {
     day: "numeric",
     month: "short",
     year: "numeric",

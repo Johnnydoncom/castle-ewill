@@ -28,7 +28,7 @@ export default async function AdminClientsPage({
   const { q, page: pageParam } = await searchParams;
   const page = Math.max(Number(pageParam) || 1, 1);
 
-  const { rows, total } = await listClients({
+  const { data: rows, total } = await listClients({
     search: q,
     page,
     perPage: PER_PAGE,
@@ -37,7 +37,7 @@ export default async function AdminClientsPage({
   return (
     <div className="space-y-8">
       <PageHead
-        kicker="Registry · Section II"
+        kicker="Registry · Clients"
         title="Clients"
         blurb="Everyone who has opened an account, and the state of their record."
       />
@@ -83,21 +83,21 @@ export default async function AdminClientsPage({
                 label={
                   client.status !== "active"
                     ? client.status
-                    : client.emailVerifiedAt
+                    : client.is_email_verified
                       ? "verified"
                       : "unverified"
                 }
                 tone={
                   client.status !== "active"
                     ? "danger"
-                    : client.emailVerifiedAt
+                    : client.is_email_verified
                       ? "success"
                       : "warn"
                 }
               />
             </Cell>
-            <Cell muted>{client.willCount}</Cell>
-            <Cell muted>{formatDate(client.createdAt)}</Cell>
+            <Cell muted>{client.wills_count}</Cell>
+            <Cell muted>{formatDate(client.created_at)}</Cell>
             <Cell>
               <ClientStatusToggle
                 userId={client.id}

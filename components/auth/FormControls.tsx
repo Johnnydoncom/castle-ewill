@@ -5,7 +5,7 @@ import { useId, useState } from "react";
 import { Eye, EyeOff, CheckCircle2, AlertCircle } from "lucide-react";
 
 import type { FormState } from "@/lib/actions/state";
-import { scorePassword } from "@/lib/auth/password";
+import { scorePassword } from "@/lib/auth/password-policy";
 
 /**
  * Editorial form primitives: a hairline-underlined field in the serif voice

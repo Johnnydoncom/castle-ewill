@@ -6,8 +6,18 @@ import { AlertCircle, CheckCircle2 } from "lucide-react";
 type FieldErrors = Record<string, string[] | undefined>;
 
 /**
- * Posts to `/api/contact`, which validates again server-side and persists the
- * message. Client validation here is purely for fast feedback.
+ * Posts straight to the Laravel API rather than through a Next route.
+ *
+ * Direct on purpose: the contact endpoint is rate limited **per IP**, and a
+ * relay through this server would present every visitor as the same address —
+ * either throttling honest senders collectively or, if the limit were raised to
+ * compensate, removing the control entirely.
+ *
+ * The endpoint is anonymous, so no credential travels with the request. CORS on
+ * the backend allows exactly this origin and no other.
+ *
+ * Client validation here is purely for fast feedback. The backend validates
+ * again, checks the honeypot and enforces the throttle.
  */
 export function ContactForm() {
   const [pending, setPending] = useState(false);
@@ -27,24 +37,31 @@ export function ContactForm() {
     setBanner(null);
 
     try {
-      const response = await fetch("/api/contact", {
+      const base = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
+
+      const response = await fetch(`${base}/contact`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
         body: JSON.stringify(payload),
       });
 
-      const result = (await response.json()) as {
-        success: boolean;
+      const result = (await response.json().catch(() => ({}))) as {
         message?: string;
-        error?: string;
-        fieldErrors?: FieldErrors;
+        errors?: FieldErrors;
       };
 
-      if (!response.ok || !result.success) {
-        setErrors(result.fieldErrors ?? {});
+      if (!response.ok) {
+        setErrors(result.errors ?? {});
         setBanner({
           tone: "error",
-          text: result.error ?? "We could not send your message. Please try again.",
+          text:
+            response.status === 429
+              ? "You have sent several messages already. Please wait a little before sending another."
+              : result.message ??
+                "We could not send your message. Please try again.",
         });
         return;
       }
@@ -154,6 +171,30 @@ export function ContactForm() {
         {errors.message && (
           <p className="text-xs text-destructive">{errors.message[0]}</p>
         )}
+      </div>
+
+      {/*
+        Honeypot.
+
+        Hidden from people and from screen readers, so a browser always submits
+        it empty; naive bots fill every input they find. The backend answers a
+        filled honeypot with the same cheerful 202 as a real submission —
+        telling a bot it was detected only teaches its author to stop filling
+        the field.
+
+        `tabIndex={-1}` and `autoComplete="off"` keep a password manager or a
+        keyboard user from wandering into it by accident.
+      */}
+      <div aria-hidden className="hidden">
+        <label htmlFor="contact-website">Leave this field empty</label>
+        <input
+          id="contact-website"
+          name="website"
+          type="text"
+          tabIndex={-1}
+          autoComplete="off"
+          defaultValue=""
+        />
       </div>
 
       <button

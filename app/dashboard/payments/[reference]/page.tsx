@@ -3,9 +3,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { AlertCircle, Building2, CheckCircle2, Clock } from "lucide-react";
 
-import { requireUser } from "@/lib/actions/guards";
 import { getPaymentByReference } from "@/lib/actions/payments";
-import { getBankAccount } from "@/lib/payments/bank-transfer";
 import { COMPANY } from "@/lib/company";
 import { PageHead } from "@/components/dashboard/PageHead";
 
@@ -14,23 +12,20 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-function formatNaira(kobo: number): string {
-  return `₦${(kobo / 100).toLocaleString("en-NG")}`;
-}
-
 export default async function TransferInstructionsPage({
   params,
 }: {
   params: Promise<{ reference: string }>;
 }) {
-  const user = await requireUser();
   const { reference } = await params;
 
-  // Scoped to the signed-in user, so another client's reference 404s.
-  const payment = await getPaymentByReference(reference, user.id);
-  if (!payment) notFound();
+  // Scoped to the signed-in caller by the API, so another client's reference
+  // 404s rather than confirming that it exists.
+  const detail = await getPaymentByReference(reference);
+  if (!detail) notFound();
 
-  const { account, configured } = await getBankAccount();
+  const { payment, account } = detail;
+  const configured = account.configured;
   const settled = payment.status === "success";
 
   return (
@@ -49,7 +44,7 @@ export default async function TransferInstructionsPage({
         <div className="flex items-start gap-3 border-l-2 border-success bg-success/5 px-5 py-4 text-sm text-navy">
           <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
           <p>
-            We received {formatNaira(payment.amountKobo)} against reference{" "}
+            We received {payment.amount_formatted} against reference{" "}
             <span className="font-medium">{payment.reference}</span>. Thank you.
           </p>
         </div>
@@ -86,10 +81,10 @@ export default async function TransferInstructionsPage({
 
           <dl className="mt-6 divide-y divide-border border-t border-border">
             {[
-              ["Bank", account.bankName],
-              ["Account name", account.accountName],
-              ["Account number", account.accountNumber],
-              ["Amount", formatNaira(payment.amountKobo)],
+              ["Bank", account.bank_name],
+              ["Account name", account.account_name],
+              ["Account number", account.account_number],
+              ["Amount", payment.amount_formatted],
               ["Reference", payment.reference],
             ].map(([label, value]) => (
               <div

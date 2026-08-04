@@ -1,8 +1,9 @@
+
 import "server-only";
 
 import { redirect } from "next/navigation";
 
-import { auth } from "@/auth";
+import { api } from "@/lib/api/client";
 
 export type SessionUser = {
   id: string;
@@ -12,23 +13,48 @@ export type SessionUser = {
 };
 
 /**
+ * The account as the backend currently sees it.
+ *
+ * Distinct from `SessionUser` only in shape, not in freshness — both now come
+ * straight from `GET /me`, re-read from the database on every call, so a role
+ * change or a suspension takes effect on the very next request rather than at
+ * the next sign-in.
+ */
+export type Profile = {
+  id: string;
+  name: string | null;
+  email: string;
+  phone: string | null;
+  image: string | null;
+  role: "user" | "admin";
+  status: "active" | "suspended" | "deleted";
+  is_email_verified: boolean;
+  is_phone_verified: boolean;
+  two_factor_enabled: boolean;
+  created_at: string | null;
+  last_login_at?: string | null;
+};
+
+/**
  * Server-side authorisation.
  *
- * The edge middleware already redirects anonymous traffic, but every page and
- * action re-checks here. Middleware is a convenience; this is the control.
+ * There is no edge-level pre-check: authentication is Laravel's own Sanctum
+ * session cookie, which is opaque to Next (there is nothing to decode at the
+ * edge, unlike the old NextAuth JWT), so the one and only gate is this
+ * cookie-forwarded call to `GET /me` on every protected page.
  */
 export async function requireUser(): Promise<SessionUser> {
-  const session = await auth();
+  const profile = await getProfile();
 
-  if (!session?.user?.id) {
+  if (!profile) {
     redirect("/login");
   }
 
   return {
-    id: session.user.id,
-    email: session.user.email ?? "",
-    name: session.user.name ?? session.user.email ?? "",
-    role: session.user.role ?? "user",
+    id: profile.id,
+    email: profile.email,
+    name: profile.name ?? profile.email,
+    role: profile.role,
   };
 }
 
@@ -40,14 +66,42 @@ export async function requireAdmin(): Promise<SessionUser> {
   return user;
 }
 
-/** Non-redirecting variant for server actions that return a FormState. */
+/** Non-redirecting variant for pages that only want to know who is signed in. */
 export async function currentUser(): Promise<SessionUser | null> {
-  const session = await auth();
-  if (!session?.user?.id) return null;
+  const profile = await getProfile();
+  if (!profile) return null;
+
   return {
-    id: session.user.id,
-    email: session.user.email ?? "",
-    name: session.user.name ?? session.user.email ?? "",
-    role: session.user.role ?? "user",
+    id: profile.id,
+    email: profile.email,
+    name: profile.name ?? profile.email,
+    role: profile.role,
   };
+}
+
+/**
+ * The live account record.
+ *
+ * Returns null when the backend cannot be reached or there is no session —
+ * which is the honest answer, and better than rendering a settings page full
+ * of stale values.
+ */
+export async function getProfile(): Promise<Profile | null> {
+  const result = await api<{ data: Profile }>("/me");
+
+  if (!result.ok) {
+    /*
+     * A 401 here is not a failure — it is the normal shape of "nobody is
+     * signed in", and every anonymous visit to a public page that checks
+     * `currentUser()` (the login/register pages, `pricing`) hits it on
+     * purpose. Logging it as an error would fire on every ordinary page
+     * load; only a genuinely unexpected response is worth the noise.
+     */
+    if (result.status !== 401) {
+      console.error(`[api] read failed: /me — ${result.message}`);
+    }
+    return null;
+  }
+
+  return result.data?.data ?? null;
 }

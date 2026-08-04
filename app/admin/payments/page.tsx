@@ -29,7 +29,7 @@ export default async function AdminPaymentsPage({
   const { page: pageParam } = await searchParams;
   const page = Math.max(Number(pageParam) || 1, 1);
 
-  const { rows, total, successKobo } = await listPayments({
+  const { data: rows, total, success_kobo: successKobo } = await listPayments({
     page,
     perPage: PER_PAGE,
   });
@@ -37,7 +37,7 @@ export default async function AdminPaymentsPage({
   return (
     <div className="space-y-8">
       <PageHead
-        kicker="Registry · Section IV"
+        kicker="Registry · Payments"
         title="Payments"
         blurb="Fees received, pending settlements and failed attempts."
       />
@@ -57,7 +57,7 @@ export default async function AdminPaymentsPage({
           numeral="III"
           value={
             total > 0
-              ? `${Math.round((rows.filter((r) => r.payment.status === "success").length / rows.length) * 100)}%`
+              ? `${Math.round((rows.filter((r) => r.status === "success").length / rows.length) * 100)}%`
               : "—"
           }
           label="Success rate (page)"
@@ -69,24 +69,24 @@ export default async function AdminPaymentsPage({
         isEmpty={rows.length === 0}
         empty="No payments recorded yet. Payment providers are wired in phase 2."
       >
-        {rows.map(({ payment, clientName, clientEmail }) => (
+        {rows.map((payment) => (
           <tr key={payment.id}>
             <Cell muted>{payment.reference}</Cell>
             <Cell>
-              <span className="font-medium">{clientName ?? "—"}</span>
+              <span className="font-medium">{payment.client?.name ?? "—"}</span>
               <span className="block text-xs text-muted-foreground">
-                {clientEmail}
+                {payment.client?.email ?? "—"}
               </span>
             </Cell>
             <Cell muted>{payment.provider.replace("_", " ")}</Cell>
-            <Cell>{formatNaira(payment.amountKobo)}</Cell>
+            <Cell>{payment.amount_formatted}</Cell>
             <Cell>
               <StatusBadge
                 label={payment.status}
                 tone={paymentStatusTone(payment.status)}
               />
             </Cell>
-            <Cell muted>{formatDate(payment.paidAt ?? payment.createdAt)}</Cell>
+            <Cell muted>{formatDate(payment.paid_at ?? payment.created_at)}</Cell>
             <Cell>
               {payment.provider === "bank_transfer" &&
               payment.status === "pending" ? (

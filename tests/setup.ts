@@ -1,11 +1,15 @@
 /**
- * Deterministic environment for unit tests — no real database or SMTP.
+ * Deterministic environment for unit tests.
+ *
+ * Much shorter than it was. Since the backend moved to Laravel, nothing in this
+ * tier opens a database connection, an SMTP session, a storage client or a
+ * payment provider — so there are no such credentials to stub. What remains is
+ * the API address and the session secret.
+ *
  * NODE_ENV is set to "test" by Vitest itself and is read-only, so it is not
  * assigned here.
  */
-process.env.DATABASE_URL = "mysql://test:test@127.0.0.1:3306/castle_test";
-process.env.AUTH_SECRET = "test-secret-that-is-long-enough-for-validation";
-process.env.ENCRYPTION_KEY = Buffer.alloc(32, 7).toString("base64");
 process.env.APP_URL = "http://localhost:3000";
-process.env.STORAGE_PROVIDER = "local";
-process.env.PAYSTACK_SECRET_KEY = "sk_test_paystack_secret_key_for_tests";
+process.env.API_URL = "http://localhost:8000/api/v1";
+process.env.NEXT_PUBLIC_API_URL = "http://localhost:8000/api/v1";
+process.env.AUTH_SECRET = "test-secret-that-is-long-enough-for-validation";

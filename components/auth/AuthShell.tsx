@@ -41,7 +41,7 @@ export function AuthShell({
           </div>
           <div className="relative flex h-full flex-col justify-between p-10">
             <div className="flex items-center justify-between">
-              <Logo variant="light" />
+              <Logo linked={false} variant="light" />
               <div className="flex items-center gap-3 font-serif text-xs uppercase tracking-[0.3em] text-gold">
                 <span className="h-px w-8 bg-gold/60" />
                 Plate {plateNumber}
@@ -84,7 +84,7 @@ export function AuthShell({
         <main className="flex flex-col">
           <header className="flex items-center justify-between border-b border-border px-6 py-5 lg:px-10">
             <Link href="/" className="lg:hidden">
-              <Logo size={32} />
+              <Logo size={32} linked={false} />
             </Link>
             <div className="hidden lg:block">
               <p className="font-serif text-[10px] uppercase tracking-[0.35em] text-muted-foreground">

@@ -1,9 +1,9 @@
 /**
- * Document vault constants.
+ * Document vault constants and shared validation.
  *
- * These live outside `lib/actions/documents.ts` because a `"use server"` module
- * may only export async functions — exporting a constant from one is a build
- * error. Both the server actions and the client UI import from here.
+ * These live apart from `lib/actions/documents.ts` because that module is
+ * server-only — it reaches the database and the storage adapters — while the
+ * upload UI needs the same limits and MIME rules to give immediate feedback.
  */
 
 /** 10 MB — comfortably above a passport scan, below a denial-of-service. */

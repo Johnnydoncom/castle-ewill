@@ -1,14 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { eq } from "drizzle-orm";
 import { Download } from "lucide-react";
 
-import { db } from "@/lib/db";
-import { users, willRevisions } from "@/lib/db/schema";
 import { requireAdmin } from "@/lib/actions/guards";
-import { getFullWill, toCompletionInput } from "@/lib/will/repository";
-import { completionPercent } from "@/lib/will/completion";
+import { getWillForReview } from "@/lib/actions/admin";
 import { WILL_STATUS_LABELS } from "@/lib/will/reference";
 import { PageHead } from "@/components/dashboard/PageHead";
 import { ReviewActions } from "@/components/admin/ReviewActions";
@@ -32,23 +28,18 @@ export default async function AdminWillDetailPage({
   await requireAdmin();
   const { id } = await params;
 
-  // Admin scope: `null` skips the ownership filter deliberately.
-  const will = await getFullWill(id, null);
-  if (!will) notFound();
+  /*
+   * `/admin/wills/{id}` is the deliberate unscoped read — a separate endpoint
+   * from the client-facing one, so stepping outside the owner scope is visible
+   * rather than something a forgotten argument allows. It answers 404 both for
+   * a Will that does not exist and for a caller who may not review it.
+   */
+  const detail = await getWillForReview(id);
+  if (!detail) notFound();
 
-  const [owner] = await db
-    .select()
-    .from(users)
-    .where(eq(users.id, will.userId))
-    .limit(1);
+  const { will, client: owner, revisions } = detail;
 
-  const revisions = await db
-    .select()
-    .from(willRevisions)
-    .where(eq(willRevisions.willId, will.id))
-    .orderBy(willRevisions.version);
-
-  const percent = completionPercent(toCompletionInput(will));
+  const percent = will.progress?.percent ?? will.completion_percent;
 
   return (
     <div className="space-y-10">
@@ -63,7 +54,7 @@ export default async function AdminWillDetailPage({
           <PageHead
             kicker={`Registry · ${will.reference}`}
             title={will.title}
-            blurb={`Submitted by ${owner?.name ?? "unknown"} (${owner?.email ?? "—"}).`}
+            blurb={`Submitted by ${owner.name ?? "unknown"} (${owner.email}).`}
           />
         </div>
       </div>
@@ -83,7 +74,7 @@ export default async function AdminWillDetailPage({
               },
               { label: "Completion", value: `${percent}%` },
               { label: "Revision", value: String(will.version) },
-              { label: "Submitted", value: formatDate(will.submittedAt) },
+              { label: "Submitted", value: formatDate(will.submitted_at) },
             ].map((item) => (
               <div key={item.label} className="border border-border p-4">
                 <dt className="font-serif text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
@@ -107,7 +98,7 @@ export default async function AdminWillDetailPage({
               Document
             </p>
             <Link
-              href={`/api/wills/${will.id}/pdf`}
+              href={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${will.id}/pdf`}
               className="mt-4 inline-flex items-center gap-2 border border-border px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy transition-colors hover:border-gold hover:text-gold"
             >
               <Download className="h-3.5 w-3.5" />
@@ -127,7 +118,7 @@ export default async function AdminWillDetailPage({
               <ol className="mt-4 space-y-3">
                 {revisions.map((revision) => (
                   <li
-                    key={revision.id}
+                    key={revision.version}
                     className="border-l-2 border-border pl-4"
                   >
                     <p className="text-sm text-navy">
@@ -137,7 +128,7 @@ export default async function AdminWillDetailPage({
                       {revision.summary ?? "—"}
                     </p>
                     <p className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground/70">
-                      {formatDate(revision.createdAt)}
+                      {formatDate(revision.created_at)}
                     </p>
                   </li>
                 ))}

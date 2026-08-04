@@ -1,10 +1,9 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
 
+import { useFormAction } from "@/hooks/use-api-form";
 import { registerAction } from "@/lib/actions/auth";
-import { idleState } from "@/lib/actions/state";
 import {
   Field,
   FormBanner,
@@ -13,7 +12,7 @@ import {
 } from "./FormControls";
 
 export function RegisterForm() {
-  const [state, action] = useActionState(registerAction, idleState);
+  const [state, action] = useFormAction(registerAction, { refresh: false });
 
   // On success the account exists but is unverified — show the next step
   // rather than a form the person has no reason to fill in again.

@@ -1,14 +1,15 @@
 "use client";
 
 import Link from "next/link";
-import { useActionState } from "react";
 
+import { useFormAction } from "@/hooks/use-api-form";
 import { signInAction } from "@/lib/actions/auth";
-import { idleState } from "@/lib/actions/state";
 import { Field, FormBanner, PasswordField, SubmitButton } from "./FormControls";
 
 export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
-  const [state, action] = useActionState(signInAction, idleState);
+  // A successful sign-in changes what every server component renders, so the
+  // RSC refresh must happen before the redirect lands.
+  const [state, action] = useFormAction(signInAction);
 
   // The server tells us when the password was accepted but a second factor is
   // still needed, so the code field only appears for accounts that use it.

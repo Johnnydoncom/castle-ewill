@@ -37,7 +37,7 @@ export default async function AdminOverviewPage() {
   return (
     <div className="space-y-10">
       <PageHead
-        kicker="Registry · Section I"
+        kicker="Registry · Overview"
         title="Overview"
         blurb="The state of the house — clients, drafts in flight, and matters awaiting counsel."
       />
@@ -45,32 +45,32 @@ export default async function AdminOverviewPage() {
       <dl className="grid grid-cols-2 gap-4 lg:grid-cols-4">
         <StatCard
           numeral="I"
-          value={stats.totalClients.toLocaleString()}
+          value={stats.total_clients.toLocaleString()}
           label="Registered clients"
           hint={
-            stats.newClientsThisMonth > 0
-              ? `+${stats.newClientsThisMonth} this month`
+            stats.new_clients_this_month > 0
+              ? `+${stats.new_clients_this_month} this month`
               : "No new clients this month"
           }
         />
         <StatCard
           numeral="II"
-          value={stats.totalWills.toLocaleString()}
+          value={stats.total_wills.toLocaleString()}
           label="Wills created"
-          hint={`${stats.willsExecuted.toLocaleString()} executed`}
+          hint={`${stats.wills_executed.toLocaleString()} executed`}
         />
         <StatCard
           numeral="III"
-          value={formatNaira(stats.revenueKobo)}
+          value={formatNaira(stats.revenue_kobo)}
           label="Fees collected"
         />
         <StatCard
           numeral="IV"
-          value={stats.willsAwaitingReview.toLocaleString()}
+          value={stats.wills_awaiting_review.toLocaleString()}
           label="Awaiting review"
           hint={
-            stats.openMessages > 0
-              ? `${stats.openMessages} unread message(s)`
+            stats.open_messages > 0
+              ? `${stats.open_messages} unread message(s)`
               : undefined
           }
         />
@@ -117,12 +117,12 @@ export default async function AdminOverviewPage() {
           isEmpty={queue.length === 0}
           empty="Nothing is awaiting review. The queue is clear."
         >
-          {queue.map(({ will, clientName, clientEmail }) => (
+          {queue.map(({ will, client }) => (
             <tr key={will.id}>
               <Cell>
-                <span className="font-medium">{clientName ?? "—"}</span>
+                <span className="font-medium">{client.name ?? "—"}</span>
                 <span className="block text-xs text-muted-foreground">
-                  {clientEmail}
+                  {client.email}
                 </span>
               </Cell>
               <Cell>
@@ -139,7 +139,7 @@ export default async function AdminOverviewPage() {
                   tone={willStatusTone(will.status)}
                 />
               </Cell>
-              <Cell muted>{formatDate(will.submittedAt)}</Cell>
+              <Cell muted>{formatDate(will.submitted_at)}</Cell>
               <Cell>
                 <Link
                   href={`/admin/wills/${will.id}`}
@@ -164,10 +164,10 @@ export default async function AdminOverviewPage() {
             <tr key={entry.id}>
               <Cell>{entry.action}</Cell>
               <Cell muted>
-                {entry.entityType ?? "—"}
-                {entry.entityId ? ` · ${entry.entityId.slice(0, 8)}` : ""}
+                {entry.entity_type ?? "—"}
+                {entry.entity_id ? ` · ${entry.entity_id.slice(0, 8)}` : ""}
               </Cell>
-              <Cell muted>{formatDate(entry.createdAt)}</Cell>
+              <Cell muted>{formatDate(entry.created_at)}</Cell>
             </tr>
           ))}
         </Table>

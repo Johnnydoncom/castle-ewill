@@ -2,9 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { AlertTriangle, CheckCircle2, UserPlus } from "lucide-react";
 
-import { requireUser } from "@/lib/actions/guards";
-import { getFullWill, getOrCreateDraft } from "@/lib/will/repository";
-import { conflictingWitnesses } from "@/lib/will/validation";
+import { getOrCreateDraft } from "@/lib/actions/will";
+import { conflictingWitnesses } from "@/lib/will/conflicts";
 import { PageHead } from "@/components/dashboard/PageHead";
 
 export const metadata: Metadata = {
@@ -13,24 +12,25 @@ export const metadata: Metadata = {
 };
 
 export default async function WitnessesPage() {
-  const user = await requireUser();
-  const draft = await getOrCreateDraft(user.id, user.name);
-  const will = await getFullWill(draft.id, user.id);
+  // The API scopes the draft to the caller, so there is no user id to pass and
+  // none to get wrong.
+  const will = await getOrCreateDraft();
 
   const witnesses = will?.witnesses ?? [];
   const beneficiaries = will?.beneficiaries ?? [];
 
   // Surfaced here as well as in the wizard: this is the rule people most often
-  // fall foul of, and it voids the gift rather than the Will.
+  // fall foul of, and it voids the gift rather than the Will. The server
+  // enforces it at step eight regardless of what this page shows.
   const clashes = conflictingWitnesses(
-    beneficiaries.map((b) => b.fullName),
-    witnesses.map((w) => w.fullName),
+    beneficiaries.map((b) => b.full_name),
+    witnesses.map((w) => w.full_name),
   );
 
   return (
     <div className="space-y-10">
       <PageHead
-        kicker="Section IV"
+        kicker="Witnesses"
         title="Witnesses"
         blurb="Nigerian law requires two adult witnesses present together at signing. Neither may inherit under the Will."
       />
@@ -74,7 +74,7 @@ export default async function WitnessesPage() {
         ) : (
           <ul className="divide-y divide-border border border-border bg-background">
             {witnesses.map((witness, index) => {
-              const conflicted = clashes.includes(witness.fullName);
+              const conflicted = clashes.includes(witness.full_name ?? "");
               return (
                 <li key={witness.id} className="px-5 py-5">
                   <div className="flex flex-wrap items-start justify-between gap-4">
@@ -82,7 +82,7 @@ export default async function WitnessesPage() {
                       <p className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">
                         Witness {index + 1}
                       </p>
-                      <p className="mt-1.5 text-sm font-medium text-navy">{witness.fullName}</p>
+                      <p className="mt-1.5 text-sm font-medium text-navy">{witness.full_name}</p>
                       <p className="mt-0.5 text-sm text-muted-foreground">
                         {witness.occupation ?? "Occupation not recorded"}
                       </p>
