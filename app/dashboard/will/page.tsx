@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Download, FileText } from "lucide-react";
 
 import { getVerificationStatus } from "@/lib/actions/verification";
@@ -7,6 +8,7 @@ import { LivenessCheck } from "@/components/verification/LivenessCheck";
 import { getOrCreateDraft } from "@/lib/actions/will";
 import {
   applicableSteps,
+  clampToReachable,
   previousStep,
   stepByNumber,
   TOTAL_STEPS,
@@ -57,10 +59,25 @@ export default async function WillBuilderPage({
   }
 
   const requested = Number(stepParam);
-  const current =
-    Number.isInteger(requested) && requested >= 1 && requested <= TOTAL_STEPS
-      ? requested
-      : will.current_step;
+  const hasValidStepParam =
+    Number.isInteger(requested) && requested >= 1 && requested <= TOTAL_STEPS;
+
+  const current = hasValidStepParam
+    ? clampToReachable(requested, will.current_step, will.has_minor_children)
+    : will.current_step;
+
+  /*
+   * `?step=` is an unchecked query string — nothing stops someone from
+   * requesting a step past what they've actually reached (e.g. `?step=7`
+   * while Guardianship and Bequests are still blank). Only a draft has a
+   * step sequence to jump ahead of at all; the read-only summary below
+   * ignores `current_step` entirely, so there's nothing to enforce there.
+   * Redirecting rather than silently rendering the clamped step keeps the
+   * address bar an honest description of what actually loaded.
+   */
+  if (will.status === "draft" && hasValidStepParam && current !== requested) {
+    redirect(`/dashboard/will?step=${current}`);
+  }
 
   /*
    * Only needed on the final step. Fetched here rather than inside the review

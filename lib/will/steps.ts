@@ -132,3 +132,30 @@ export function applicableSteps(
     (s) => !(s.step === 5 && hasMinorChildren === false),
   );
 }
+
+/**
+ * Clamps a requested `?step=` to what the Will has actually reached.
+ *
+ * `will.current_step` is the furthest step the server has recorded — every
+ * step before it is complete, and nothing after it has been touched yet.
+ * Without this, the query string is an unchecked way to view (and submit
+ * into) a step the wizard hasn't gated the person into yet, e.g. jumping
+ * straight to Funeral Wishes while Guardianship and Bequests are still
+ * blank. Going *back* to review or amend an earlier step stays unrestricted
+ * — only jumping ahead of `current_step` is refused.
+ */
+export function clampToReachable(
+  requested: number,
+  currentStep: number,
+  hasMinorChildren: boolean | null,
+): number {
+  let step = Math.min(Math.max(requested, 1), currentStep, TOTAL_STEPS);
+
+  // Guardianship doesn't exist for this Will — land somewhere applicable
+  // rather than rendering a step that was never meant to be reached.
+  if (step === 5 && hasMinorChildren === false) {
+    step = currentStep >= 6 ? 6 : 4;
+  }
+
+  return step;
+}
