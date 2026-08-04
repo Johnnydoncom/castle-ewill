@@ -289,6 +289,13 @@ export type AdminVerificationRow = {
     liveness_score: number | null;
     /** The captured frame lives in the vault; this is its document id. */
     capture_document_id: string | null;
+    /**
+     * What this attempt was actually compared against, snapshotted at
+     * submit time — the client's identity document, or their enrolled
+     * selfie if they had no usable ID on file yet.
+     */
+    reference_document_id: string | null;
+    reference_kind: "id_document" | "enrolled_selfie" | null;
     created_at: string | null;
   };
   client: { id: string; name: string | null; email: string };

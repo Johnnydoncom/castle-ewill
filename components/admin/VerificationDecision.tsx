@@ -49,12 +49,21 @@ function Submit({
  * only through the vault's own authorised download, which records every read:
  * a reviewer looking at a client's face should leave a trace.
  */
+const REFERENCE_KIND_LABEL: Record<string, string> = {
+  id_document: "the identity document",
+  enrolled_selfie: "their enrolled selfie",
+};
+
 export function VerificationDecision({
   verificationId,
   captureDocumentId,
+  referenceDocumentId,
+  referenceKind,
 }: {
   verificationId: string;
   captureDocumentId: string | null;
+  referenceDocumentId?: string | null;
+  referenceKind?: "id_document" | "enrolled_selfie" | null;
 }) {
   const [rejecting, setRejecting] = useState(false);
 
@@ -72,14 +81,28 @@ export function VerificationDecision({
 
   return (
     <div className="space-y-3">
-      {captureDocumentId && (
-        <a
-          href={`${apiBase}/documents/${captureDocumentId}/download`}
-          className="inline-block text-xs text-navy underline underline-offset-4 hover:text-gold"
-        >
-          View the capture
-        </a>
-      )}
+      <div className="flex flex-wrap gap-x-4 gap-y-1">
+        {captureDocumentId && (
+          <a
+            href={`${apiBase}/documents/${captureDocumentId}/download`}
+            className="inline-block text-xs text-navy underline underline-offset-4 hover:text-gold"
+          >
+            View the capture
+          </a>
+        )}
+        {referenceDocumentId ? (
+          <a
+            href={`${apiBase}/documents/${referenceDocumentId}/download`}
+            className="inline-block text-xs text-navy underline underline-offset-4 hover:text-gold"
+          >
+            View {REFERENCE_KIND_LABEL[referenceKind ?? ""] ?? "the reference image"}
+          </a>
+        ) : (
+          <span className="text-xs italic text-muted-foreground">
+            No reference image on file to compare against.
+          </span>
+        )}
+      </div>
 
       <div className="flex flex-wrap items-center gap-2">
         <form action={approve}>

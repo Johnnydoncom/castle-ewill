@@ -155,6 +155,8 @@ export default async function AdminVerificationsPage({
                   <VerificationDecision
                     verificationId={verification.id}
                     captureDocumentId={verification.capture_document_id}
+                    referenceDocumentId={verification.reference_document_id}
+                    referenceKind={verification.reference_kind}
                   />
                 </div>
               )}
@@ -176,10 +178,12 @@ export default async function AdminVerificationsPage({
           What you are deciding
         </p>
         <p className="mt-3 text-sm leading-relaxed text-navy/80">
-          Compare the capture against the identity document in the client&rsquo;s
-          vault. The browser-side liveness challenge raises the effort needed to
-          hold up a photograph, but it is not anti-spoofing — a determined
-          attacker bypasses it entirely. Your eyes are the control here.
+          Compare the capture against the reference image linked below it —
+          the client&rsquo;s identity document when they have one on file, or
+          their previously enrolled selfie if they don&rsquo;t. The
+          browser-side liveness challenge raises the effort needed to hold up
+          a photograph, but it is not anti-spoofing — a determined attacker
+          bypasses it entirely. Your eyes are the control here.
         </p>
         <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
           An approval is valid for one hour, after which the client must verify
