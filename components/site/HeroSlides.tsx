@@ -197,7 +197,7 @@ export function HeroSlides() {
           </div>
 
           {/* Slide selector */}
-          <div className="mt-12 grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 sm:grid-cols-3">
+          <div className="hidden mt-12 md:grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 sm:grid-cols-3">
             {SLIDES.map((s, i) => {
               const isActive = i === active;
               return (
