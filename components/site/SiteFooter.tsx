@@ -17,6 +17,7 @@ const cols = [
     title: "Company",
     links: [
       ["About us", "/about"],
+      ["Security & verification", "/security"],
       ["The Journal", "/blog"],
       ["Contact", "/contact"],
       ["FAQs", "/faqs"],

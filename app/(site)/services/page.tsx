@@ -46,12 +46,13 @@ const SERVICES = [
   {
     numeral: "IV",
     title: "Identity verification",
-    body: "Email confirmation, phone verification and identity documents, so that the person making a Will is demonstrably the person named in it. A Will that cannot be shown to be yours is a Will that can be challenged.",
+    body: "Email confirmation, phone verification, document authentication and a live face match, so that the person making a Will is demonstrably the person named in it. A Will that cannot be shown to be yours is a Will that can be challenged.",
     points: [
       "Email and phone confirmation",
       "Passport photograph and valid ID",
       "Full audit trail",
     ],
+    href: "/security",
   },
   {
     numeral: "V",
@@ -118,6 +119,15 @@ export default function ServicesPage() {
                   </li>
                 ))}
               </ul>
+              {"href" in service && (
+                <Link
+                  href={service.href}
+                  className="mt-5 inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-navy underline underline-offset-4 hover:text-gold"
+                >
+                  How we verify
+                  <ArrowRight className="h-3 w-3" />
+                </Link>
+              )}
             </article>
           ))}
         </div>

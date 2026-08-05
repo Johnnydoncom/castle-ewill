@@ -9,14 +9,9 @@ import type { VerificationProviderName } from "@/lib/actions/admin";
 
 const OPTIONS: { value: VerificationProviderName; label: string; hint: string }[] = [
   {
-    value: "dojah",
-    label: "Dojah",
-    hint: "Registry lookup, liveness and face match against Dojah's API.",
-  },
-  {
     value: "smile_id",
     label: "Smile ID",
-    hint: "One Biometric KYC job covers the registry lookup, liveness and face match.",
+    hint: "Document Verification: authenticates the ID, extracts its details, and matches it against the selfie.",
   },
   {
     value: "manual_review",

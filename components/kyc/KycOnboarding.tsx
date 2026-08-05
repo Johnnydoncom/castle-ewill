@@ -15,16 +15,16 @@ import {
   type IdentityDocumentType,
 } from "@/lib/documents";
 import { uploadDocumentAction } from "@/lib/actions/documents.client";
-import { type KycIdentity } from "@/lib/actions/verification.client";
 import { LivenessCheck } from "@/components/verification/LivenessCheck";
 
 /**
- * The KYC onboarding flow: your details, a valid ID, a passport photograph,
- * then a liveness check compared against the ID. Two documents, not one —
- * the passport photograph is a deliberate headshot, not a frame grabbed
+ * The KYC onboarding flow: a valid ID, a passport photograph, then a
+ * liveness check compared against the ID. Two documents, not one — the
+ * passport photograph is a deliberate headshot, not a frame grabbed
  * mid-challenge, and it's what gets enrolled as the reference every future
- * Will-submission recheck compares against; the ID document is what the
- * registry lookup and face-match legs run against here and now.
+ * Will-submission recheck compares against; the ID document is what Smile
+ * ID's document-authentication and face-match legs run against here and
+ * now.
  *
  * Deliberately not the full `DocumentVault` — these are two fixed-kind
  * uploads with nowhere else to go, not a general document manager. The
@@ -75,117 +75,6 @@ function UploadButton({ disabled }: { disabled: boolean }) {
       )}
       {pending ? "Uploading…" : "Upload this document"}
     </button>
-  );
-}
-
-/** Step 1: the details a registry lookup needs — collected once per attempt, not stored anywhere client-side beyond this form. */
-function IdentityDetailsStep({
-  onSubmit,
-}: {
-  onSubmit: (identity: KycIdentity) => void;
-}) {
-  const [legalFullName, setLegalFullName] = useState("");
-  const [dateOfBirth, setDateOfBirth] = useState("");
-  const [idNumber, setIdNumber] = useState("");
-  const [touched, setTouched] = useState(false);
-
-  const valid =
-    legalFullName.trim().length > 1 && dateOfBirth !== "" && idNumber.trim().length > 3;
-
-  function handleSubmit(event: React.FormEvent) {
-    event.preventDefault();
-    setTouched(true);
-    if (!valid) return;
-    onSubmit({ legalFullName: legalFullName.trim(), dateOfBirth, idNumber: idNumber.trim() });
-  }
-
-  return (
-    <div className="border border-border bg-background p-6 sm:p-8">
-      <div className="flex items-start gap-3">
-        <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-gold" />
-        <div className="min-w-0 flex-1">
-          <h2 className="font-serif text-xl text-navy">Your details</h2>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            Exactly as they appear on the ID you&apos;ll upload next — we
-            check these against the issuing registry.
-          </p>
-
-          <form onSubmit={handleSubmit} className="mt-6 space-y-5">
-            <div className="space-y-2">
-              <label
-                htmlFor="kyc-legal-name"
-                className="font-serif text-[10px] uppercase tracking-[0.28em] text-navy"
-              >
-                Full legal name
-              </label>
-              <input
-                id="kyc-legal-name"
-                type="text"
-                required
-                value={legalFullName}
-                onChange={(e) => setLegalFullName(e.target.value)}
-                className="block w-full border border-border bg-background px-4 py-2.5 text-sm text-navy focus-visible:border-gold"
-              />
-              {touched && legalFullName.trim().length <= 1 && (
-                <p className="text-xs text-destructive">Enter your full legal name.</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label
-                htmlFor="kyc-dob"
-                className="font-serif text-[10px] uppercase tracking-[0.28em] text-navy"
-              >
-                Date of birth
-              </label>
-              <input
-                id="kyc-dob"
-                type="date"
-                required
-                max={new Date().toISOString().slice(0, 10)}
-                value={dateOfBirth}
-                onChange={(e) => setDateOfBirth(e.target.value)}
-                className="block w-full border border-border bg-background px-4 py-2.5 text-sm text-navy focus-visible:border-gold"
-              />
-              {touched && dateOfBirth === "" && (
-                <p className="text-xs text-destructive">Enter your date of birth.</p>
-              )}
-            </div>
-
-            <div className="space-y-2">
-              <label
-                htmlFor="kyc-id-number"
-                className="font-serif text-[10px] uppercase tracking-[0.28em] text-navy"
-              >
-                ID number
-              </label>
-              <input
-                id="kyc-id-number"
-                type="text"
-                required
-                value={idNumber}
-                onChange={(e) => setIdNumber(e.target.value)}
-                className="block w-full border border-border bg-background px-4 py-2.5 text-sm text-navy focus-visible:border-gold"
-              />
-              <p className="text-xs text-muted-foreground">
-                NIN, passport number, driver&apos;s licence or voter&apos;s
-                card number — whichever ID you&apos;ll upload next.
-              </p>
-              {touched && idNumber.trim().length <= 3 && (
-                <p className="text-xs text-destructive">Enter your ID number.</p>
-              )}
-            </div>
-
-            <button
-              type="submit"
-              className="flex h-13 w-full items-center justify-center gap-3 bg-navy px-8 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy-foreground transition-colors hover:bg-navy/90 sm:w-auto"
-            >
-              Continue
-            </button>
-          </form>
-        </div>
-      </div>
-    </div>
   );
 }
 
@@ -368,7 +257,6 @@ export function KycOnboarding({
   /** Set when the most recent kyc-purpose attempt was rejected — surfaced so the client knows what to fix. */
   rejectionReason?: string | null;
 }) {
-  const [identity, setIdentity] = useState<KycIdentity | null>(null);
   const [idOnFile, setIdOnFile] = useState(hasIdDocument);
   const [passportOnFile, setPassportOnFile] = useState(hasPassportPhoto);
   const [documentType, setDocumentType] = useState<IdentityDocumentType | null>(null);
@@ -383,15 +271,6 @@ export function KycOnboarding({
   const notice = rejectionReason && !noticeDismissed && !reuploading && (
     <RejectionNotice reason={rejectionReason} onReupload={() => setReuploading(true)} />
   );
-
-  if (!identity) {
-    return (
-      <div className="space-y-6">
-        {notice}
-        <IdentityDetailsStep onSubmit={setIdentity} />
-      </div>
-    );
-  }
 
   if (!idOnFile || reuploading) {
     if (!documentType) {
@@ -449,7 +328,6 @@ export function KycOnboarding({
         title="Verify your identity"
         description="Now let's confirm it's really you. You'll be asked to perform a few short movements on camera, compared against the ID document you just uploaded."
         footerNote="The image captured is encrypted and stored in your vault. Once approved, your passport photograph becomes the reference we check against each time you submit or amend your Will."
-        identity={identity}
         onVerified={() => {
           // A full reload rather than a client-side refresh: this is the
           // moment `is_kyc_verified` flips, and every server component down

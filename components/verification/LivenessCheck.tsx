@@ -6,7 +6,6 @@ import { AlertCircle, Camera, CheckCircle2, Loader2 } from "lucide-react";
 import {
   startVerificationAction,
   submitVerificationAction,
-  type KycIdentity,
 } from "@/lib/actions/verification.client";
 import { idleState } from "@/lib/actions/state";
 
@@ -94,14 +93,11 @@ export function LivenessCheck({
   title = "Identity check",
   description = "Before your Will can be submitted we need to confirm it is really you. You will be asked to perform a few short movements on camera.",
   footerNote = "The image captured is encrypted and stored in your vault. It is used only to confirm your identity against the ID document you uploaded.",
-  identity,
 }: {
   onVerified?: () => void;
   title?: string;
   description?: string;
   footerNote?: string;
-  /** Registry-lookup inputs — required by the backend only on a first-ever (`kyc`-purpose) attempt. */
-  identity?: KycIdentity;
 }) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
@@ -201,7 +197,7 @@ export function LivenessCheck({
     setCompleted([]);
     blinkStateRef.current = { sawClosed: false, observed: false };
 
-    const started = await startVerificationAction(identity);
+    const started = await startVerificationAction();
 
     if (started.status === "error") {
       setPhase("error");
@@ -315,7 +311,7 @@ export function LivenessCheck({
           : "We could not start the camera check. Please try again, or use a different browser.",
       );
     }
-  }, [cleanup, finish, identity]);
+  }, [cleanup, finish]);
 
   const currentChallenge = challenges[completed.length];
 

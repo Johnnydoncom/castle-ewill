@@ -140,7 +140,7 @@ export async function getAdminHealth(): Promise<AdminHealth> {
   });
 }
 
-export type VerificationProviderName = "dojah" | "smile_id" | "manual_review";
+export type VerificationProviderName = "smile_id" | "manual_review";
 
 /** Which KYC vendor is currently live — see `Setting::activeVerificationProvider()`. */
 export async function getActiveVerificationProvider(): Promise<VerificationProviderName> {
