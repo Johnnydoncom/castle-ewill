@@ -13,17 +13,39 @@ import type { PriceQuote } from "@/lib/pricing/types";
  *    the redirect below leaves our origin entirely.
  */
 
+/** Which optional extras were taken. Mirrors the backend's `PriceOptions`. */
+export type PriceOptions = {
+  withReview: boolean;
+  withSubscription: boolean;
+};
+
+export const NO_OPTIONS: PriceOptions = {
+  withReview: false,
+  withSubscription: false,
+};
+
+/** The wire shape the API expects. One place, so no key name can drift. */
+function optionsToBody(options: PriceOptions) {
+  return {
+    with_review: options.withReview,
+    with_subscription: options.withSubscription,
+  };
+}
+
 /**
  * The selection, as the API wants it.
  *
- * A slug and a boolean — never an amount, and there is no field the form
+ * A slug and some booleans — never an amount, and there is no field the form
  * could put one in. The total is composed server-side by `PriceQuoteBuilder`
  * from the `plans` table.
  */
-function selectionFrom(formData: FormData): { plan_slug: string; with_subscription: boolean } {
+function selectionFrom(formData: FormData) {
   return {
     plan_slug: String(formData.get("planSlug") ?? ""),
-    with_subscription: formData.get("withSubscription") === "on",
+    ...optionsToBody({
+      withReview: formData.get("withReview") === "on",
+      withSubscription: formData.get("withSubscription") === "on",
+    }),
   };
 }
 
@@ -57,11 +79,11 @@ async function startCheckout(
  */
 export async function fetchQuoteAction(
   planSlug: string,
-  withSubscription: boolean,
+  options: PriceOptions,
 ): Promise<PriceQuote | null> {
   const result = await api<{ data: PriceQuote }>("/payments/quote", {
     method: "POST",
-    body: { plan_slug: planSlug, with_subscription: withSubscription },
+    body: { plan_slug: planSlug, ...optionsToBody(options) },
   });
 
   return result.ok ? result.data.data : null;

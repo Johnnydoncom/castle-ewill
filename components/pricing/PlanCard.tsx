@@ -113,31 +113,47 @@ export function PlanCard({
 }
 
 /**
- * The compulsory lodging fee and the optional subscription, stated plainly.
+ * The add-ons, stated plainly and labelled by whether they can be declined.
  *
- * They are not tiers and must not be shown as a third and fourth card to
- * choose between — one is unavoidable, the other is an add-on.
+ * They are not tiers and must not be shown as further cards to choose
+ * between. The Required/Optional label is the point: lodging is unavoidable,
+ * while the solicitor review and the subscription are genuinely optional —
+ * presenting a review as though every Will must have one is what this
+ * component exists to stop.
  */
 export function PricingFootnotes({
   lodging,
+  review,
   subscription,
 }: {
   lodging: Plan | null;
+  review: Plan | null;
   subscription: Plan | null;
 }) {
-  const notes = [lodging, subscription].filter(Boolean) as Plan[];
+  const notes = [
+    lodging && { plan: lodging, required: true },
+    review && { plan: review, required: false },
+    subscription && { plan: subscription, required: false },
+  ].filter(Boolean) as { plan: Plan; required: boolean }[];
 
   if (notes.length === 0) return null;
 
   return (
-    <div className="mt-14 grid gap-6 border-t border-border pt-10 sm:grid-cols-2">
-      {notes.map((plan) => (
+    <div className="mt-14 grid gap-6 border-t border-border pt-10 sm:grid-cols-2 lg:grid-cols-3">
+      {notes.map(({ plan, required }) => (
         <div key={plan.id} className="flex gap-4">
           <span className="mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-full border border-gold/40">
             <Minus className="h-3.5 w-3.5 text-gold" />
           </span>
           <div className="min-w-0">
-            <h3 className="font-serif text-lg text-navy">
+            <span
+              className={`text-[10px] font-semibold uppercase tracking-[0.2em] ${
+                required ? "text-destructive" : "text-muted-foreground"
+              }`}
+            >
+              {required ? "Required" : "Optional"}
+            </span>
+            <h3 className="mt-1 font-serif text-lg text-navy">
               {plan.name}
               <span className="ml-2 text-sm text-gold">
                 {plan.price_formatted} {plan.charge_suffix}

@@ -56,6 +56,7 @@ export default async function DashboardPaymentsPage() {
       <section className="border border-border bg-background p-6 sm:p-8">
         <WillCheckout
           plans={prices.will}
+          review={prices.review}
           subscription={prices.subscription}
           initialQuotes={prices.quotes}
           flutterwaveEnabled={prices.providers.flutterwave}

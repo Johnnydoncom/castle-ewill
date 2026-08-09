@@ -233,6 +233,7 @@ export async function savePlanAction(
       .map((line) => line.trim())
       .filter(Boolean),
     includes_lodging: formData.get("includesLodging") === "on",
+    includes_review: formData.get("includesReview") === "on",
     included_subscription_months: Number(
       formData.get("includedSubscriptionMonths") ?? 0,
     ),

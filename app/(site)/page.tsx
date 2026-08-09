@@ -4,18 +4,27 @@ import Image from "next/image";
 import { ArrowRight, Check, Star } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeroSlides } from "@/components/site/HeroSlides";
+import { PlanCard, PricingFootnotes } from "@/components/pricing/PlanCard";
+import { getPriceList } from "@/lib/pricing";
 
 export const metadata: Metadata = {
   title: "Castle eWill & Trust — Nigeria's Premium Online Will Platform",
   description:
-    "Create a legally-sound Will in minutes. Nigeria's most trusted online Will making platform — secure, lawyer-reviewed, and built for your legacy.",
+    "Create a legally-sound Will in minutes. Nigeria's most trusted online Will making platform — secure, optionally lawyer-reviewed, and built for your legacy.",
   openGraph: {
     title: "Castle eWill & Trust — Nigeria's Premium Online Will Platform",
     description:
-      "Create a legally-sound Will in minutes. Nigeria's most trusted online Will making platform — secure, lawyer-reviewed, and built for your legacy.",
+      "Create a legally-sound Will in minutes. Nigeria's most trusted online Will making platform — secure, optionally lawyer-reviewed, and built for your legacy.",
     type: "website",
   },
 };
+
+/**
+ * Prices are read per request, so a change in the admin console is live on the
+ * homepage immediately — and a build run without a reachable backend cannot
+ * bake a stale price into static HTML.
+ */
+export const dynamic = "force-dynamic";
 
 export default function HomePage() {
   return (
@@ -41,11 +50,17 @@ export default function HomePage() {
 function TrustBar() {
   const items = [
     "Nigerian Wills Act compliant",
-    "Solicitor reviewed",
+    // "Solicitor reviewed" was a promise to every visitor, but review is an
+    // optional extra — included with Premium, chargeable on Basic. Claiming it
+    // universally sells a Basic client something they have not bought.
+    "Optional solicitor review",
     "AES-256 encrypted vault",
     "Executor & guardian clauses",
-    "Unlimited updates",
-    "One-time fee — no subscription",
+    // Both of these were unqualified too. Free updates come with the annual
+    // subscription (or a year of Premium), and the charge is per Will rather
+    // than a flat one-off, since lodging is compulsory on top of Basic.
+    "Free updates while subscribed",
+    "Charged once, per Will",
   ];
   return (
     <div className="overflow-hidden border-b border-border bg-surface py-3.5">
@@ -93,7 +108,8 @@ function Proof() {
           <p className="mt-6 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg">
             Traditional Will writing in Nigeria means appointments, paperwork and fees
             that scale with confusion. Castle replaces that with a guided flow you can
-            finish over lunch — and a solicitor who checks it before you sign.
+            finish over lunch — with a solicitor to check it before you sign,
+            whenever you want one.
           </p>
           <div className="mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border">
             {stats.map(([n, l]) => (
@@ -203,8 +219,8 @@ function Features() {
     },
     {
       numeral: "II",
-      title: "Solicitor review",
-      body: "Every Will is checked by admitted Nigerian counsel before it is sealed and stored.",
+      title: "Solicitor review, if you want it",
+      body: "Have your Will read clause by clause by admitted Nigerian counsel before you sign. Optional on Basic, included with Premium.",
     },
     {
       numeral: "III",
@@ -365,7 +381,7 @@ function HowItWorks() {
   const steps = [
     { n: "01", title: "Create account", body: "Three fields. No credit card." },
     { n: "02", title: "Draft your Will", body: "Nine guided sections, plain English throughout." },
-    { n: "03", title: "Counsel review", body: "A qualified solicitor checks every clause." },
+    { n: "03", title: "Counsel review", body: "Optional: a qualified solicitor checks every clause." },
     { n: "04", title: "Sign & seal", body: "Two witnesses, your signature, encrypted vault." },
   ];
 
@@ -483,46 +499,31 @@ function LegacyBanner() {
   );
 }
 
-function PricingPreview() {
-  const plans = [
-    {
-      name: "Essential",
-      price: "₦25,000",
-      desc: "For a straightforward Will",
-      features: ["Guided Will wizard", "PDF download", "1 year of updates", "Email support"],
-      featured: false,
-    },
-    {
-      name: "Family",
-      price: "₦55,000",
-      desc: "Most chosen by families",
-      features: [
-        "Everything in Essential",
-        "Solicitor review call",
-        "Unlimited updates",
-        "Guardianship clauses",
-        "Priority support",
-      ],
-      featured: true,
-    },
-    {
-      name: "Estate",
-      price: "₦150,000",
-      desc: "For complex estates & trusts",
-      features: ["Everything in Family", "Dedicated estate lawyer", "Trust structures", "Executor briefing"],
-      featured: false,
-    },
-  ];
+/**
+ * The real price list, read from the API.
+ *
+ * This section used to hard-code three invented tiers — Essential ₦25,000,
+ * Family ₦55,000, Estate ₦150,000 — none of which the firm has ever sold. It
+ * is the same fault as inventing a testimonial: a page must not make up what
+ * a client will be charged. Prices now come from the `plans` table through
+ * `getPriceList()`, and the totals are composed server-side, so the homepage
+ * cannot drift from the pricing page or from the payment gateway.
+ */
+async function PricingPreview() {
+  const prices = await getPriceList();
+
+  if (prices.will.length === 0) return null;
+
   return (
     <section className="border-y border-border bg-surface py-20 lg:py-28">
-      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+      <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
         <div className="grid gap-6 md:grid-cols-[minmax(0,1fr)_auto] md:items-end">
           <div className="min-w-0">
             <span className="text-[10px] font-semibold uppercase tracking-[0.35em] text-primary">
-              One-time fees
+              Charged once, per Will
             </span>
             <h2 className="mt-5 max-w-xl font-serif text-3xl leading-[1.05] text-navy sm:text-5xl">
-              Pay once. No subscription, ever.
+              Every figure, up front.
             </h2>
           </div>
           <Link
@@ -534,52 +535,33 @@ function PricingPreview() {
           </Link>
         </div>
 
-        <div className="mt-14 grid gap-6 lg:grid-cols-3">
-          {plans.map((p) => (
-            <div
-              key={p.name}
-              className={`relative flex flex-col rounded-[1.75rem] border p-8 transition-all ${p.featured
-                ? "border-gold/50 bg-navy text-navy-foreground shadow-elegant lg:-translate-y-4"
-                : "border-border bg-card hover:-translate-y-1 hover:shadow-soft"
-                }`}
+        <div className="mt-14 grid gap-6 lg:grid-cols-2">
+          {prices.will.map((plan) => (
+            <PlanCard
+              key={plan.id}
+              plan={plan}
+              quote={prices.quotes[plan.slug]}
+              featured={plan.is_popular}
             >
-              {p.featured && (
-                <span className="absolute -top-3 left-8 rounded-full bg-gold px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-navy">
-                  Most chosen
-                </span>
-              )}
-              <h3 className={`font-serif text-2xl ${p.featured ? "" : "text-navy"}`}>{p.name}</h3>
-              <p className={`mt-1 text-sm ${p.featured ? "text-navy-foreground/65" : "text-muted-foreground"}`}>
-                {p.desc}
-              </p>
-              <div className="mt-7 flex items-baseline gap-2">
-                <span className={`font-serif text-4xl ${p.featured ? "text-gold" : "text-navy"}`}>
-                  {p.price}
-                </span>
-                <span className={`text-xs uppercase tracking-[0.18em] ${p.featured ? "text-navy-foreground/50" : "text-muted-foreground"}`}>
-                  one-time
-                </span>
-              </div>
-              <ul className="mt-8 flex-1 space-y-3">
-                {p.features.map((f) => (
-                  <li key={f} className="flex items-start gap-3 text-sm">
-                    <Check className={`mt-0.5 h-4 w-4 shrink-0 ${p.featured ? "text-gold" : "text-success"}`} />
-                    <span className={p.featured ? "text-navy-foreground/80" : "text-foreground/80"}>{f}</span>
-                  </li>
-                ))}
-              </ul>
               <Link
-                href="/register"
-                className={`mt-9 inline-flex h-12 items-center justify-center rounded-full text-[13px] font-semibold uppercase tracking-[0.16em] transition-all ${p.featured
-                  ? "bg-gold text-navy hover:shadow-gold"
-                  : "border border-navy/15 text-navy hover:bg-navy hover:text-navy-foreground"
-                  }`}
+                href={`/register?plan=${plan.slug}`}
+                className={`mt-8 flex h-13 items-center justify-center px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] transition-colors ${
+                  plan.is_popular
+                    ? "bg-gold text-navy hover:bg-gold/90"
+                    : "bg-navy text-navy-foreground hover:bg-navy/90"
+                }`}
               >
-                Choose {p.name}
+                Choose {plan.name}
               </Link>
-            </div>
+            </PlanCard>
           ))}
         </div>
+
+        <PricingFootnotes
+          lodging={prices.lodging}
+          review={prices.review}
+          subscription={prices.subscription}
+        />
       </div>
     </section>
   );

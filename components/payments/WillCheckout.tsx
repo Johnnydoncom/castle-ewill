@@ -10,6 +10,8 @@ import {
   startCheckoutAction,
   startFlutterwaveCheckoutAction,
   startBankTransferAction,
+  NO_OPTIONS,
+  type PriceOptions,
 } from "@/lib/actions/payments.client";
 import type { Plan, PriceQuote } from "@/lib/pricing/types";
 
@@ -17,11 +19,18 @@ import type { Plan, PriceQuote } from "@/lib/pricing/types";
  * Paying for a Will, from the dashboard.
  *
  * Differs from the public pricing page in one respect that matters: the
- * client can toggle the annual subscription, and the figure has to follow.
- * It follows by asking the server (`/payments/quote`) rather than adding
- * ₦5,000 here — the browser never does money arithmetic, so the total shown
- * is by construction the total charged.
+ * client can take the optional extras, and the figure has to follow. It
+ * follows by asking the server (`/payments/quote`) rather than adding the
+ * add-on prices here — the browser never does money arithmetic, so the total
+ * shown is by construction the total charged.
+ *
+ * The extras are rendered from a list rather than written out one by one,
+ * mirroring `PriceQuoteBuilder::addOnsFor()` on the backend. Two of them were
+ * already near-identical blocks; a third would have been three places to
+ * forget the "already included, do not offer to sell it again" branch.
  */
+
+type OptionKey = keyof PriceOptions;
 
 function Submit({ label, featured }: { label: string; featured: boolean }) {
   const { pending } = useFormStatus();
@@ -56,14 +65,39 @@ function SecondarySubmit({ label }: { label: string }) {
   );
 }
 
+/**
+ * What each checkout form posts. Rendered into all three so the card,
+ * Flutterwave and transfer paths cannot get out of step over what was chosen.
+ */
+function SelectionFields({
+  planSlug,
+  options,
+}: {
+  planSlug: string;
+  options: PriceOptions;
+}) {
+  return (
+    <>
+      <input type="hidden" name="planSlug" value={planSlug} />
+      {options.withReview && <input type="hidden" name="withReview" value="on" />}
+      {options.withSubscription && (
+        <input type="hidden" name="withSubscription" value="on" />
+      )}
+    </>
+  );
+}
+
 export function WillCheckout({
   plans,
+  review,
   subscription,
   initialQuotes,
   flutterwaveEnabled,
   hasActiveSubscription,
 }: {
   plans: Plan[];
+  /** Optional per Will: a solicitor reads the draft. Null if unpublished. */
+  review: Plan | null;
   /** The optional annual add-on, or null if none is published. */
   subscription: Plan | null;
   /** Composed server-side, keyed by slug — the state before any toggling. */
@@ -75,7 +109,7 @@ export function WillCheckout({
   const [selected, setSelected] = useState(
     () => plans.find((plan) => plan.is_popular)?.slug ?? plans[0]?.slug ?? "",
   );
-  const [withSubscription, setWithSubscription] = useState(false);
+  const [options, setOptions] = useState<PriceOptions>(NO_OPTIONS);
   const [fetched, setFetched] = useState<Record<string, PriceQuote>>({});
   const [repricing, startReprice] = useTransition();
 
@@ -84,19 +118,41 @@ export function WillCheckout({
   const [transferState, transfer] = useFormAction(startBankTransferAction);
 
   const plan = plans.find((p) => p.slug === selected) ?? null;
-  // Premium already carries a year, so the option is not an option for it.
-  const subscriptionIncluded = (plan?.included_subscription_months ?? 0) > 0;
+
+  /*
+   * Each extra, and on what terms — the client mirror of the backend's
+   * add-on table. `includedByPlan` is what stops Premium being sold a
+   * review it already covers.
+   */
+  const addOns = [
+    {
+      key: "withReview" as OptionKey,
+      plan: review,
+      includedByPlan: plan?.includes_review ?? false,
+      alreadyHeld: false,
+      includedNote: "Included with this plan.",
+      heldNote: null as string | null,
+    },
+    {
+      key: "withSubscription" as OptionKey,
+      plan: subscription,
+      includedByPlan: (plan?.included_subscription_months ?? 0) > 0,
+      alreadyHeld: hasActiveSubscription,
+      includedNote: "Included with this plan for twelve months.",
+      heldNote: "Your subscription is active — amendments are already free.",
+    },
+  ].filter((addOn) => addOn.plan !== null);
 
   /*
    * The displayed quote is derived, not stored.
    *
-   * Every plan arrives already priced *without* the subscription, so that
-   * case needs no request at all — only ticking the box does, and each
-   * answer is kept so toggling back and forth asks once rather than
-   * every time.
+   * Every plan arrives already priced with no extras taken, so that case
+   * needs no request at all — only ticking a box does, and each answer is
+   * kept so toggling back and forth asks once rather than every time.
    */
-  const cacheKey = `${selected}:${withSubscription}`;
-  const baseline = withSubscription ? undefined : initialQuotes[selected];
+  const untouched = !options.withReview && !options.withSubscription;
+  const cacheKey = `${selected}:${options.withReview}:${options.withSubscription}`;
+  const baseline = untouched ? initialQuotes[selected] : undefined;
   const quote = baseline ?? fetched[cacheKey] ?? null;
 
   useEffect(() => {
@@ -105,7 +161,7 @@ export function WillCheckout({
     let cancelled = false;
 
     startReprice(async () => {
-      const next = await fetchQuoteAction(selected, withSubscription);
+      const next = await fetchQuoteAction(selected, options);
 
       // A slower earlier request must not overwrite a newer selection.
       if (!cancelled && next) {
@@ -116,7 +172,7 @@ export function WillCheckout({
     return () => {
       cancelled = true;
     };
-  }, [selected, withSubscription, cacheKey, baseline, fetched]);
+  }, [selected, options, cacheKey, baseline, fetched]);
 
   const error =
     [cardState, flwState, transferState].find((s) => s.status === "error")
@@ -170,44 +226,63 @@ export function WillCheckout({
         ))}
       </fieldset>
 
-      {subscription && (
-        <label
-          className={`flex items-start gap-4 border p-5 ${
-            subscriptionIncluded || hasActiveSubscription
-              ? "border-border bg-surface"
-              : "cursor-pointer border-border transition-colors has-[:checked]:border-gold has-[:checked]:bg-gold/5"
-          }`}
-        >
-          {subscriptionIncluded || hasActiveSubscription ? (
-            <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-          ) : (
-            <input
-              type="checkbox"
-              checked={withSubscription}
-              onChange={(event) => setWithSubscription(event.target.checked)}
-              className="mt-1.5 accent-gold"
-            />
-          )}
-          <span className="min-w-0 flex-1">
-            <span className="flex flex-wrap items-baseline justify-between gap-x-4">
-              <span className="font-serif text-base text-navy">
-                {subscription.name}
-              </span>
-              <span className="text-sm text-navy">
-                {subscriptionIncluded || hasActiveSubscription
-                  ? "Already covered"
-                  : `${subscription.price_formatted} ${subscription.charge_suffix}`}
-              </span>
-            </span>
-            <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">
-              {subscriptionIncluded
-                ? "Included with this plan for twelve months."
-                : hasActiveSubscription
-                  ? "Your subscription is active — amendments are already free."
-                  : subscription.tagline}
-            </span>
-          </span>
-        </label>
+      {addOns.length > 0 && (
+        <fieldset className="space-y-3">
+          <legend className="font-serif text-[10px] uppercase tracking-[0.28em] text-navy">
+            Optional extras
+          </legend>
+
+          {addOns.map((addOn) => {
+            const settled = addOn.includedByPlan || addOn.alreadyHeld;
+            const extra = addOn.plan!;
+
+            return (
+              <label
+                key={addOn.key}
+                className={`flex items-start gap-4 border p-5 ${
+                  settled
+                    ? "border-border bg-surface"
+                    : "cursor-pointer border-border transition-colors has-[:checked]:border-gold has-[:checked]:bg-gold/5"
+                }`}
+              >
+                {settled ? (
+                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-success" />
+                ) : (
+                  <input
+                    type="checkbox"
+                    checked={options[addOn.key]}
+                    onChange={(event) =>
+                      setOptions((prev) => ({
+                        ...prev,
+                        [addOn.key]: event.target.checked,
+                      }))
+                    }
+                    className="mt-1.5 accent-gold"
+                  />
+                )}
+                <span className="min-w-0 flex-1">
+                  <span className="flex flex-wrap items-baseline justify-between gap-x-4">
+                    <span className="font-serif text-base text-navy">
+                      {extra.name}
+                    </span>
+                    <span className="text-sm text-navy">
+                      {settled
+                        ? "Already covered"
+                        : `${extra.price_formatted} ${extra.charge_suffix}`}
+                    </span>
+                  </span>
+                  <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">
+                    {addOn.includedByPlan
+                      ? addOn.includedNote
+                      : addOn.alreadyHeld
+                        ? addOn.heldNote
+                        : extra.tagline}
+                  </span>
+                </span>
+              </label>
+            );
+          })}
+        </fieldset>
       )}
 
       {quote && (
@@ -251,28 +326,19 @@ export function WillCheckout({
 
       <div className="space-y-4">
         <form action={card}>
-          <input type="hidden" name="planSlug" value={selected} />
-          {withSubscription && (
-            <input type="hidden" name="withSubscription" value="on" />
-          )}
+          <SelectionFields planSlug={selected} options={options} />
           <Submit label="Pay by card" featured />
         </form>
 
         <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
           {flutterwaveEnabled && (
             <form action={flutterwave}>
-              <input type="hidden" name="planSlug" value={selected} />
-              {withSubscription && (
-                <input type="hidden" name="withSubscription" value="on" />
-              )}
+              <SelectionFields planSlug={selected} options={options} />
               <SecondarySubmit label="Flutterwave" />
             </form>
           )}
           <form action={transfer}>
-            <input type="hidden" name="planSlug" value={selected} />
-            {withSubscription && (
-              <input type="hidden" name="withSubscription" value="on" />
-            )}
+            <SelectionFields planSlug={selected} options={options} />
             <SecondarySubmit label="Bank transfer" />
           </form>
         </div>

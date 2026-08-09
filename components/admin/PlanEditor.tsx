@@ -34,6 +34,11 @@ const KINDS: { value: PlanKind; label: string; hint: string }[] = [
     hint: "Compulsory, added to every Will plan that does not include it. Only one is used.",
   },
   {
+    value: "review",
+    label: "Solicitor review",
+    hint: "Optional per Will — charged only when the client asks for it. Only one is used.",
+  },
+  {
     value: "subscription",
     label: "Annual subscription",
     hint: "Optional add-on buying free amendments. Only one is used.",
@@ -263,6 +268,24 @@ function PlanForm({ plan, onDone }: { plan: Plan | null; onDone: () => void }) {
               <span className="block text-xs text-muted-foreground">
                 The compulsory registry fee is absorbed rather than added on
                 top.
+              </span>
+            </span>
+          </label>
+
+          <label className="flex items-start gap-3">
+            <input
+              type="checkbox"
+              name="includesReview"
+              defaultChecked={plan?.includes_review ?? false}
+              className="mt-1 accent-gold"
+            />
+            <span>
+              <span className="block text-sm font-medium text-navy">
+                Includes a solicitor review
+              </span>
+              <span className="block text-xs text-muted-foreground">
+                Clients on this plan are never charged for a review, and are
+                not offered one to buy.
               </span>
             </span>
           </label>

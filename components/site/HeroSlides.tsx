@@ -31,7 +31,7 @@ const SLIDES: Slide[] = [
         <span className="italic text-gold">thank you for.</span>
       </>
     ),
-    body: "Answer plain-English questions. We turn them into a Will that meets the Nigerian Wills Act — reviewed by a practising solicitor before you sign.",
+    body: "Answer plain-English questions. We turn them into a Will that meets the Nigerian Wills Act — with a practising solicitor to review it before you sign, whenever you want one.",
     image: '/images/hero-family.jpg',
     alt: "A Nigerian family together at home",
     caption: "The Adeyemi family, Lagos",

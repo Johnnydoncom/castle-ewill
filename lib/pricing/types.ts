@@ -13,7 +13,7 @@
  * charges.
  */
 
-export type PlanKind = "will" | "lodging" | "subscription";
+export type PlanKind = "will" | "lodging" | "review" | "subscription";
 
 export type Plan = {
   id: string;
@@ -29,6 +29,8 @@ export type Plan = {
   currency: string;
   features: string[];
   includes_lodging: boolean;
+  /** Premium absorbs the solicitor review; Basic charges for it. */
+  includes_review: boolean;
   included_subscription_months: number;
   is_popular: boolean;
   sort_order: number;
@@ -67,6 +69,8 @@ export type PriceList = {
   will: Plan[];
   /** Compulsory, per Will. Null when none is published. */
   lodging: Plan | null;
+  /** Optional per Will: a solicitor reads the draft. Null when none is published. */
+  review: Plan | null;
   /** The optional annual add-on. Null when none is published. */
   subscription: Plan | null;
   /** Composed totals keyed by Will-plan slug — render, never recompute. */

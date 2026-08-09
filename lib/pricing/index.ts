@@ -8,6 +8,7 @@ export type * from "./types";
 const EMPTY: PriceList = {
   will: [],
   lodging: null,
+  review: null,
   subscription: null,
   quotes: {},
   providers: { paystack: false, flutterwave: false, bank_transfer: true },
@@ -38,6 +39,7 @@ export async function getPriceList(): Promise<PriceList> {
   return {
     will: ofKind("will"),
     lodging: ofKind("lodging")[0] ?? null,
+    review: ofKind("review")[0] ?? null,
     subscription: ofKind("subscription")[0] ?? null,
     quotes: result.data.meta?.quotes ?? {},
     providers: result.data.meta?.providers ?? EMPTY.providers,

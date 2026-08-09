@@ -96,6 +96,7 @@ export default async function PricingPage() {
 
             <PricingFootnotes
               lodging={prices.lodging}
+              review={prices.review}
               subscription={prices.subscription}
             />
           </>
