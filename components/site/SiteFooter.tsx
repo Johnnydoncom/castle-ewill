@@ -104,10 +104,10 @@ export function SiteFooter() {
             <Logo variant="light" />
             <p className="max-w-xs text-sm leading-relaxed text-navy-foreground/65">
               {COMPANY.name} is Nigeria&rsquo;s premium online Will making house —
-              built with practising solicitors, designed for families.
+              built and designed for families.
             </p>
             <p className="text-xs uppercase tracking-[0.2em] text-navy-foreground/40">
-              Lagos · Abuja · Port Harcourt
+              Lagos
             </p>
           </div>
           {cols.map((col) => (

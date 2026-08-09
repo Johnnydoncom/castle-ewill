@@ -1,3 +1,4 @@
+import { COMPANY } from "@/lib/company";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
@@ -16,22 +17,36 @@ export default function TermsPage() {
         </div>
       </section>
       <article className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="prose prose-lg max-w-none text-foreground/85">
+        <div className="prose prose-base prose-headings:mb-2 max-w-none text-foreground/85">
           <p>These Terms govern your use of Castle eWill &amp; Trust. By creating an account, you agree to them.</p>
-          <h2 className="font-serif text-navy">1. Services</h2>
-          <p>Castle provides digital tools and legal review to help Nigerian residents draft, store and update Wills and related documents.</p>
-          <h2 className="font-serif text-navy">2. Eligibility</h2>
-          <p>You must be at least 18 years old and of sound mind to create a Will on Castle.</p>
-          <h2 className="font-serif text-navy">3. Accuracy of information</h2>
-          <p>You are responsible for the accuracy of the details you provide. Castle drafts documents based on your inputs.</p>
-          <h2 className="font-serif text-navy">4. Legal advice</h2>
-          <p>Castle offers legal drafting services and (on qualifying plans) lawyer review. It does not replace bespoke legal advice for complex estates.</p>
-          <h2 className="font-serif text-navy">5. Fees &amp; refunds</h2>
-          <p>Fees are one-time and non-refundable once a Will has been drafted and made available for download.</p>
-          <h2 className="font-serif text-navy">6. Termination</h2>
-          <p>You may close your account at any time. We reserve the right to terminate accounts that violate these Terms.</p>
-          <h2 className="font-serif text-navy">7. Contact</h2>
-          <p>Questions? Reach us at legal@castle-ewill.ng.</p>
+          <div>
+            <h2 className="font-serif text-navy">1. Services</h2>
+            <p>Castle provides digital tools and legal review to help Nigerian residents draft, store and update Wills and related documents.</p>
+          </div>
+          <div>
+            <h2 className="font-serif text-navy">2. Eligibility</h2>
+            <p>You must be at least 18 years old and of sound mind to create a Will on Castle.</p>
+          </div>
+          <div>
+            <h2 className="font-serif text-navy">3. Accuracy of information</h2>
+            <p>You are responsible for the accuracy of the details you provide. Castle drafts documents based on your inputs.</p>
+          </div>
+          <div>
+            <h2 className="font-serif text-navy">4. Legal advice</h2>
+            <p>Castle offers online drafting services and (on qualifying plans) lawyer review. It does not replace bespoke legal advice for complex estates.</p>
+          </div>
+          <div>
+            <h2 className="font-serif text-navy">5. Fees &amp; refunds</h2>
+            <p>Fees are non-refundable once a Will has been drafted and made available for download.</p>
+          </div>
+          <div>
+            <h2 className="font-serif text-navy">6. Termination</h2>
+            <p>You may close your account at any time. We reserve the right to terminate accounts that violate these Terms.</p>
+          </div>
+          <div>
+            <h2 className="font-serif text-navy">7. Contact</h2>
+            <p>Questions? Reach us at <a href={`mailto:${COMPANY.email}`} className="underline">{COMPANY.email}</a>.</p>
+          </div>
         </div>
       </article>
     </>

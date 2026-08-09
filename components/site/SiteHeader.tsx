@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
-import { Menu, X, ShieldCheck, ArrowRight } from "lucide-react";
+import { Menu, X, MailCheck, ArrowRight } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 
 
@@ -36,10 +36,10 @@ export function SiteHeader() {
       {/* Announcement rail */}
       <div className="hidden bg-navy text-navy-foreground md:block">
         <div className="mx-auto flex h-9 max-w-7xl items-center justify-between gap-4 px-4 text-[11px] tracking-[0.14em] sm:px-6 lg:px-8">
-          <span className="inline-flex items-center gap-2 uppercase text-navy-foreground/70">
-            <ShieldCheck className="h-3.5 w-3.5 text-gold" />
-            Drafted to the Nigerian Wills Act · Solicitor reviewed
-          </span>
+          <a href="mailto:info@castlewilltrust.com" target="_blank" className="inline-flex items-center gap-2 uppercase text-navy-foreground/70">
+            <MailCheck className="h-3.5 w-3.5 text-gold" />
+            info@castlewilltrust.com
+          </a>
           <Link
             href="/contact"
             className="inline-flex items-center gap-2 uppercase text-gold transition-opacity hover:opacity-80"

@@ -31,7 +31,7 @@ export default function AboutPage() {
             </span>
           </div>
           <p className="font-serif text-2xl leading-[1.45] sm:text-3xl lg:text-4xl">
-            {COMPANY.shortName} eWill &amp; Trust Ltd. is founded upon a simple
+            {COMPANY.shortName} {" "} eWill &amp; Trust Ltd. is founded upon a simple
             but enduring belief:{" "}
             <span className="italic text-gold">{FOUNDING_BELIEF}</span>
           </p>

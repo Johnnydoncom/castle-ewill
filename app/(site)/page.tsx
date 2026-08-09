@@ -87,7 +87,7 @@ function Proof() {
             </span>
           </div>
           <h2 className="mt-6 font-serif text-3xl leading-[1.05] text-navy sm:text-5xl">
-            Estate planning without the
+            Estate planning without
             <span className="italic text-primary"> chambers, the wait, or the jargon.</span>
           </h2>
           <p className="mt-6 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg">

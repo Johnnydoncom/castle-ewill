@@ -20,7 +20,7 @@ export function Logo({
     <span className={`inline-flex items-center gap-3 ${className}`}>
       <Image
         src="/images/castle-ewill-logo.png"
-        alt="Castle eWill & Trust"
+        alt="Castle eWill and Trust"
         width={size}
         height={size}
         className="rounded-full"
@@ -35,10 +35,10 @@ export function Logo({
             Castle
           </span>
           <span
-            className={`text-[10px] uppercase tracking-[0.2em] ${variant === "light" ? "text-gold" : "text-gold"
+            className={`text-[12px] tracking-[0.2em] ${variant === "light" ? "text-gold" : "text-gold"
               }`}
           >
-            eWill &amp; Trust
+            eWill and Trust
           </span>
         </span>
       )}

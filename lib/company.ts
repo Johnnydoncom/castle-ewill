@@ -15,7 +15,7 @@ export const COMPANY = {
     "Wemabod Estate, off Adeniyi Jones",
     "Ikeja, Lagos State, Nigeria",
   ],
-  email: "ewillcastle@gmail.com",
+  email: "info@castlewilltrust.com",
   phone: "08111115547",
   phoneHref: "tel:+2348111115547",
   business: "Online drafting of Wills and Trusts",
@@ -62,7 +62,7 @@ export const CORE_VALUES = [
   },
   {
     name: "Innovation",
-    body: "We use technology to widen access, never to cut corners.",
+    body: "We use technology to widen access to seamless estate planning.",
   },
   {
     name: "Service",

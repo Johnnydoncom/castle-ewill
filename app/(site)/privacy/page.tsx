@@ -1,8 +1,9 @@
+import { COMPANY } from "@/lib/company";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Privacy Policy",
-  description: "How Castle collects, uses and safeguards your personal information.",
+  description: "How Castle eWill & Trust collects, uses and safeguards your personal information.",
 };
 
 export default function PrivacyPage() {
@@ -16,7 +17,7 @@ export default function PrivacyPage() {
         </div>
       </section>
       <article className="mx-auto max-w-3xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="prose prose-lg max-w-none text-foreground/85">
+        <div className="prose prose-base prose-headings:mb-2 max-w-none text-foreground/85">
           <p>Castle eWill &amp; Trust (&ldquo;Castle&rdquo;, &ldquo;we&rdquo;, &ldquo;our&rdquo;) is committed to protecting the privacy of every user who entrusts us with their legacy. This policy explains what information we collect, how we use it, and the rights you have under the Nigeria Data Protection Act.</p>
           <h2 className="font-serif text-navy">1. Information we collect</h2>
           <p>We collect the information you provide when creating your account and Will, including personal, family, beneficiary and asset details.</p>
@@ -29,7 +30,7 @@ export default function PrivacyPage() {
           <h2 className="font-serif text-navy">5. Your rights</h2>
           <p>You may access, correct, export or delete your personal data at any time from your account settings.</p>
           <h2 className="font-serif text-navy">6. Contact</h2>
-          <p>Questions? Reach our Data Protection Officer at privacy@castle-ewill.ng.</p>
+          <p>Questions? Reach our Data Protection Officer at <a href={`mailto:${COMPANY.email}`} className="underline">{COMPANY.email}</a>.</p>
         </div>
       </article>
     </>

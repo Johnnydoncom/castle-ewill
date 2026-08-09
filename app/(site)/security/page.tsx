@@ -98,7 +98,7 @@ export default function SecurityPage() {
               Why we ask
             </p>
             <h2 className="font-serif text-3xl text-navy sm:text-4xl">
-              A Will is only ever contested{" "}
+              A Will is often times contested{" "}
               <span className="italic text-primary">on one of two grounds.</span>
             </h2>
           </div>
