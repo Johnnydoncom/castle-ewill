@@ -264,6 +264,8 @@ export async function adminSignInAction(
     });
   }
 
+  const callbackUrl = String(formData.get("callbackUrl") ?? "");
+
   const result = await api<LoginResponse>("/auth/login", {
     method: "POST",
     body: { email, password, totp: String(formData.get("totp") ?? "") },
@@ -291,7 +293,9 @@ export async function adminSignInAction(
     return errorState(describeSignInError(result.code));
   }
 
-  if (result.data.data.user.role !== "admin") {
+  console.log("Admin signed in");
+
+  if (result.data.data.user.role != "admin") {
     // The credentials were genuine, so this is not a login failure — but the
     // session just opened is for a customer account, and this door does not
     // hand those out. Revoked immediately rather than left signed in on the

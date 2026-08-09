@@ -36,105 +36,96 @@ export function AuthShell({
     <div className="bg-background lg:grid lg:h-screen lg:grid-cols-[1.05fr_1fr] lg:overflow-hidden">
       {/* Left: Editorial plate — fixed, never scrolls */}
       <aside className="relative hidden overflow-hidden bg-navy text-navy-foreground lg:block lg:h-screen">
-          <div className="absolute inset-0">
-            <Image
-              src={plateImage}
-              alt="Sign in to your account"
-              loading="eager"
-              fill
-              className="object-cover opacity-40"
-              sizes="50vw"
-            />
-            <div className="absolute inset-0 bg-gradient-to-br from-navy via-navy/85 to-navy/60" />
-          </div>
-          <div className="relative flex h-full flex-col justify-between p-10">
-            <div className="flex items-center justify-between">
-              <Logo linked={false} variant="light" />
-              <div className="flex items-center gap-3 font-serif text-xs uppercase tracking-[0.3em] text-gold">
-                <span className="h-px w-8 bg-gold/60" />
-                RC 9701348
-              </div>
+        <div className="absolute inset-0">
+          <Image
+            src={plateImage}
+            alt="Sign in to your account"
+            loading="eager"
+            fill
+            className="object-cover opacity-40"
+            sizes="50vw"
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-navy via-navy/85 to-navy/60" />
+        </div>
+        <div className="relative flex h-full flex-col justify-between p-10">
+          <div className="flex items-center justify-between">
+            <Logo linked={false} variant="light" />
+            <div className="flex items-center gap-3 font-serif text-xs uppercase tracking-[0.3em] text-gold">
+              <span className="h-px w-8 bg-gold/60" />
+              RC 9701348
             </div>
+          </div>
 
-            <div className="max-w-md space-y-6">
-              <div className="h-px w-16 bg-gold" />
-              <p className="font-serif text-xs uppercase tracking-[0.35em] text-gold">
-                Castle eWill &amp; Trust
-              </p>
-              <h2 className="font-serif text-4xl leading-[1.05] tracking-tight">
-                Your legacy,{" "}
-                <span className="italic text-gold">carefully</span> preserved.
-              </h2>
-              {/*
+          <div className="max-w-md space-y-6">
+            <div className="h-px w-16 bg-gold" />
+            <p className="font-serif text-xs uppercase tracking-[0.35em] text-gold">
+              Castle eWill &amp; Trust
+            </p>
+            <h2 className="font-serif text-4xl leading-[1.05] tracking-tight">
+              Your legacy,{" "}
+              <span className="italic text-gold">carefully</span> preserved.
+            </h2>
+            {/*
                 * Review is an optional extra — included with Premium,
                 * chargeable on Basic — so it is offered here rather than
                 * promised. The encryption and witnessing claims are
                 * unconditional and stay as they were.
                 */}
-              <p className="text-sm leading-relaxed text-navy-foreground/75">
-                Every Will drafted here is stored under bank-grade encryption
-                and sealed with witnesses in accordance with the Wills Act,
-                with admitted Nigerian counsel to review it whenever you
-                want one.
-              </p>
-            </div>
-
-            <div className="border-t border-navy-foreground/15 pt-6">
-              <p className="max-w-xs text-xs italic leading-relaxed text-navy-foreground/70">
-                {plateCaption}
-              </p>
-            </div>
+            <p className="text-sm leading-relaxed text-navy-foreground/75">
+              Every Will drafted here is stored under bank-grade encryption
+              and sealed with witnesses in accordance with the Wills Act,
+              with admitted Nigerian counsel to review it whenever you
+              want one.
+            </p>
           </div>
-        </aside>
 
-        {/* Right: Form */}
-        {/* Right: the form — the only column that scrolls */}
-        <main className="flex min-h-screen flex-col lg:h-screen lg:min-h-0 lg:overflow-y-auto">
-          {/*
+          <div className="border-t border-navy-foreground/15 pt-6">
+            <p className="max-w-xs text-xs italic leading-relaxed text-navy-foreground/70">
+              {plateCaption}
+            </p>
+          </div>
+        </div>
+      </aside>
+
+      {/* Right: Form */}
+      {/* Right: the form — the only column that scrolls */}
+      <main className="flex min-h-screen flex-col lg:h-screen lg:min-h-0 lg:overflow-y-auto">
+        {/*
             * `min-h-0` matters: a flex child defaults to `min-height: auto`,
             * which refuses to shrink below its content and so would push the
             * overflow back out to the document instead of scrolling here.
             */}
-          <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background px-6 py-5 lg:px-10">
-            <Link href="/" className="lg:hidden">
-              <Logo size={32} linked={false} />
-            </Link>
-            <div className="hidden lg:block">
-              <p className="font-serif text-[10px] uppercase tracking-[0.35em] text-muted-foreground">
-                Castle eWill &amp; Trust
+        <header className="z-10 flex items-center justify-between bg-background px-6 py-5 lg:px-10">
+          <Link href="/" className="lg:hidden">
+            <Logo size={32} linked={false} />
+          </Link>
+
+
+        </header>
+
+        <div className="flex flex-1 items-center justify-center px-6 py-12 lg:px-10">
+          <div className="w-full max-w-md">
+            <div className="mb-8 flex items-center gap-3">
+              <span className="h-px w-8 bg-gold" />
+              <p className="font-serif text-[10px] uppercase tracking-[0.35em] text-gold">
+                {eyebrow}
               </p>
             </div>
-            <Link
-              href="/"
-              className="font-serif text-xs uppercase tracking-[0.3em] text-muted-foreground transition-colors hover:text-navy"
-            >
-              &larr; Return home
-            </Link>
-          </header>
+            <h1 className="font-serif text-4xl leading-tight tracking-tight text-navy">
+              {title}
+            </h1>
+            <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
+              {intro}
+            </p>
 
-          <div className="flex flex-1 items-center justify-center px-6 py-12 lg:px-10">
-            <div className="w-full max-w-md">
-              <div className="mb-8 flex items-center gap-3">
-                <span className="h-px w-8 bg-gold" />
-                <p className="font-serif text-[10px] uppercase tracking-[0.35em] text-gold">
-                  {eyebrow}
-                </p>
-              </div>
-              <h1 className="font-serif text-4xl leading-tight tracking-tight text-navy">
-                {title}
-              </h1>
-              <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
-                {intro}
-              </p>
+            <div className="mt-10">{children}</div>
 
-              <div className="mt-10">{children}</div>
-
-              <div className="mt-8 border-t border-border pt-6 text-sm text-muted-foreground">
-                {footer}
-              </div>
+            <div className="mt-8 border-t border-border pt-6 text-sm text-muted-foreground">
+              {footer}
             </div>
           </div>
-        </main>
+        </div>
+      </main>
     </div>
   );
 }
