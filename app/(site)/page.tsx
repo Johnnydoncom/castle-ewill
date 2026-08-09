@@ -103,7 +103,7 @@ function Proof() {
           </div>
           <h2 className="mt-6 font-serif text-3xl leading-[1.05] text-navy sm:text-5xl">
             Estate planning without
-            <span className="italic text-primary"> chambers, the wait, or the jargon.</span>
+            <span className="italic text-primary"> stress.</span>
           </h2>
           <p className="mt-6 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg">
             Traditional Will writing in Nigeria means appointments, paperwork and fees
@@ -545,11 +545,10 @@ async function PricingPreview() {
             >
               <Link
                 href={`/register?plan=${plan.slug}`}
-                className={`mt-8 flex h-13 items-center justify-center px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] transition-colors ${
-                  plan.is_popular
-                    ? "bg-gold text-navy hover:bg-gold/90"
-                    : "bg-navy text-navy-foreground hover:bg-navy/90"
-                }`}
+                className={`mt-8 flex h-13 items-center justify-center px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] transition-colors ${plan.is_popular
+                  ? "bg-gold text-navy hover:bg-gold/90"
+                  : "bg-navy text-navy-foreground hover:bg-navy/90"
+                  }`}
               >
                 Choose {plan.name}
               </Link>
