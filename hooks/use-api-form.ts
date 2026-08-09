@@ -75,7 +75,16 @@ export function useFormAction(
 
       if (state.status === "success") {
         onSuccess?.(state);
-        if (refresh) router.refresh();
+
+        /*
+         * `router.refresh()` is skipped ahead of a hard redirect. The page is
+         * about to be thrown away by a full document load, so refreshing it
+         * achieves nothing — but it does re-fetch the *current* route, and if
+         * that route now redirects (a signed-in visitor on `/admin/login`
+         * does), Next may service that redirect as a client-side navigation
+         * out of the Router Cache and race the hard load we actually want.
+         */
+        if (refresh && !state.hardRedirect) router.refresh();
         if (state.redirect) navigate(state.redirect, router, state.hardRedirect);
         return state;
       }

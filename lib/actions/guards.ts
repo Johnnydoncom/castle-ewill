@@ -55,11 +55,16 @@ export type Profile = {
  * cookie-forwarded call to `GET /me` on every protected page.
  */
 export async function requireUser(): Promise<SessionUser> {
-  const profile = await getProfile();
+  const read = await loadProfile();
 
-  if (!profile) {
+  // A backend we could not reach is an error, not a sign-out.
+  assertReachable(read);
+
+  if (read.status !== "authenticated") {
     redirect("/login");
   }
+
+  const { profile } = read;
 
   return {
     id: profile.id,
@@ -70,14 +75,25 @@ export async function requireUser(): Promise<SessionUser> {
 }
 
 export async function requireAdmin(): Promise<SessionUser> {
-  const profile = await getProfile();
+  const read = await loadProfile();
+
+  /*
+   * An unreachable backend must not sign an administrator out. Before this,
+   * a slow or briefly-down API produced the same `null` as "no session", and
+   * the console bounced a valid admin straight back to the login form —
+   * which looks exactly like a broken sign-in and is impossible to tell
+   * apart from one.
+   */
+  assertReachable(read);
 
   // The admin console has its own sign-in page — an unauthenticated visitor
   // is sent there, not to the customer login, so they never see the wrong
   // form for the door they knocked on.
-  if (!profile) {
+  if (read.status !== "authenticated") {
     redirect("/admin/login");
   }
+
+  const { profile } = read;
 
   if (profile.role !== "admin") {
     redirect("/dashboard");
@@ -162,22 +178,78 @@ export async function currentUser(): Promise<SessionUser | null> {
  * which is the honest answer, and better than rendering a settings page full
  * of stale values.
  */
-export async function getProfile(): Promise<Profile | null> {
+export type ProfileRead =
+  | { status: "authenticated"; profile: Profile }
+  /** The backend answered, and said nobody is signed in. */
+  | { status: "anonymous" }
+  /** The backend did not answer. We do **not** know whether they are signed in. */
+  | { status: "unavailable"; message: string };
+
+/**
+ * Reads `GET /me`, keeping "not signed in" and "could not tell" apart.
+ *
+ * This distinction is the whole point. Collapsing both to `null` — as this
+ * did — means a backend that is merely slow or briefly down is
+ * indistinguishable from a signed-out visitor, so every guard "helpfully"
+ * redirects a perfectly valid session to the sign-in page. `lib/api/client`
+ * returns 503 for a timeout or an unreachable host, and this deployment is a
+ * Vercel function calling shared hosting across the public internet, so that
+ * is a routine event rather than a hypothetical one.
+ *
+ * Signing somebody out because we could not reach the server for 15 seconds
+ * is both wrong and, on an admin console, indistinguishable from the bug it
+ * was mistaken for.
+ */
+export async function loadProfile(): Promise<ProfileRead> {
   const result = await api<{ data: Profile }>("/me");
 
-  if (!result.ok) {
-    /*
-     * A 401 here is not a failure — it is the normal shape of "nobody is
-     * signed in", and every anonymous visit to a public page that checks
-     * `currentUser()` (the login/register pages, `pricing`) hits it on
-     * purpose. Logging it as an error would fire on every ordinary page
-     * load; only a genuinely unexpected response is worth the noise.
-     */
-    if (result.status !== 401) {
-      console.error(`[api] read failed: /me — ${result.message}`);
-    }
-    return null;
+  if (result.ok) {
+    const profile = result.data?.data;
+
+    return profile
+      ? { status: "authenticated", profile }
+      : { status: "unavailable", message: "The account record came back empty." };
   }
 
-  return result.data?.data ?? null;
+  /*
+   * 401 is not a failure — it is the normal shape of "nobody is signed in",
+   * and every anonymous visit to a public page that checks `currentUser()`
+   * (login, register, pricing) hits it on purpose. Logging it would fire on
+   * every ordinary page load.
+   */
+  if (result.status === 401 || result.status === 419) {
+    return { status: "anonymous" };
+  }
+
+  console.error(`[api] read failed: /me — ${result.status} ${result.message}`);
+
+  return { status: "unavailable", message: result.message };
+}
+
+/**
+ * The signed-in account, or null.
+ *
+ * For callers that only want to *display* something differently — a public
+ * page swapping "Sign in" for "Dashboard". It deliberately treats an
+ * unreachable backend as "nobody", because the alternative is taking the
+ * marketing site down over it. Guards must use `loadProfile()` instead: for
+ * them the difference decides whether someone keeps their session.
+ */
+export async function getProfile(): Promise<Profile | null> {
+  const read = await loadProfile();
+
+  return read.status === "authenticated" ? read.profile : null;
+}
+
+/**
+ * Turns a failed read into a thrown error rather than a redirect.
+ *
+ * Next renders the nearest error boundary, so the person sees "something went
+ * wrong, try again" and keeps their session — instead of being quietly signed
+ * out and sent to a login form that will tell them nothing is wrong.
+ */
+function assertReachable(read: ProfileRead): void {
+  if (read.status === "unavailable") {
+    throw new Error(`Could not verify your session: ${read.message}`);
+  }
 }
