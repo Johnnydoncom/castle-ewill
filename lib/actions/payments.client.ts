@@ -1,6 +1,7 @@
 import { api } from "@/lib/api/browser";
 import { errorState, redirectState, type FormState } from "./state";
 import type { PaymentRecord, BankAccount } from "./payments";
+import type { PriceQuote } from "@/lib/pricing/types";
 
 /**
  * Payment checkout, started directly from the browser.
@@ -12,17 +13,31 @@ import type { PaymentRecord, BankAccount } from "./payments";
  *    the redirect below leaves our origin entirely.
  */
 
+/**
+ * The selection, as the API wants it.
+ *
+ * A slug and a boolean — never an amount, and there is no field the form
+ * could put one in. The total is composed server-side by `PriceQuoteBuilder`
+ * from the `plans` table.
+ */
+function selectionFrom(formData: FormData): { plan_slug: string; with_subscription: boolean } {
+  return {
+    plan_slug: String(formData.get("planSlug") ?? ""),
+    with_subscription: formData.get("withSubscription") === "on",
+  };
+}
+
 async function startCheckout(
   provider: "paystack" | "flutterwave",
   formData: FormData,
 ): Promise<FormState> {
-  const planSlug = String(formData.get("planSlug") ?? "");
+  const selection = selectionFrom(formData);
 
-  if (!planSlug) return errorState("Choose a plan to continue.");
+  if (!selection.plan_slug) return errorState("Choose a plan to continue.");
 
   const result = await api<{ data: { checkout_url: string } }>(
     "/payments/checkout",
-    { method: "POST", body: { plan_slug: planSlug, provider } },
+    { method: "POST", body: { ...selection, provider } },
   );
 
   if (!result.ok) {
@@ -30,6 +45,26 @@ async function startCheckout(
   }
 
   return redirectState(result.data.data.checkout_url);
+}
+
+/**
+ * What a selection currently comes to.
+ *
+ * Round-trips to the server on every toggle rather than adding the
+ * subscription's price to the plan's in the browser. That would be two lines
+ * of arithmetic and one more place for the displayed total to disagree with
+ * the charged one.
+ */
+export async function fetchQuoteAction(
+  planSlug: string,
+  withSubscription: boolean,
+): Promise<PriceQuote | null> {
+  const result = await api<{ data: PriceQuote }>("/payments/quote", {
+    method: "POST",
+    body: { plan_slug: planSlug, with_subscription: withSubscription },
+  });
+
+  return result.ok ? result.data.data : null;
 }
 
 export async function startCheckoutAction(
@@ -57,16 +92,16 @@ export async function startBankTransferAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const planSlug = String(formData.get("planSlug") ?? "");
+  const selection = selectionFrom(formData);
 
-  if (!planSlug) return errorState("Choose a plan to continue.");
+  if (!selection.plan_slug) return errorState("Choose a plan to continue.");
 
   const result = await api<{
     message: string;
     data: { payment: PaymentRecord; account: BankAccount };
   }>("/payments/bank-transfer", {
     method: "POST",
-    body: { plan_slug: planSlug },
+    body: selection,
   });
 
   if (!result.ok) return errorState(result.message);

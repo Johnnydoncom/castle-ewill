@@ -25,6 +25,9 @@ export const adminNav = [
   { href: "/admin/wills", label: "Wills", icon: "wills", permission: "manage_wills" },
   { href: "/admin/verifications", label: "Identity", icon: "identity", permission: "manage_verifications" },
   { href: "/admin/payments", label: "Payments", icon: "payments", permission: "manage_payments" },
+  // Shares the payments permission rather than taking one of its own: both
+  // are the money surface, and delegating one implies delegating the other.
+  { href: "/admin/pricing", label: "Pricing", icon: "pricing", permission: "manage_payments" },
   { href: "/admin/messages", label: "Messages", icon: "messages", permission: "manage_messages" },
   { href: "/admin/settings", label: "Settings", icon: "settings", permission: "manage_settings" },
   { href: "/admin/admins", label: "Admins", icon: "admins", permission: null },

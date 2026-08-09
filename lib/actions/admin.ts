@@ -2,6 +2,7 @@
 
 import { api, apiData } from "@/lib/api/client";
 import type { PaymentRecord } from "./payments";
+import type { Plan } from "@/lib/pricing/types";
 import type { ApiWill, WillStatus } from "./will";
 
 /**
@@ -138,6 +139,20 @@ export async function getAdminHealth(): Promise<AdminHealth> {
       configured: false,
     },
   });
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Pricing                                                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Every plan, published or not.
+ *
+ * The console needs the withdrawn ones too — that is the whole difference
+ * from the public `/plans` read, which only ever returns what is on sale.
+ */
+export async function listAllPlans(): Promise<Plan[]> {
+  return apiData<Plan[]>("/admin/plans", []);
 }
 
 export type VerificationProviderName = "smile_id" | "manual_review";

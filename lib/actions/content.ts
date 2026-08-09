@@ -1,7 +1,7 @@
 
 import "server-only";
 
-import { api, apiData } from "@/lib/api/client";
+import { apiData } from "@/lib/api/client";
 
 /**
  * Public content reads, delegated to the API.
@@ -13,20 +13,6 @@ import { api, apiData } from "@/lib/api/client";
  * Every call is unauthenticated — there is no session on these pages, and the
  * endpoints behind them are public reads.
  */
-
-export type Plan = {
-  id: string;
-  slug: string;
-  name: string;
-  tagline: string | null;
-  description: string | null;
-  price_kobo: number;
-  price_formatted: string;
-  currency: string;
-  features: string[];
-  is_popular: boolean;
-  sort_order: number;
-};
 
 export type Post = {
   id: string;
@@ -40,36 +26,15 @@ export type Post = {
   published_at: string;
 };
 
-export type PaymentProviders = {
-  paystack: boolean;
-  flutterwave: boolean;
-  bank_transfer: boolean;
-};
-
-export async function listActivePlans(): Promise<Plan[]> {
-  return apiData<Plan[]>("/plans", [], { authenticated: false });
-}
-
-/**
- * Which payment methods are actually configured.
+/*
+ * Prices live in `lib/pricing.ts`, not here.
  *
- * Booleans, derived server-side from whether the credentials are present — the
- * keys themselves never leave the backend. Used to hide a checkout button that
- * would only ever answer "not enabled yet".
+ * They were two functions in this module that each fetched `/plans`
+ * separately — the pricing page requested the same list twice, and only ever
+ * saw the tiers, never the compulsory lodging fee that makes up the rest of
+ * the bill. `getPriceList()` is one request, grouped by kind, and carries
+ * the precomposed totals.
  */
-export async function getPaymentProviders(): Promise<PaymentProviders> {
-  const result = await api<{ meta?: { providers?: PaymentProviders } }>("/plans", {
-    authenticated: false,
-  });
-
-  const fallback: PaymentProviders = {
-    paystack: false,
-    flutterwave: false,
-    bank_transfer: true,
-  };
-
-  return result.ok ? (result.data.meta?.providers ?? fallback) : fallback;
-}
 
 export async function listPublishedPosts(limit = 24): Promise<Post[]> {
   const posts = await apiData<Post[]>("/posts", [], { authenticated: false });

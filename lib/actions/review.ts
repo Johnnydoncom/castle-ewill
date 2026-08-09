@@ -200,6 +200,85 @@ export async function setBankAccountAction(
   });
 }
 
+/* -------------------------------------------------------------------------- */
+/*  Pricing                                                                    */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Creates or edits a published price.
+ *
+ * The price is typed and posted in **naira** — what an administrator reads
+ * off an invoice — and converted to kobo once, server-side, in
+ * `SavePlanRequest`. Doing the multiplication here would put a second,
+ * rounding-prone copy of the money boundary in the browser.
+ *
+ * Features arrive as one per line and are split here rather than asking an
+ * administrator to type JSON.
+ */
+export async function savePlanAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const planId = String(formData.get("planId") ?? "");
+
+  const body = {
+    slug: String(formData.get("slug") ?? "").trim(),
+    kind: String(formData.get("kind") ?? "will"),
+    name: String(formData.get("name") ?? "").trim(),
+    tagline: String(formData.get("tagline") ?? "").trim() || null,
+    description: String(formData.get("description") ?? "").trim() || null,
+    price_naira: Number(formData.get("priceNaira") ?? 0),
+    features: String(formData.get("features") ?? "")
+      .split("\n")
+      .map((line) => line.trim())
+      .filter(Boolean),
+    includes_lodging: formData.get("includesLodging") === "on",
+    included_subscription_months: Number(
+      formData.get("includedSubscriptionMonths") ?? 0,
+    ),
+    is_popular: formData.get("isPopular") === "on",
+    is_active: formData.get("isActive") === "on",
+    sort_order: Number(formData.get("sortOrder") ?? 0),
+  };
+
+  return apiMutation(planId ? `/admin/plans/${planId}` : "/admin/plans", {
+    method: planId ? "PUT" : "POST",
+    body,
+    onError: (result) => ({
+      status: "error",
+      message: result.message,
+      fieldErrors: result.fieldErrors
+        ? Object.fromEntries(
+          Object.entries(result.fieldErrors).map(([key, messages]) => [
+            key.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase()),
+            messages,
+          ]),
+        )
+        : undefined,
+    }),
+  });
+}
+
+/**
+ * Withdraws a plan from sale, or puts it back.
+ *
+ * Deliberately not a delete: every payment ever made references its plan, and
+ * removing the row would orphan that history.
+ */
+export async function setPlanAvailabilityAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const planId = String(formData.get("planId") ?? "");
+
+  if (!planId) return errorState("That plan could not be identified.");
+
+  return apiMutation(`/admin/plans/${planId}/availability`, {
+    method: "POST",
+    body: { is_active: formData.get("isActive") === "on" },
+  });
+}
+
 export async function setVerificationProviderAction(
   _previous: FormState,
   formData: FormData,
