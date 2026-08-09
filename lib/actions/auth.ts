@@ -239,7 +239,7 @@ export async function signInAction(
       ? callbackUrl
       : "/dashboard";
 
-  return redirectState(target, "Signed in.");
+  return redirectState(target, "Signed in.", { hard: true });
 }
 
 /**
@@ -301,7 +301,7 @@ export async function adminSignInAction(
     return errorState("This sign-in is for administrators only.");
   }
 
-  return redirectState("/admin", "Signed in.");
+  return redirectState("/admin", "Signed in.", { hard: true });
 }
 
 /**

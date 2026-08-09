@@ -12,8 +12,16 @@ import { idleState, type FormState } from "@/lib/actions/state";
 function navigate(
   destination: string,
   router: ReturnType<typeof useRouter>,
+  hard = false,
 ): void {
-  if (destination.startsWith("/")) {
+  /*
+   * `hard` bypasses the client Router Cache, which keys on the path alone and
+   * has no notion of who is signed in — so a page fetched before signing in
+   * is happily replayed afterwards. Only a full document load is guaranteed
+   * to re-run the server components with the new session. See
+   * `FormState.hardRedirect`.
+   */
+  if (destination.startsWith("/") && !hard) {
     router.push(destination);
     return;
   }
@@ -68,11 +76,11 @@ export function useFormAction(
       if (state.status === "success") {
         onSuccess?.(state);
         if (refresh) router.refresh();
-        if (state.redirect) navigate(state.redirect, router);
+        if (state.redirect) navigate(state.redirect, router, state.hardRedirect);
         return state;
       }
 
-      if (state.redirect) navigate(state.redirect, router);
+      if (state.redirect) navigate(state.redirect, router, state.hardRedirect);
 
       /*
        * React resets a `<form action={fn}>`'s uncontrolled fields once this

@@ -23,10 +23,19 @@ export function AuthShell({
   plateCaption,
 }: AuthShellProps) {
   return (
-    <div className="min-h-screen bg-background">
-      <div className="grid min-h-screen lg:grid-cols-[1.05fr_1fr]">
-        {/* Left: Editorial plate */}
-        <aside className="relative hidden overflow-hidden bg-navy text-navy-foreground lg:block">
+    /*
+     * On large screens the two columns scroll independently: the plate is
+     * pinned to the viewport and the form column carries the overflow. The
+     * container is `h-screen overflow-hidden` so the page itself never
+     * scrolls — otherwise the plate's background image would slide away as
+     * a long form (registration is the tallest) pushed the document down.
+     *
+     * Below `lg` the plate is not rendered at all, so the form column falls
+     * back to ordinary document scrolling.
+     */
+    <div className="bg-background lg:grid lg:h-screen lg:grid-cols-[1.05fr_1fr] lg:overflow-hidden">
+      {/* Left: Editorial plate — fixed, never scrolls */}
+      <aside className="relative hidden overflow-hidden bg-navy text-navy-foreground lg:block lg:h-screen">
           <div className="absolute inset-0">
             <Image
               src={plateImage}
@@ -56,10 +65,17 @@ export function AuthShell({
                 Your legacy,{" "}
                 <span className="italic text-gold">carefully</span> preserved.
               </h2>
+              {/*
+                * Review is an optional extra — included with Premium,
+                * chargeable on Basic — so it is offered here rather than
+                * promised. The encryption and witnessing claims are
+                * unconditional and stay as they were.
+                */}
               <p className="text-sm leading-relaxed text-navy-foreground/75">
-                Every will drafted here is reviewed by admitted Nigerian counsel,
-                stored under bank-grade encryption, and sealed with witnesses in
-                accordance with the Wills Act.
+                Every Will drafted here is stored under bank-grade encryption
+                and sealed with witnesses in accordance with the Wills Act,
+                with admitted Nigerian counsel to review it whenever you
+                want one.
               </p>
             </div>
 
@@ -72,8 +88,14 @@ export function AuthShell({
         </aside>
 
         {/* Right: Form */}
-        <main className="flex flex-col">
-          <header className="flex items-center justify-between border-b border-border px-6 py-5 lg:px-10">
+        {/* Right: the form — the only column that scrolls */}
+        <main className="flex min-h-screen flex-col lg:h-screen lg:min-h-0 lg:overflow-y-auto">
+          {/*
+            * `min-h-0` matters: a flex child defaults to `min-height: auto`,
+            * which refuses to shrink below its content and so would push the
+            * overflow back out to the document instead of scrolling here.
+            */}
+          <header className="sticky top-0 z-10 flex items-center justify-between border-b border-border bg-background px-6 py-5 lg:px-10">
             <Link href="/" className="lg:hidden">
               <Logo size={32} linked={false} />
             </Link>
@@ -113,7 +135,6 @@ export function AuthShell({
             </div>
           </div>
         </main>
-      </div>
     </div>
   );
 }

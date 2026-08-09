@@ -17,5 +17,5 @@ export async function signOutAction(): Promise<FormState> {
     console.error(`[auth] sign-out failed: ${result.message}`);
   }
 
-  return redirectState("/", "Signed out.");
+  return redirectState("/", "Signed out.", { hard: true });
 }

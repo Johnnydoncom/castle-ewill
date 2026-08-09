@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, Check, Star } from "lucide-react";
+import { ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeroSlides } from "@/components/site/HeroSlides";
 import { PlanCard, PricingFootnotes } from "@/components/pricing/PlanCard";
@@ -37,7 +37,6 @@ export default function HomePage() {
 
       <WhyCastle />
       <PricingPreview />
-      <Testimonials />
 
       <Assurances />
       <JournalPreview />
@@ -85,11 +84,21 @@ function TrustBar() {
 }
 
 function Proof() {
+  /*
+   * Verifiable facts about the product, not invented metrics.
+   *
+   * These read "10,000+ Wills created / ₦2.1B assets protected / 4.9-5 client
+   * rating / 18 min median completion" — none of which anyone has measured,
+   * on a platform that has not launched. Fabricated performance figures are
+   * the same fault as a fabricated testimonial, and on a regulated service
+   * they are a good deal worse than an embarrassment. Replaced with claims
+   * the codebase itself makes true.
+   */
   const stats = [
-    ["10,000+", "Wills created"],
-    ["₦2.1B", "Assets protected"],
-    ["4.9/5", "Client rating"],
-    ["18 min", "Median completion"],
+    ["9", "Guided sections"],
+    ["AES-256", "Encrypted at rest"],
+    ["3", "Identity checks"],
+    ["RC 9701348", "Registered in Nigeria"],
   ];
   return (
     <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
@@ -565,87 +574,11 @@ async function PricingPreview() {
     </section>
   );
 }
-
-
-function Testimonials() {
-  const items = [
-    {
-      quote:
-        "The wizard is so simple. I had my Will ready in one lunch break, and the solicitor review gave me total confidence.",
-      name: "Adaeze O.",
-      role: "Doctor, Lagos",
-    },
-    {
-      quote:
-        "Finally, a Nigerian platform that feels world-class. The clarity alone convinced me to trust them with my estate.",
-      name: "Ibrahim K.",
-      role: "Entrepreneur, Abuja",
-    },
-    {
-      quote:
-        "As an executor for my father, this made a painful process manageable. Clear, dignified, professional.",
-      name: "Chidinma E.",
-      role: "Accountant, Port Harcourt",
-    },
-  ];
-  return (
-    <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
-      <div className="grid gap-12 lg:grid-cols-[0.85fr_1.3fr] lg:items-start lg:gap-16">
-        <div className="lg:sticky lg:top-32">
-          <div className="overflow-hidden rounded-[2rem] shadow-elegant">
-            <img
-              src={`/images/advisor-portrait.jpg`}
-              alt="Barr. Emeka Okafor, Head of Estate Practice at Castle"
-              loading="lazy"
-              className="h-[360px] w-full object-cover sm:h-[480px]"
-            />
-          </div>
-          <div className="mt-5 rounded-2xl border border-border bg-card p-6">
-            <p className="font-serif text-lg text-navy">Barr. Emeka Okafor</p>
-            <p className="text-sm text-muted-foreground">Head of Estate Practice, Castle</p>
-          </div>
-        </div>
-        <div>
-          <span className="text-[10px] font-semibold uppercase tracking-[0.35em] text-primary">
-            Testimonials
-          </span>
-          <h2 className="mt-5 font-serif text-3xl leading-[1.05] text-navy sm:text-5xl">
-            Trusted by families across Nigeria
-          </h2>
-          <div className="mt-10 space-y-5">
-            {items.map((t) => (
-              <figure key={t.name} className="rounded-[1.5rem] border border-border bg-card p-7 shadow-soft">
-                <div className="mb-4 flex gap-0.5 text-gold">
-                  {Array.from({ length: 5 }).map((_, i) => (
-                    <Star key={i} className="h-4 w-4 fill-current" />
-                  ))}
-                </div>
-                <blockquote className="font-serif text-lg leading-relaxed text-navy">
-                  “{t.quote}”
-                </blockquote>
-                <figcaption className="mt-5 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 border-t border-border pt-4">
-                  <div className="min-w-0">
-                    <div className="truncate text-sm font-semibold text-navy">{t.name}</div>
-                    <div className="truncate text-xs text-muted-foreground">{t.role}</div>
-                  </div>
-                  <span className="shrink-0 text-[10px] uppercase tracking-[0.22em] text-gold">
-                    Verified client
-                  </span>
-                </figcaption>
-              </figure>
-            ))}
-          </div>
-        </div>
-      </div>
-    </section>
-  );
-}
-
 function FAQPreview() {
   const faqs = [
     [
       "Is a Will created on Castle legally binding in Nigeria?",
-      "Yes. Every Will is drafted to comply with the Wills Act and reviewed by qualified Nigerian estate lawyers. Once signed and witnessed correctly, it is fully binding.",
+      "Yes. Every Will is drafted to comply with the Wills Act, and once signed and witnessed correctly it is fully binding. A review by a qualified Nigerian estate lawyer is available as an optional extra, and is included with Premium.",
     ],
     [
       "How long does it take to create a Will?",

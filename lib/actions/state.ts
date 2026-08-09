@@ -22,6 +22,20 @@ export type FormState = {
    */
   redirect?: string;
   /**
+   * Force a full document load rather than a client-side navigation.
+   *
+   * Required whenever the *session itself* changed. Next's client Router
+   * Cache keys on the path, not on who is signed in, so an entry fetched
+   * before signing in is still served afterwards. An administrator who
+   * opened `/admin` while signed out got bounced to `/admin/login`, and that
+   * bounce is what the cache stored — so `router.push("/admin")` after a
+   * successful sign-in replayed it and landed them straight back on the
+   * login page. Customers rarely hit it because they reach `/login` from the
+   * site nav without having tried `/dashboard` first, which is why this
+   * looked like an admin-only fault.
+   */
+  hardRedirect?: boolean;
+  /**
    * The raw fields just submitted, keyed by `<input name>`.
    *
    * React resets a `<form action={fn}>`'s uncontrolled fields to their
@@ -51,9 +65,19 @@ export function successState(
   return { status: "success", message, data };
 }
 
-/** Success that also moves the browser somewhere — the API-route equivalent of `redirect()`. */
-export function redirectState(to: string, message = ""): FormState {
-  return { status: "success", message, redirect: to };
+/**
+ * Success that also moves the browser somewhere — the API-route equivalent of
+ * `redirect()`.
+ *
+ * Pass `{ hard: true }` for anything that signs a user in or out: see
+ * `FormState.hardRedirect` for why a client-side push is not safe there.
+ */
+export function redirectState(
+  to: string,
+  message = "",
+  options: { hard?: boolean } = {},
+): FormState {
+  return { status: "success", message, redirect: to, hardRedirect: options.hard };
 }
 
 /** Flattens a ZodError into the `fieldErrors` shape. */
