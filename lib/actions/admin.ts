@@ -251,7 +251,7 @@ export type ClientRow = {
   name: string | null;
   email: string;
   phone: string | null;
-  role: "user" | "admin";
+  role: "user" | "lawyer" | "admin";
   status: "active" | "suspended" | "deleted";
   is_email_verified: boolean;
   is_phone_verified: boolean;
@@ -259,18 +259,30 @@ export type ClientRow = {
   wills_count: number;
   created_at: string | null;
   last_login_at?: string | null;
+  /*
+   * Two separate facts. `is_lawyer` is what the account asked to be;
+   * `is_verified_lawyer` is whether this console has confirmed the enrolment
+   * number. The professional rate hangs off the second one only.
+   */
+  is_lawyer?: boolean;
+  is_verified_lawyer?: boolean;
+  enrolment_number?: string | null;
+  lawyer_rejected_reason?: string | null;
 };
 
 export async function listClients(options: {
   search?: string;
   page?: number;
   perPage?: number;
+  /** `lawyers_pending` narrows to applicants nobody has checked yet. */
+  filter?: "lawyers_pending";
 }): Promise<Paginated<ClientRow>> {
   return apiData<Paginated<ClientRow>>("/admin/clients", emptyPage<ClientRow>(), {
     query: {
       search: options.search,
       page: options.page,
       per_page: options.perPage,
+      filter: options.filter,
     },
   });
 }

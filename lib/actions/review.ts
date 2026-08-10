@@ -108,6 +108,42 @@ export async function setClientStatusAction(
   });
 }
 
+/**
+ * Confirms or refuses a lawyer's Supreme Court enrolment number.
+ *
+ * This is the decision that unlocks the ₦10,000 professional rate, so it is
+ * deliberately a deliberate act in the console rather than anything automatic:
+ * nothing on the platform can query the roll, and an administrator has to have
+ * actually looked the number up.
+ *
+ * A refusal carries a reason and the applicant keeps their lawyer account, so
+ * a transposed digit is something they can correct rather than a dead end.
+ */
+export async function setLawyerVerificationAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const userId = String(formData.get("userId") ?? "");
+  const verified = String(formData.get("verified") ?? "") === "true";
+  const reason = String(formData.get("reason") ?? "").trim();
+
+  if (!userId) {
+    return errorState("That request was not valid.");
+  }
+
+  // Mirrored from the backend rule purely for a faster message; the guarantee
+  // is the `required_if` there.
+  if (!verified && reason.length < 10) {
+    return errorState("Please correct the highlighted fields.", {
+      reason: ["Give the applicant a reason they can act on."],
+    });
+  }
+
+  return apiMutation(`/admin/clients/${userId}/lawyer-verification`, {
+    body: { verified, reason: verified ? null : reason },
+  });
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Verification queue                                                         */
 /* -------------------------------------------------------------------------- */

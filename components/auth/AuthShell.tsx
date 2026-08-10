@@ -73,7 +73,7 @@ export function AuthShell({
                 */}
             <p className="text-sm leading-relaxed text-navy-foreground/75">
               Every Will drafted here is stored under bank-grade encryption
-              and sealed with witnesses in accordance with the Wills Act,
+              and sealed with witnesses in compliance with the law,
               with admitted Nigerian counsel to review it whenever you
               want one.
             </p>

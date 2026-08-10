@@ -33,7 +33,7 @@ const cols = [
 ] as const;
 
 const assurances = [
-  [Scale, "Nigerian Wills Act compliant"],
+  [Scale, "Compliant with Nigerian law"],
   [Lock, "AES-256 encrypted vault"],
   [Clock, "Ready in about 20 minutes"],
 ] as const;

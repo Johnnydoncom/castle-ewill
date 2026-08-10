@@ -14,9 +14,18 @@ export const metadata: Metadata = {
 
 export const dynamic = "force-dynamic";
 
-export default async function RegisterPage() {
+export default async function RegisterPage({
+  searchParams,
+}: {
+  searchParams: Promise<{ type?: string }>;
+}) {
   const user = await currentUser();
   if (user) redirect(user.role === "admin" ? "/admin" : "/dashboard");
+
+  // `?type=lawyer` from the pricing page preselects the practitioner path, so
+  // someone arriving from "register as a lawyer" is not asked the question
+  // they have already answered.
+  const { type } = await searchParams;
 
   return (
     <AuthShell
@@ -42,7 +51,7 @@ export default async function RegisterPage() {
         </>
       }
     >
-      <RegisterForm />
+      <RegisterForm initialAccountType={type === "lawyer" ? "lawyer" : "individual"} />
     </AuthShell>
   );
 }

@@ -7,7 +7,7 @@
  * prevents the combination from being saved; this copy exists so the warning
  * appears next to the names rather than only after a failed submit.
  *
- * The rule itself: under the Wills Act a gift to an attesting witness is void.
+ * The rule itself: in compliance with the law a gift to an attesting witness is void.
  * The Will survives, but that person inherits nothing — and someone naming
  * their spouse as both would have no way of knowing they had disinherited them.
  */

@@ -10,11 +10,11 @@ import { getPriceList } from "@/lib/pricing";
 export const metadata: Metadata = {
   title: "Castle eWill & Trust — Nigeria's Premium Online Will Platform",
   description:
-    "Create a legally-sound Will in minutes. Nigeria's most trusted online Will making platform — secure, optionally lawyer-reviewed, and built for your legacy.",
+    "Write your own Will online, in compliance with Nigerian law. Draft it, print it, and have a solicitor review it only if you want one.",
   openGraph: {
     title: "Castle eWill & Trust — Nigeria's Premium Online Will Platform",
     description:
-      "Create a legally-sound Will in minutes. Nigeria's most trusted online Will making platform — secure, optionally lawyer-reviewed, and built for your legacy.",
+      "Write your own Will online, in compliance with Nigerian law. Draft it, print it, and have a solicitor review it only if you want one.",
     type: "website",
   },
 };
@@ -48,7 +48,7 @@ export default function HomePage() {
 
 function TrustBar() {
   const items = [
-    "Nigerian Wills Act compliant",
+    "Compliant with Nigerian law",
     // "Solicitor reviewed" was a promise to every visitor, but review is an
     // optional extra — included with Premium, chargeable on Basic. Claiming it
     // universally sells a Basic client something they have not bought.
@@ -111,14 +111,14 @@ function Proof() {
             </span>
           </div>
           <h2 className="mt-6 font-serif text-3xl leading-[1.05] text-navy sm:text-5xl">
-            Estate planning without
-            <span className="italic text-primary"> stress.</span>
+            Your Will, written
+            <span className="italic text-primary"> by you.</span>
           </h2>
           <p className="mt-6 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Traditional Will writing in Nigeria means appointments, paperwork and fees
-            that scale with confusion. Castle replaces that with a guided flow you can
-            finish over lunch — with a solicitor to check it before you sign,
-            whenever you want one.
+            Making a Will in Nigeria usually means an appointment, an hourly rate and a
+            wait. Castle is a platform, not a law firm: you answer the questions yourself,
+            in your own time, and print the finished document the same day. A solicitor
+            reads it only if you ask for one — and only then do you pay for one.
           </p>
           <div className="mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border">
             {stats.map(([n, l]) => (
@@ -143,7 +143,7 @@ function Proof() {
           </div>
           <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-2xl border border-border bg-card px-6 py-5 shadow-soft sm:absolute sm:-bottom-8 sm:left-8 sm:right-8 sm:mt-0">
             <p className="min-w-0 font-serif text-base italic text-navy">
-              “Everything a Nigerian estate lawyer would ask you — in plain language.”
+              “Every question a Nigerian estate lawyer would ask — without the appointment.”
             </p>
             <span className="shrink-0 text-[10px] uppercase tracking-[0.24em] text-gold">
               Castle method
@@ -156,10 +156,24 @@ function Proof() {
 }
 
 function Steps() {
+  /*
+   * The seven stages a client actually moves through, matching `WillJourney`
+   * on the backend exactly. Worth keeping in step with it: a page that
+   * promises a stage the server does not recognise is a support ticket.
+   *
+   * Legal review is marked optional because it is — you can skip it with one
+   * click and print the same day. That is the whole positioning of this
+   * platform and the homepage should not imply a solicitor stands between you
+   * and your own Will.
+   */
   const steps = [
-    { n: "01", title: "Tell us about you", body: "Family, dependants, marriage and the assets you hold — answered as simple questions.", },
-    { n: "02", title: "Decide who gets what", body: "Beneficiaries, guardians for children, executors, gifts and final wishes.", },
-    { n: "03", title: "Sign, witness, store", body: "We guide the signing and witnessing, then seal the Will in your encrypted vault.", },
+    { n: "01", title: "Prepare", body: "Answer nine guided sections, at your own pace. Nothing to pay to start, and nothing to book." },
+    { n: "02", title: "Legal review", body: "Optional. Have a Nigerian solicitor read it clause by clause for a fixed fee — or skip it in one click.", optional: true },
+    { n: "03", title: "Print", body: "Pay, confirm your identity once, then download the finished instrument — branded, sealed and ready to sign." },
+    { n: "04", title: "Execute", body: "Sign it in front of two witnesses, who sign in front of you. We show you exactly how." },
+    { n: "05", title: "Lodge", body: "We file the executed Will with the Probate Registry on your behalf." },
+    { n: "06", title: "Protect", body: "Held in an encrypted vault and released only to the executors you named." },
+    { n: "07", title: "Update", body: "Life changes. Amend and re-issue whenever you need to, free while your subscription runs." },
   ];
   return (
     <section className="relative overflow-hidden bg-navy py-20 text-navy-foreground lg:py-28">
@@ -175,10 +189,10 @@ function Steps() {
         <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
           <div>
             <span className="text-[10px] font-semibold uppercase tracking-[0.35em] text-gold">
-              Three steps
+              Seven stages
             </span>
             <h2 className="mt-5 max-w-xl font-serif text-3xl leading-[1.05] sm:text-5xl">
-              From first question to signed testament.
+              You write it. We make it hold up.
             </h2>
           </div>
           <Link
@@ -190,12 +204,19 @@ function Steps() {
           </Link>
         </div>
 
-        <div className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-white/10 bg-white/10 lg:grid-cols-3">
+        <div className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-white/10 bg-white/10 sm:grid-cols-2 lg:grid-cols-4">
           {steps.map((s) => (
-            <div key={s.n} className="bg-navy/70 p-8 lg:p-10">
-              <div className="font-serif text-base text-gold">Step {s.n}</div>
-              <h3 className="mt-6 font-serif text-2xl">{s.title}</h3>
-              <p className="mt-3 text-sm leading-relaxed text-navy-foreground/70">{s.body}</p>
+            <div key={s.n} className="bg-navy/70 p-7 lg:p-8">
+              <div className="flex items-baseline justify-between gap-3">
+                <span className="font-serif text-base text-gold">{s.n}</span>
+                {s.optional && (
+                  <span className="text-[9px] uppercase tracking-[0.2em] text-navy-foreground/50">
+                    Optional
+                  </span>
+                )}
+              </div>
+              <h3 className="mt-5 font-serif text-xl">{s.title}</h3>
+              <p className="mt-2.5 text-sm leading-relaxed text-navy-foreground/70">{s.body}</p>
             </div>
           ))}
         </div>
@@ -570,6 +591,56 @@ async function PricingPreview() {
           review={prices.review}
           subscription={prices.subscription}
         />
+
+        {/*
+          The professional rate.
+          Advertised to everyone, because a lawyer has to be able to find out
+          what the platform costs before opening an account. Buying at it is a
+          different matter — that needs an enrolment number this office has
+          checked against the roll, and the checkout enforces it.
+        */}
+        {prices.lawyerWill.length > 0 && (
+          <div className="mt-16 border-t border-border pt-14">
+            <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)] lg:items-center">
+              <div className="min-w-0">
+                <span className="text-[10px] font-semibold uppercase tracking-[0.35em] text-gold">
+                  For legal practitioners
+                </span>
+                <h3 className="mt-5 max-w-lg font-serif text-2xl leading-[1.1] text-navy sm:text-4xl">
+                  Drafting for your clients?
+                </h3>
+                <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground">
+                  Practitioners draft on the platform at a per-Will rate, with no
+                  subscription and no minimum volume. Register as a lawyer, give us
+                  your Supreme Court enrolment number, and we will confirm it against
+                  the roll before your first bill.
+                </p>
+                <Link
+                  href="/register?type=lawyer"
+                  className="mt-8 inline-flex items-center gap-3 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy"
+                >
+                  <span className="h-px w-8 bg-gold transition-all" />
+                  Open a practitioner account
+                </Link>
+              </div>
+
+              {prices.lawyerWill.map((plan) => (
+                <PlanCard
+                  key={plan.id}
+                  plan={plan}
+                  quote={prices.quotes[plan.slug]}
+                >
+                  <Link
+                    href="/register?type=lawyer"
+                    className="mt-8 flex h-13 items-center justify-center bg-navy px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy-foreground transition-colors hover:bg-navy/90"
+                  >
+                    Register as a lawyer
+                  </Link>
+                </PlanCard>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
     </section>
   );
@@ -578,7 +649,7 @@ function FAQPreview() {
   const faqs = [
     [
       "Is a Will created on Castle legally binding in Nigeria?",
-      "Yes. Every Will is drafted to comply with the Wills Act, and once signed and witnessed correctly it is fully binding. A review by a qualified Nigerian estate lawyer is available as an optional extra, and is included with Premium.",
+      "Yes. Every Will is drafted in compliance with the law, and once signed and witnessed correctly it is fully binding. You do not need a lawyer to make one here — a review by a qualified Nigerian estate lawyer is an optional paid extra, and is included with Premium.",
     ],
     [
       "How long does it take to create a Will?",

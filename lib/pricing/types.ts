@@ -15,10 +15,25 @@
 
 export type PlanKind = "will" | "lodging" | "review" | "subscription";
 
+/**
+ * Who a plan is sold to.
+ *
+ * `both` is most of the list — lodging is a statutory fee and review and the
+ * subscription cost what they cost whoever is buying. Only the Will itself is
+ * tiered, at ₦40,000 for someone writing their own and ₦10,000 for a verified
+ * lawyer drafting for a client.
+ *
+ * Presentation only. A visitor may *see* the professional rate on the pricing
+ * page — that is how a lawyer discovers the platform — but buying at it
+ * requires a confirmed enrolment number, enforced server-side at checkout.
+ */
+export type PlanAudience = "individual" | "lawyer" | "both";
+
 export type Plan = {
   id: string;
   slug: string;
   kind: PlanKind;
+  audience: PlanAudience;
   name: string;
   tagline: string | null;
   description: string | null;
@@ -65,8 +80,16 @@ export type PaymentProviders = {
 };
 
 export type PriceList = {
-  /** The tiers a client chooses between. */
+  /** The tiers an individual chooses between. */
   will: Plan[];
+  /**
+   * The professional rate, for lawyers drafting on behalf of a client.
+   *
+   * Advertised publicly and bought only by an account whose Supreme Court
+   * enrolment number an administrator has confirmed — the page shows it, the
+   * checkout enforces it.
+   */
+  lawyerWill: Plan[];
   /** Compulsory, per Will. Null when none is published. */
   lodging: Plan | null;
   /** Optional per Will: a solicitor reads the draft. Null when none is published. */

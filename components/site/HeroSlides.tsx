@@ -31,7 +31,7 @@ const SLIDES: Slide[] = [
         <span className="italic text-gold">thank you for.</span>
       </>
     ),
-    body: "Answer plain-English questions. We turn them into a Will that meets the Nigerian Wills Act — with a practising solicitor to review it before you sign, whenever you want one.",
+    body: "Answer straightforward questions and we turn them into a Will drafted in compliance with the law. You write it yourself and print it the same day; a solicitor's review is there if you want one, at extra cost.",
     image: '/images/hero-family.jpg',
     alt: "A Nigerian family together at home",
     caption: "The Adeyemi family, Lagos",
@@ -60,7 +60,7 @@ const SLIDES: Slide[] = [
   },
   {
     index: "03",
-    tab: "Signing & vault",
+    tab: "Vault",
     kicker: "Sealed, stored, findable",
     title: (
       <>

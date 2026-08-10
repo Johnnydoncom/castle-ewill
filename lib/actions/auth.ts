@@ -32,6 +32,11 @@ export async function registerAction(
     });
   }
 
+  const accountType =
+    String(formData.get("accountType") ?? "individual") === "lawyer"
+      ? "lawyer"
+      : "individual";
+
   return apiMutation("/auth/register", {
     body: {
       name: String(formData.get("name") ?? ""),
@@ -39,6 +44,17 @@ export async function registerAction(
       password,
       password_confirmation: confirm,
       accepted_terms: formData.get("acceptedTerms") === "on",
+      account_type: accountType,
+      /*
+       * Sent only when it is being claimed. Registering as a lawyer creates an
+       * account whose number an administrator still has to check against the
+       * roll — nothing about the professional rate is granted here, so there
+       * is nothing to guard on this side.
+       */
+      enrolment_number:
+        accountType === "lawyer"
+          ? String(formData.get("enrolmentNumber") ?? "")
+          : null,
     },
     onError: (result) => ({
       status: "error",
@@ -321,6 +337,8 @@ function mapFieldErrors(
   const aliases: Record<string, string> = {
     password_confirmation: "confirmPassword",
     accepted_terms: "acceptedTerms",
+    account_type: "accountType",
+    enrolment_number: "enrolmentNumber",
   };
 
   return Object.fromEntries(

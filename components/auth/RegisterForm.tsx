@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 
 import { useFormAction } from "@/hooks/use-api-form";
 import { registerAction } from "@/lib/actions/auth";
@@ -12,8 +13,42 @@ import {
 } from "./FormControls";
 import { StatefulForm } from "@/components/forms/StatefulForm";
 
-export function RegisterForm() {
+type AccountType = "individual" | "lawyer";
+
+const ACCOUNT_TYPES: ReadonlyArray<{
+  value: AccountType;
+  label: string;
+  blurb: string;
+}> = [
+  {
+    value: "individual",
+    label: "Individual",
+    blurb: "I am writing my own Will.",
+  },
+  {
+    value: "lawyer",
+    label: "Lawyer",
+    blurb: "I draft Wills for my clients.",
+  },
+];
+
+export function RegisterForm({
+  initialAccountType = "individual",
+}: {
+  initialAccountType?: AccountType;
+} = {}) {
   const [state, action] = useFormAction(registerAction, { refresh: false });
+
+  /*
+   * Held in state rather than read off the DOM, because the enrolment field
+   * only exists while "Lawyer" is chosen and an uncontrolled read would have
+   * nothing to read. Seeded from the last submission so a validation error
+   * does not silently drop someone back to "Individual" and take their
+   * enrolment number with it.
+   */
+  const [accountType, setAccountType] = useState<AccountType>(
+    state.values?.accountType === "lawyer" ? "lawyer" : initialAccountType,
+  );
 
   // On success the account exists but is unverified — show the next step
   // rather than a form the person has no reason to fill in again.
@@ -44,6 +79,66 @@ export function RegisterForm() {
   return (
     <StatefulForm state={state} action={action} className="space-y-6" noValidate>
       <FormBanner state={state} />
+
+      <fieldset>
+        <legend className="font-serif text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+          I am registering as
+        </legend>
+        <div className="mt-3 grid gap-3 sm:grid-cols-2">
+          {ACCOUNT_TYPES.map((option) => {
+            const selected = accountType === option.value;
+            return (
+              <label
+                key={option.value}
+                className={`cursor-pointer border p-4 transition-colors ${
+                  selected
+                    ? "border-gold bg-gold/5"
+                    : "border-border hover:border-navy/40"
+                }`}
+              >
+                <span className="flex items-center gap-3">
+                  <input
+                    type="radio"
+                    name="accountType"
+                    value={option.value}
+                    checked={selected}
+                    onChange={() => setAccountType(option.value)}
+                    className="h-4 w-4 border-border text-navy focus:ring-gold"
+                  />
+                  <span className="text-sm font-medium text-navy">
+                    {option.label}
+                  </span>
+                </span>
+                <span className="mt-2 block pl-7 text-xs leading-relaxed text-muted-foreground">
+                  {option.blurb}
+                </span>
+              </label>
+            );
+          })}
+        </div>
+        {state.fieldErrors?.accountType && (
+          <p className="mt-2 text-xs text-destructive">
+            {state.fieldErrors.accountType[0]}
+          </p>
+        )}
+      </fieldset>
+
+      {accountType === "lawyer" && (
+        <div className="border-l-2 border-gold/60 pl-4">
+          <Field
+            label="Supreme Court enrolment number"
+            name="enrolmentNumber"
+            placeholder="SCN123456"
+            required
+            errors={state.fieldErrors?.enrolmentNumber}
+          />
+          <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+            We check this against the roll by hand before the professional rate
+            applies. Until then your account works exactly like an
+            individual&apos;s — you can start drafting straight away.
+          </p>
+        </div>
+      )}
 
       <Field
         label="Full name"

@@ -7,6 +7,7 @@ export type * from "./types";
 
 const EMPTY: PriceList = {
   will: [],
+  lawyerWill: [],
   lodging: null,
   review: null,
   subscription: null,
@@ -36,8 +37,13 @@ export async function getPriceList(): Promise<PriceList> {
   const plans = result.data.data ?? [];
   const ofKind = (kind: PlanKind) => plans.filter((plan) => plan.kind === kind);
 
+  const wills = ofKind("will");
+
   return {
-    will: ofKind("will"),
+    // Split so the page can present two price lists rather than one confusing
+    // column where ₦10,000 sits beside ₦40,000 with no explanation.
+    will: wills.filter((plan) => plan.audience !== "lawyer"),
+    lawyerWill: wills.filter((plan) => plan.audience === "lawyer"),
     lodging: ofKind("lodging")[0] ?? null,
     review: ofKind("review")[0] ?? null,
     subscription: ofKind("subscription")[0] ?? null,
