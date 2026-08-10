@@ -3,6 +3,9 @@ import Link from "next/link";
 import { AlertTriangle, CheckCircle2, UserPlus } from "lucide-react";
 
 import { getOrCreateDraft } from "@/lib/actions/will";
+import { getVerificationStatus } from "@/lib/actions/verification";
+import { listUserDocuments } from "@/lib/actions/documents";
+import { WitnessIdentityUpload } from "@/components/will/WitnessIdentityUpload";
 import { conflictingWitnesses } from "@/lib/will/conflicts";
 import { PageHead } from "@/components/dashboard/PageHead";
 
@@ -15,6 +18,21 @@ export default async function WitnessesPage() {
   // The API scopes the draft to the caller, so there is no user id to pass and
   // none to get wrong.
   const will = await getOrCreateDraft();
+
+  /*
+   * Witness identification is collected only when identity verification falls
+   * back to manual review — a human reviewer needs something to check the
+   * attestation against, whereas an automated provider verifies the testator
+   * against a government document and gains nothing from a witness's ID. The
+   * server enforces the same rule; this only decides whether to ask.
+   */
+  const verification = await getVerificationStatus();
+  const needsWitnessId = !verification.is_automated;
+
+  const witnessIdCount = needsWitnessId
+    ? (await listUserDocuments()).filter((d) => d.kind === "witness_identity")
+        .length
+    : 0;
 
   const witnesses = will?.witnesses ?? [];
   const beneficiaries = will?.beneficiaries ?? [];
@@ -34,6 +52,10 @@ export default async function WitnessesPage() {
         title="Witnesses"
         blurb="Nigerian law requires two adult witnesses present together at signing. Neither may inherit under the Will."
       />
+
+      {needsWitnessId && (
+        <WitnessIdentityUpload uploaded={witnessIdCount} />
+      )}
 
       {clashes.length > 0 && (
         <div

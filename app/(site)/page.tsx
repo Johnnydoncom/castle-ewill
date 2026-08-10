@@ -653,11 +653,11 @@ function FAQPreview() {
     ],
     [
       "How long does it take to create a Will?",
-      "Most clients finish in 15–20 minutes. You can save your progress and return anytime.",
+      "There are nine sections, and they are designed to be finished in one sitting. Nothing is timed — you can save your progress and come back whenever you like.",
     ],
     [
       "Can I update my Will later?",
-      "Absolutely. Your account keeps your Will in a secure vault. Update, re-sign and re-download whenever life changes.",
+      "Yes. Your Will is held in an encrypted vault, and you can amend, re-sign and re-download it as life changes. Once a Will has been issued, amendments are covered by the annual subscription.",
     ],
     [
       "How secure is my data?",

@@ -54,6 +54,13 @@ export default async function DashboardPage({
     <div className="space-y-10">
       <PaymentBanner outcome={paymentOutcome} />
 
+      {/*
+        Identity no longer gates *starting* a Will — it is checked after
+        payment and before the document is released. So this is a heads-up
+        about a step still to come, not a barrier: telling someone they must
+        verify "to start" when they can in fact start immediately would send
+        them off to a check they do not need yet.
+      */}
       {!data.account.is_kyc_verified && (
         <Link
           href="/dashboard/kyc"
@@ -61,8 +68,9 @@ export default async function DashboardPage({
         >
           <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
           <span className="leading-relaxed">
-            <span className="font-medium">Verify your identity</span> to start
-            your Will — a one-time check, usually done in a few minutes.
+            <span className="font-medium">Identity check still to come.</span>{" "}
+            Start drafting whenever you like — we confirm your identity once,
+            after payment, before releasing your Will.
           </span>
           <ArrowRight className="ml-auto mt-0.5 h-4 w-4 shrink-0" />
         </Link>
@@ -137,13 +145,21 @@ export default async function DashboardPage({
                     View your Will
                   </Link>
                 )}
-                <Link
-                  href={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${activeWill.id}/pdf`}
-                  className="inline-flex items-center gap-2 border border-border px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy transition-colors hover:border-gold hover:text-gold"
-                >
-                  <Download className="h-4 w-4" />
-                  PDF
-                </Link>
+                {/*
+                  Offered only when the server would honour it. Printing needs
+                  a completed Will, a settled payment and a confirmed identity;
+                  an unconditional link here handed people a button whose only
+                  possible outcome was a 402.
+                */}
+                {activeWill.journey?.can_print && (
+                  <Link
+                    href={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${activeWill.id}/pdf`}
+                    className="inline-flex items-center gap-2 border border-border px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy transition-colors hover:border-gold hover:text-gold"
+                  >
+                    <Download className="h-4 w-4" />
+                    PDF
+                  </Link>
+                )}
               </div>
             </>
           ) : (

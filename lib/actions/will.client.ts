@@ -300,3 +300,29 @@ export async function recordLifeEventAction(
     body: { event_type: eventType, note: note || undefined },
   });
 }
+
+/* -------------------------------------------------------------------------- */
+/*  Legal review — the one optional stage                                      */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Requests a lawyer's review, or skips it.
+ *
+ * Skipping is a first-class answer, not an escape hatch: this platform exists
+ * so people can write and print their own Will, and a solicitor's read is a
+ * paid extra. The choice is recorded either way so "declined" stays
+ * distinguishable from "not yet asked".
+ */
+export async function chooseReviewAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const willId = String(formData.get("willId") ?? "");
+  const choice = String(formData.get("choice") ?? "");
+
+  if (!willId || (choice !== "requested" && choice !== "skipped")) {
+    return errorState("That request was not valid.");
+  }
+
+  return apiMutation(`/wills/${willId}/review-choice`, { body: { choice } });
+}

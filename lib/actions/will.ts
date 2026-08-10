@@ -52,6 +52,54 @@ export type WillStatus =
   | "executed"
   | "archived";
 
+/**
+ * The seven client-facing stages, in order. Mirrors `WillJourney::STAGES`.
+ *
+ * Distinct from `WillStatus`, and deliberately so: status is the review state
+ * machine an administrator drives, while this is what the client is shown and
+ * what they are allowed to do next.
+ */
+export const JOURNEY_STAGES = [
+  "prepare",
+  "legal_review",
+  "print",
+  "execute",
+  "lodge",
+  "protect",
+  "update",
+] as const;
+
+export type JourneyStage = (typeof JOURNEY_STAGES)[number];
+
+/** Why printing is refused, in the order the client must satisfy them. */
+export type PrintBlocker =
+  | "incomplete"
+  | "unpaid"
+  | "kyc_required"
+  | "liveness_required";
+
+export type WillJourney = {
+  stage: JourneyStage;
+  stages: JourneyStage[];
+  is_paid: boolean;
+  identity: {
+    confirmed: boolean;
+    /** `kyc` for a first-timer, `liveness` for someone already proofed. */
+    requires: "kyc" | "liveness" | null;
+    kyc_verified: boolean;
+  };
+  is_subscribed: boolean;
+  review_choice: "undecided" | "requested" | "skipped" | null;
+  can_request_review: boolean;
+  can_skip_review: boolean;
+  can_print: boolean;
+  print_blocked_by: PrintBlocker | null;
+  can_update: boolean;
+  printed_at: string | null;
+  executed_at: string | null;
+  lodged_at: string | null;
+};
+
 export type ApiWill = {
   id: string;
   reference: string;
@@ -76,6 +124,19 @@ export type ApiWill = {
   assets: Array<Record<string, unknown>>;
   witnesses: WillPerson[];
   progress?: WillProgress;
+  /**
+   * Where this Will has got to and what may happen next.
+   *
+   * Present only for the account holder — it is derived from *their* payments,
+   * identity checks and subscription, so it is absent when an administrator is
+   * looking at somebody else's record.
+   *
+   * Never recomputed here. `can_print` in particular is the server's gate on
+   * releasing an executable legal instrument; a page that worked it out for
+   * itself could offer a button the server will refuse, which is worse than
+   * offering no button at all.
+   */
+  journey?: WillJourney;
   /**
    * Summaries only. The API never ships the snapshots — they are a complete
    * copy of the Will at each version, and belong to the registry's evidence

@@ -3,8 +3,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Download, FileText } from "lucide-react";
 
-import { getVerificationStatus } from "@/lib/actions/verification";
-import { LivenessCheck } from "@/components/verification/LivenessCheck";
+import { JourneyActions } from "@/components/will/JourneyActions";
+import { JourneyBar } from "@/components/will/JourneyBar";
 import { getProfile } from "@/lib/actions/guards";
 import { getOrCreateDraft } from "@/lib/actions/will";
 import {
@@ -96,7 +96,6 @@ export default async function WillBuilderPage({
    * that this only governs what is rendered: the submission endpoint enforces
    * the same gate regardless of what this page shows.
    */
-  const verification = current === 9 ? await getVerificationStatus() : null;
 
   const steps = applicableSteps(will.has_minor_children);
   const definition = stepByNumber(current) ?? steps[0];
@@ -184,23 +183,24 @@ export default async function WillBuilderPage({
             <ReviewStep {...stepProps}>
               <ReviewSummary will={will} />
 
-              {verification?.is_verified ? (
-                <div className="flex items-start gap-3 border-l-2 border-success bg-success/5 px-5 py-4 text-sm text-navy">
-                  <span aria-hidden className="mt-0.5 text-success">
-                    &#10003;
-                  </span>
-                  <p className="leading-relaxed">
-                    Identity verified. You can submit your Will below.
-                  </p>
+              {/*
+                What used to sit here was an identity check and a "submit"
+                button: identity gated submission, and printing came later.
+                That order is reversed now — anyone may draft, then pay, then
+                be identified, then print — so this step shows the journey and
+                its next action instead. The liveness capture itself lives at
+                /dashboard/kyc, which `JourneyActions` links to when it is
+                actually the next thing owed.
+              */}
+              {will.journey && (
+                <div className="space-y-6">
+                  <JourneyBar journey={will.journey} />
+                  <JourneyActions
+                    willId={will.id}
+                    journey={will.journey}
+                    pdfUrl={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${will.id}/pdf`}
+                  />
                 </div>
-              ) : verification?.latest?.status === "pending" ? (
-                <div className="border-l-2 border-gold bg-gold/5 px-5 py-4 text-sm leading-relaxed text-navy">
-                  Your identity check has been recorded and is awaiting review.
-                  We will email you as soon as it is approved, and you can submit
-                  your Will then.
-                </div>
-              ) : (
-                <LivenessCheck />
               )}
             </ReviewStep>
           )}

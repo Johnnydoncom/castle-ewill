@@ -34,8 +34,18 @@ const SLIDES: Slide[] = [
     body: "Answer straightforward questions and we turn them into a Will drafted in compliance with the law. You write it yourself and print it the same day; a solicitor's review is there if you want one, at extra cost.",
     image: '/images/hero-family.jpg',
     alt: "A Nigerian family together at home",
-    caption: "The Adeyemi family, Lagos",
-    meta: "Will completed in 18 minutes",
+    /*
+     * Not "The Adeyemi family, Lagos — Will completed in 18 minutes".
+     *
+     * That named a client who does not exist, over a stock photograph, beside
+     * a completion time nobody has measured on a platform that has not
+     * launched. It is the same fault as an invented testimonial, and on a
+     * service handling estates it is worse than an embarrassment. Replaced
+     * with a description of the picture and a claim the product actually
+     * makes true.
+     */
+    caption: "Everyone your Will speaks for",
+    meta: "Nine guided sections, in your own words",
     cta: { label: "Start your Will", to: "/register" },
   },
   {
@@ -196,37 +206,60 @@ export function HeroSlides() {
             </Link>
           </div>
 
-          {/* Slide selector */}
-          <div className="hidden mt-12 md:grid gap-px overflow-hidden rounded-2xl border border-white/10 bg-white/10 sm:grid-cols-3">
-            {SLIDES.map((s, i) => {
-              const isActive = i === active;
-              return (
-                <button
-                  key={s.index}
-                  onClick={() => go(i)}
-                  aria-current={isActive}
-                  className={`relative overflow-hidden px-4 py-4 text-left transition-colors ${isActive ? "bg-white/[0.09]" : "bg-navy/60 hover:bg-white/[0.05]"
-                    }`}
-                >
-                  <span
-                    className={`font-serif text-xs ${isActive ? "text-gold" : "text-navy-foreground/40"}`}
+          {/*
+            Slide selector.
+
+            Three hairline rules that fill with gold as the slide's timer runs,
+            beside the name of the slide you are on. It replaced a full-width
+            grid of three bordered tabs which, on a hero whose whole job is the
+            headline and the call to action, was spending a lot of vertical
+            space restating what the headline already said.
+
+            Each rule keeps a 40x24 hit area even though it draws as a 1px
+            line — the target has to be tappable, and only the paint is
+            delicate. Shown at every width now; the tab grid was hidden below
+            `md`, which left phone users with no way to reach slides two and
+            three at all.
+          */}
+          <div className="mt-10 flex items-center gap-4">
+            <div className="flex items-center gap-2" role="tablist" aria-label="Choose a slide">
+              {SLIDES.map((s, i) => {
+                const isActive = i === active;
+                return (
+                  <button
+                    key={s.index}
+                    type="button"
+                    role="tab"
+                    aria-selected={isActive}
+                    aria-label={`${s.index} — ${s.tab}`}
+                    onClick={() => go(i)}
+                    className="group relative h-6 w-10"
                   >
-                    {s.index}
-                  </span>
-                  <span
-                    className={`mt-1 block text-[11px] uppercase tracking-[0.18em] ${isActive ? "text-navy-foreground" : "text-navy-foreground/55"
+                    <span
+                      aria-hidden
+                      className={`absolute inset-x-0 top-1/2 h-px -translate-y-1/2 transition-colors ${
+                        isActive
+                          ? "bg-white/25"
+                          : "bg-white/20 group-hover:bg-white/45"
                       }`}
-                  >
-                    {s.tab}
-                  </span>
-                  <span
-                    aria-hidden
-                    className="absolute bottom-0 left-0 h-[2px] bg-gold transition-[width] duration-100 ease-linear"
-                    style={{ width: isActive ? `${Math.min(progress, 1) * 100}%` : "0%" }}
-                  />
-                </button>
-              );
-            })}
+                    />
+                    {isActive && (
+                      <span
+                        aria-hidden
+                        className="absolute left-0 top-1/2 h-[2px] -translate-y-1/2 bg-gold transition-[width] duration-100 ease-linear"
+                        style={{ width: `${Math.min(progress, 1) * 100}%` }}
+                      />
+                    )}
+                  </button>
+                );
+              })}
+            </div>
+
+            {/* Only the current slide is named. Three labels at once is the
+                thing being removed, not relocated. */}
+            <span className="text-[10px] uppercase tracking-[0.28em] text-navy-foreground/55">
+              {SLIDES[active].tab}
+            </span>
           </div>
         </div>
 

@@ -27,7 +27,7 @@ const fraunces = Fraunces({
 
 const title = `${COMPANY.name} — Nigeria's Premium Online Will Platform`;
 const description =
-  "Create a legally-sound Will in minutes. Nigeria's most trusted online Will making platform — secure, lawyer-reviewed, and built for your legacy.";
+  "Write your own Will online, in compliance with Nigerian law. Draft it, print it, and add a solicitor's review only if you want one.";
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.APP_URL ?? "http://localhost:3000"),
