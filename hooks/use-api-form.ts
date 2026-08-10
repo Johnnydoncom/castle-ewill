@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useActionState, useCallback, useRef } from "react";
+import { useActionState, useCallback, useEffect, useRef } from "react";
 
 import { idleState, type FormState } from "@/lib/actions/state";
 
@@ -53,8 +53,19 @@ export function useFormAction(
   options: ApiFormOptions = {},
 ): [FormState, (formData: FormData) => void, boolean] {
   const router = useRouter();
+
+  /*
+   * Options are read through a ref so a caller passing an inline
+   * `{ onSuccess: () => ... }` — which every caller does — cannot invalidate
+   * the action on every render. Synced in an effect rather than assigned
+   * during render: a render-phase write to a ref is a React correctness
+   * error, and effects flush before any user event can dispatch the action,
+   * so the value is always current by the time it is read.
+   */
   const optionsRef = useRef(options);
-  optionsRef.current = options;
+  useEffect(() => {
+    optionsRef.current = options;
+  });
 
   const submit = useCallback(
     async (previous: FormState, formData: FormData): Promise<FormState> => {

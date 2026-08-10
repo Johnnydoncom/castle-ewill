@@ -73,10 +73,21 @@ export function DashboardShell({
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
-  // Sync collapsed state with localStorage for persistence across navigations
+  /*
+   * Restore the saved sidebar width after mount.
+   *
+   * `set-state-in-effect` is disabled here rather than worked around: the
+   * value lives in `localStorage`, which does not exist while this renders on
+   * the server, so seeding `useState` from it directly would render one width
+   * on the server and another on the client and fail hydration. Reading it
+   * after mount is the sanctioned exception the rule describes — an external
+   * store being read into React — and the one extra render it costs is a
+   * layout preference on an already-interactive page.
+   */
   useEffect(() => {
     const saved = localStorage.getItem("castle_sidebar_collapsed");
     if (saved !== null) {
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       setCollapsed(saved === "true");
     }
   }, []);

@@ -96,6 +96,7 @@ export function PasswordField({
   errors,
   withMeter = false,
   hint,
+  required = true,
 }: {
   label: string;
   name: string;
@@ -103,6 +104,13 @@ export function PasswordField({
   errors?: string[];
   withMeter?: boolean;
   hint?: string;
+  /**
+   * Defaults to true — every sign-in and sign-up use needs a password. Set
+   * false for the account-settings box, which is only required when the
+   * email address is being changed; a browser refusing to submit a form
+   * because an optional field is blank is a dead end with no message.
+   */
+  required?: boolean;
 }) {
   const id = useId();
   const fromForm = useFieldState(name);
@@ -136,7 +144,7 @@ export function PasswordField({
           id={id}
           name={name}
           type={visible ? "text" : "password"}
-          required
+          required={required}
           autoComplete={autoComplete}
           value={value}
           onChange={(event) => setValue(event.target.value)}

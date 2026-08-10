@@ -5,6 +5,8 @@ import { getProfile, requireUser } from "@/lib/actions/guards";
 import { profileCompletion } from "@/lib/actions/dashboard";
 import { listWills } from "@/lib/actions/will";
 import { PageHead } from "@/components/dashboard/PageHead";
+import { AccountDetailsForm } from "@/components/settings/AccountDetailsForm";
+import { PasswordChangeForm } from "@/components/settings/PasswordChangeForm";
 import { TwoFactorSettings } from "@/components/settings/TwoFactorSettings";
 import { PhoneVerification } from "@/components/settings/PhoneVerification";
 import { LifeEventForm } from "@/components/settings/LifeEventForm";
@@ -74,33 +76,43 @@ export default async function SettingsPage() {
           </span>
         </div>
 
-        <dl className="mt-8 divide-y divide-border border-t border-border">
-          {[
-            ["Name", profile?.name ?? "—"],
-            ["Email", profile?.email ?? "—"],
-            ["Phone", profile?.phone ?? "Not provided"],
-            [
-              "Member since",
-              profile?.created_at
-                ? new Date(profile.created_at).toLocaleDateString("en-GB", {
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                  })
-                : "—",
-            ],
-          ].map(([label, value]) => (
-            <div
-              key={label}
-              className="grid gap-1 py-4 sm:grid-cols-[200px_1fr] sm:gap-4"
-            >
-              <dt className="font-serif text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-                {label}
-              </dt>
-              <dd className="text-sm text-navy">{value}</dd>
-            </div>
-          ))}
-        </dl>
+        {/*
+          * Editable, rather than the read-only list this used to be. The one
+          * thing that genuinely cannot be edited — when the account was
+          * opened — stays a plain line above the form.
+          */}
+        <p className="mt-6 text-xs text-muted-foreground">
+          Member since{" "}
+          {profile?.created_at
+            ? new Date(profile.created_at).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              })
+            : "—"}
+        </p>
+
+        <div className="mt-8 border-t border-border pt-8">
+          {profile ? (
+            <AccountDetailsForm profile={profile} />
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Your account details could not be loaded just now. Refresh the
+              page to try again.
+            </p>
+          )}
+        </div>
+      </section>
+
+      <section className="border border-border bg-background p-6 sm:p-8">
+        <h2 className="font-serif text-xl text-navy">Password</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Change the password you use to sign in.
+        </p>
+
+        <div className="mt-8 border-t border-border pt-8">
+          <PasswordChangeForm />
+        </div>
       </section>
 
       {/*
@@ -126,7 +138,8 @@ export default async function SettingsPage() {
         <ul className="mt-3 space-y-2 text-sm leading-relaxed text-navy/80">
           <li>
             Your password is stored only as a bcrypt hash. Nobody at Castle can
-            read it, and we will never ask you for it.
+            read it, and no member of our staff will ever ask you for it — the
+            only place you should ever type it is a form on this site.
           </li>
           <li>
             Two-factor codes are generated on your own device. The shared secret
