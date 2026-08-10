@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useFormAction } from "@/hooks/use-api-form";
 import { signInAction } from "@/lib/actions/auth";
 import { Field, FormBanner, PasswordField, SubmitButton } from "./FormControls";
+import { StatefulForm } from "@/components/forms/StatefulForm";
 
 export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
   // A successful sign-in changes what every server component renders, so the
@@ -16,7 +17,7 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
   const needsCode = state.data?.challenge === "totp";
 
   return (
-    <form action={action} className="space-y-6" noValidate>
+    <StatefulForm state={state} action={action} className="space-y-6" noValidate>
       <FormBanner state={state} />
       {callbackUrl && (
         <input type="hidden" name="callbackUrl" value={callbackUrl} />
@@ -69,6 +70,6 @@ export function LoginForm({ callbackUrl }: { callbackUrl?: string }) {
       <SubmitButton>
         {needsCode ? "Verify and sign in" : "Sign in to dashboard"}
       </SubmitButton>
-    </form>
+    </StatefulForm>
   );
 }

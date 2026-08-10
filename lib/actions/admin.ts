@@ -157,14 +157,29 @@ export async function listAllPlans(): Promise<Plan[]> {
 
 export type VerificationProviderName = "smile_id" | "manual_review";
 
-/** Which KYC vendor is currently live — see `Setting::activeVerificationProvider()`. */
-export async function getActiveVerificationProvider(): Promise<VerificationProviderName> {
-  const { provider } = await apiData<{ provider: VerificationProviderName }>(
-    "/admin/settings/verification-provider",
-    { provider: "manual_review" },
-  );
+export type VerificationRequirements = { email: boolean; phone: boolean };
 
-  return provider;
+export type VerificationSettings = {
+  provider: VerificationProviderName;
+  requirements: VerificationRequirements;
+};
+
+/**
+ * Both verification settings, in one read.
+ *
+ * They are edited on the same screen and stored by the same controller, so
+ * fetching them together keeps the Settings page to one round trip rather
+ * than two that could disagree.
+ *
+ * The fallback mirrors the backend's own defaults — manual review, email
+ * required, phone not — so an unreachable API renders the safe position
+ * rather than implying verification has been switched off.
+ */
+export async function getVerificationSettings(): Promise<VerificationSettings> {
+  return apiData<VerificationSettings>("/admin/settings/verification-provider", {
+    provider: "manual_review",
+    requirements: { email: true, phone: false },
+  });
 }
 
 /* -------------------------------------------------------------------------- */

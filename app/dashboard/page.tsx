@@ -178,28 +178,42 @@ export default async function DashboardPage({
           <p className="mt-1 text-sm text-muted-foreground">complete</p>
 
           <ul className="mt-6 space-y-3 border-t border-border pt-6">
+            {/*
+              * Only the confirmations actually being asked for. Listing
+              * "Phone number added" as an outstanding item when an
+              * administrator has switched phone verification off reads as
+              * an incomplete account that can never be completed.
+              */}
             {[
-              { label: "Email confirmed", done: data.account.is_email_verified },
-              { label: "Phone number added", done: data.account.is_phone_verified },
+              data.account.requires_email_verification && {
+                label: "Email confirmed",
+                done: data.account.is_email_verified,
+              },
+              data.account.requires_phone_verification && {
+                label: "Phone number added",
+                done: data.account.is_phone_verified,
+              },
               {
                 label: "Two-factor authentication",
                 done: data.account.two_factor_enabled,
               },
-            ].map((item) => (
-              <li
-                key={item.label}
-                className="flex items-center gap-3 text-sm text-muted-foreground"
-              >
-                <ShieldCheck
-                  className={`h-4 w-4 shrink-0 ${
-                    item.done ? "text-success" : "text-border"
-                  }`}
-                />
-                <span className={item.done ? "text-navy" : ""}>
-                  {item.label}
-                </span>
-              </li>
-            ))}
+            ]
+              .filter((item) => typeof item === "object")
+              .map((item) => (
+                <li
+                  key={item.label}
+                  className="flex items-center gap-3 text-sm text-muted-foreground"
+                >
+                  <ShieldCheck
+                    className={`h-4 w-4 shrink-0 ${
+                      item.done ? "text-success" : "text-border"
+                    }`}
+                  />
+                  <span className={item.done ? "text-navy" : ""}>
+                    {item.label}
+                  </span>
+                </li>
+              ))}
           </ul>
 
           <Link

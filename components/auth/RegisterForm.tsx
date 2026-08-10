@@ -10,6 +10,7 @@ import {
   PasswordField,
   SubmitButton,
 } from "./FormControls";
+import { StatefulForm } from "@/components/forms/StatefulForm";
 
 export function RegisterForm() {
   const [state, action] = useFormAction(registerAction, { refresh: false });
@@ -41,7 +42,7 @@ export function RegisterForm() {
   }
 
   return (
-    <form action={action} className="space-y-6" noValidate>
+    <StatefulForm state={state} action={action} className="space-y-6" noValidate>
       <FormBanner state={state} />
 
       <Field
@@ -101,6 +102,6 @@ export function RegisterForm() {
       )}
 
       <SubmitButton>Open my account</SubmitButton>
-    </form>
+    </StatefulForm>
   );
 }

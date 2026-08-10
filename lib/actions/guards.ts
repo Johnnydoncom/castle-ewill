@@ -35,6 +35,9 @@ export type Profile = {
   is_email_verified: boolean;
   is_phone_verified: boolean;
   is_kyc_verified: boolean;
+  /** Whether the platform is currently asking for each — admin-controlled. */
+  requires_email_verification: boolean;
+  requires_phone_verification: boolean;
   /** Whether amendments are currently free — see `User::hasActiveSubscription()`. */
   has_active_subscription: boolean;
   subscription_expires_at: string | null;

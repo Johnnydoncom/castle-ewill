@@ -5,7 +5,8 @@ import { PageHead } from "@/components/dashboard/PageHead";
 import { StatusBadge } from "@/components/admin/DataTable";
 import { BankAccountForm } from "@/components/admin/BankAccountForm";
 import { VerificationProviderForm } from "@/components/admin/VerificationProviderForm";
-import { getAdminHealth, getActiveVerificationProvider } from "@/lib/actions/admin";
+import { VerificationRequirementsForm } from "@/components/admin/VerificationRequirementsForm";
+import { getAdminHealth, getVerificationSettings } from "@/lib/actions/admin";
 import { requireAdminPermission } from "@/lib/actions/guards";
 import { COMPANY } from "@/lib/company";
 
@@ -26,9 +27,9 @@ export const dynamic = "force-dynamic";
 export default async function AdminSettingsPage() {
   await requireAdminPermission("manage_settings");
 
-  const [{ checks, bank_account: bank }, activeProvider] = await Promise.all([
+  const [{ checks, bank_account: bank }, verification] = await Promise.all([
     getAdminHealth(),
-    getActiveVerificationProvider(),
+    getVerificationSettings(),
   ]);
 
   return (
@@ -122,7 +123,22 @@ export default async function AdminSettingsPage() {
         </p>
 
         <div className="border border-border bg-background p-6 sm:p-8">
-          <VerificationProviderForm current={activeProvider} />
+          <VerificationProviderForm current={verification.provider} />
+        </div>
+      </section>
+
+      <section className="space-y-4">
+        <h2 className="font-serif text-xl text-navy">
+          What clients must confirm
+        </h2>
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Identity verification (document, liveness and face match) is always
+          required before a Will can be started. These two are separate, and
+          each can be switched off.
+        </p>
+
+        <div className="border border-border bg-background p-6 sm:p-8">
+          <VerificationRequirementsForm current={verification.requirements} />
         </div>
       </section>
     </div>

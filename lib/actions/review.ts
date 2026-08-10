@@ -280,6 +280,27 @@ export async function setPlanAvailabilityAction(
   });
 }
 
+/**
+ * Turns the email and phone confirmations on or off.
+ *
+ * Both booleans are posted every time rather than the one that changed, so
+ * the stored value is always a complete statement of the policy — a partial
+ * update would leave the other setting's meaning depending on what happened
+ * to be there before.
+ */
+export async function setVerificationRequirementsAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  return apiMutation("/admin/settings/verification-requirements", {
+    method: "PUT",
+    body: {
+      email: formData.get("email") === "on",
+      phone: formData.get("phone") === "on",
+    },
+  });
+}
+
 export async function setVerificationProviderAction(
   _previous: FormState,
   formData: FormData,

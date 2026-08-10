@@ -3,6 +3,7 @@
 import { useFormAction } from "@/hooks/use-api-form";
 import { requestPasswordResetAction } from "@/lib/actions/auth";
 import { Field, FormBanner, SubmitButton } from "./FormControls";
+import { StatefulForm } from "@/components/forms/StatefulForm";
 
 export function ForgotPasswordForm() {
   // Nothing on this page reflects server state, so skip the RSC refresh.
@@ -11,7 +12,7 @@ export function ForgotPasswordForm() {
   });
 
   return (
-    <form action={action} className="space-y-6" noValidate>
+    <StatefulForm state={state} action={action} className="space-y-6" noValidate>
       <FormBanner state={state} />
       <Field
         label="Email"
@@ -23,6 +24,6 @@ export function ForgotPasswordForm() {
         errors={state.fieldErrors?.email}
       />
       <SubmitButton>Send reset link</SubmitButton>
-    </form>
+    </StatefulForm>
   );
 }

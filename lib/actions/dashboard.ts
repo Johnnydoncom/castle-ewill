@@ -45,6 +45,9 @@ export type DashboardData = {
     is_email_verified: boolean;
     is_phone_verified: boolean;
     is_kyc_verified: boolean;
+    /** Admin-controlled: whether each confirmation is being asked for. */
+    requires_email_verification: boolean;
+    requires_phone_verification: boolean;
     two_factor_enabled: boolean;
     /** 0–100, computed server-side from the same record described above. */
     profile_completion: number;
@@ -62,6 +65,8 @@ const empty: DashboardData = {
   account: {
     is_email_verified: false,
     is_phone_verified: false,
+    requires_email_verification: true,
+    requires_phone_verification: false,
     is_kyc_verified: false,
     two_factor_enabled: false,
     profile_completion: 0,

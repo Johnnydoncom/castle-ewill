@@ -6,10 +6,19 @@ import { Eye, EyeOff, CheckCircle2, AlertCircle } from "lucide-react";
 
 import type { FormState } from "@/lib/actions/state";
 import { scorePassword } from "@/lib/auth/password-policy";
+import { useFieldState } from "@/components/forms/StatefulForm";
+import { useFieldValue } from "@/hooks/use-field-value";
 
 /**
  * Editorial form primitives: a hairline-underlined field in the serif voice
  * used across the marketing site, with inline validation messaging.
+ *
+ * Every field here is **controlled** and seeds itself from the enclosing
+ * `StatefulForm`'s last result, so a validation error leaves the user's
+ * typing exactly where it was. React resets an uncontrolled `<form action>`
+ * once the action settles — it cannot tell a validation error from a success
+ * — and no amount of `defaultValue` on an already-mounted input undoes that.
+ * See `useFieldValue`.
  */
 
 export function Field({
@@ -34,7 +43,11 @@ export function Field({
   errors?: string[];
 }) {
   const id = useId();
-  const invalid = Boolean(errors?.length);
+  // Props win; otherwise the field looks itself up in the form's last result.
+  const fromForm = useFieldState(name);
+  const [value, setValue] = useFieldValue(defaultValue ?? fromForm.value);
+  const shownErrors = errors ?? fromForm.errors;
+  const invalid = Boolean(shownErrors?.length);
   const describedBy = invalid ? `${id}-error` : undefined;
 
   return (
@@ -57,7 +70,8 @@ export function Field({
         required={required}
         placeholder={placeholder}
         autoComplete={autoComplete}
-        defaultValue={defaultValue}
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
         aria-invalid={invalid}
         aria-describedby={describedBy}
         className={`w-full border-0 border-b bg-transparent px-0 py-2.5 font-serif text-lg text-navy transition-colors placeholder:font-sans placeholder:text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-0 ${
@@ -68,7 +82,7 @@ export function Field({
       />
       {invalid && (
         <p id={describedBy} className="text-xs text-destructive">
-          {errors?.[0]}
+          {shownErrors?.[0]}
         </p>
       )}
     </div>
@@ -91,9 +105,16 @@ export function PasswordField({
   hint?: string;
 }) {
   const id = useId();
-  const [value, setValue] = useState("");
+  const fromForm = useFieldState(name);
+  /*
+   * Seeded like every other field. A password that is wiped because the
+   * *email* failed validation is the most irritating version of this bug —
+   * the user retypes a long password to fix a typo they did not make.
+   */
+  const [value, setValue] = useFieldValue(fromForm.value);
   const [visible, setVisible] = useState(false);
-  const invalid = Boolean(errors?.length);
+  const shownErrors = errors ?? fromForm.errors;
+  const invalid = Boolean(shownErrors?.length);
   const score = scorePassword(value);
   const labels = ["Too short", "Weak", "Fair", "Strong", "Excellent"];
 
@@ -157,7 +178,7 @@ export function PasswordField({
 
       {invalid && (
         <p id={`${id}-error`} className="text-xs text-destructive">
-          {errors?.[0]}
+          {shownErrors?.[0]}
         </p>
       )}
     </div>

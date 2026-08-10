@@ -2,7 +2,18 @@
 
 import { useId } from "react";
 
-/** Wizard field primitives — same editorial voice as the auth forms. */
+import { useFieldValue } from "@/hooks/use-field-value";
+
+/**
+ * Wizard field primitives — same editorial voice as the auth forms, and
+ * controlled for the same reason.
+ *
+ * `StepForms` already echoes the submitted values back through
+ * `state.values`, but feeding them to an uncontrolled input's `defaultValue`
+ * changes nothing once it is mounted: React resets the form when the action
+ * settles and the field goes blank regardless. Holding the value in React is
+ * what makes the echo take effect. See `useFieldValue`.
+ */
 
 type Common = {
   label: string;
@@ -52,6 +63,7 @@ export function TextField({
 }: Common & { type?: string; placeholder?: string }) {
   const id = useId();
   const invalid = Boolean(props.errors?.length);
+  const [value, setValue] = useFieldValue(props.defaultValue);
 
   return (
     <div className={`space-y-2 ${props.className ?? ""}`}>
@@ -62,7 +74,8 @@ export function TextField({
         type={type}
         required={props.required}
         placeholder={placeholder}
-        defaultValue={props.defaultValue}
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
         aria-invalid={invalid}
         className={inputClass(invalid)}
       />
@@ -80,6 +93,7 @@ export function TextArea({
 }: Common & { rows?: number; placeholder?: string }) {
   const id = useId();
   const invalid = Boolean(props.errors?.length);
+  const [value, setValue] = useFieldValue(props.defaultValue);
 
   return (
     <div className={`space-y-2 ${props.className ?? ""}`}>
@@ -90,7 +104,8 @@ export function TextArea({
         rows={rows}
         required={props.required}
         placeholder={placeholder}
-        defaultValue={props.defaultValue}
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
         aria-invalid={invalid}
         className={`w-full resize-y border border-border bg-transparent px-3 py-2.5 font-serif text-base text-navy transition-colors placeholder:font-sans placeholder:text-sm placeholder:text-muted-foreground/50 focus:border-gold focus:outline-none focus:ring-0 ${
           invalid ? "border-destructive" : ""
@@ -113,6 +128,7 @@ export function SelectField({
 }) {
   const id = useId();
   const invalid = Boolean(props.errors?.length);
+  const [value, setValue] = useFieldValue(props.defaultValue ?? "");
 
   return (
     <div className={`space-y-2 ${props.className ?? ""}`}>
@@ -121,7 +137,8 @@ export function SelectField({
         id={id}
         name={props.name}
         required={props.required}
-        defaultValue={props.defaultValue ?? ""}
+        value={value}
+        onChange={(event) => setValue(event.target.value)}
         aria-invalid={invalid}
         className={inputClass(invalid)}
       >

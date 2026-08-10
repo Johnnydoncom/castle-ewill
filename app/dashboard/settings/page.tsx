@@ -103,10 +103,17 @@ export default async function SettingsPage() {
         </dl>
       </section>
 
-      <PhoneVerification
-        phone={profile?.phone ?? null}
-        verified={Boolean(profile?.is_phone_verified)}
-      />
+      {/*
+        * Phone confirmation is optional, and an administrator can switch it
+        * off entirely. Offering it when it is switched off would be asking
+        * for something nothing will ever check.
+        */}
+      {profile?.requires_phone_verification && (
+        <PhoneVerification
+          phone={profile?.phone ?? null}
+          verified={Boolean(profile?.is_phone_verified)}
+        />
+      )}
 
       <TwoFactorSettings enabled={Boolean(profile?.two_factor_enabled)} />
 
