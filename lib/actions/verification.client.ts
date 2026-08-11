@@ -64,6 +64,21 @@ export async function submitVerificationAction(
     body.append("completed[]", String(completed));
   }
 
+  /*
+   * The liveness sequence, forwarded as-is.
+   *
+   * Nothing is decided here about whether there are enough of them: the
+   * active provider decides that server-side, and a deployment on manual
+   * review needs none at all. A browser that withheld a short sequence would
+   * turn a precise "the camera did not capture enough of the check" into a
+   * generic refusal.
+   */
+  for (const frame of formData.getAll("liveness[]")) {
+    if (frame instanceof File && frame.size > 0) {
+      body.append("liveness[]", frame);
+    }
+  }
+
   const result = await api<{ message: string }>("/verification/submit", {
     method: "POST",
     formData: body,

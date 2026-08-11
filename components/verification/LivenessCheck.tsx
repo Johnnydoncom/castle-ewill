@@ -122,6 +122,22 @@ export function LivenessCheck({
 
   // Blink needs open → closed → open across frames, so it is tracked here
   // rather than inferred from a single frame.
+  /*
+   * The liveness sequence.
+   *
+   * Smile ID's Document Verification endpoint requires six to eight stills
+   * taken *across* the challenge, not one frame at the end — a single image
+   * cannot evidence movement, which is the whole point of the check. Frames
+   * are collected as the challenges are satisfied and while they are being
+   * attempted, so the sequence shows the face actually moving.
+   *
+   * Held in a ref rather than state: this is written from inside a
+   * requestAnimationFrame loop, and re-rendering the component on every
+   * captured frame would fight the loop for the main thread.
+   */
+  const sequenceRef = useRef<Blob[]>([]);
+  const lastFrameAtRef = useRef(0);
+
   const blinkStateRef = useRef<{ sawClosed: boolean; observed: boolean }>({
     sawClosed: false,
     observed: false,
@@ -144,21 +160,33 @@ export function LivenessCheck({
 
   useEffect(() => cleanup, [cleanup]);
 
-  const capture = useCallback((): Promise<Blob | null> => {
-    const video = videoRef.current;
-    const canvas = canvasRef.current;
-    if (!video || !canvas) return Promise.resolve(null);
+  /**
+   * Grabs one frame.
+   *
+   * `scale` exists because the selfie and the sequence frames are not the same
+   * thing. Smile ID's account configuration asks for a 480x640 selfie at
+   * quality 95 and 240x320 liveness frames at quality 80 — the sequence is
+   * evidence of movement, not of appearance, and sending seven full-size
+   * stills would multiply the upload for no gain.
+   */
+  const capture = useCallback(
+    (scale = 1, quality = 0.9): Promise<Blob | null> => {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      if (!video || !canvas) return Promise.resolve(null);
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
-    const context = canvas.getContext("2d");
-    if (!context) return Promise.resolve(null);
+      canvas.width = Math.max(Math.round(video.videoWidth * scale), 1);
+      canvas.height = Math.max(Math.round(video.videoHeight * scale), 1);
+      const context = canvas.getContext("2d");
+      if (!context) return Promise.resolve(null);
 
-    context.drawImage(video, 0, 0, canvas.width, canvas.height);
-    return new Promise((resolve) =>
-      canvas.toBlob((blob) => resolve(blob), "image/jpeg", 0.9),
-    );
-  }, []);
+      context.drawImage(video, 0, 0, canvas.width, canvas.height);
+      return new Promise((resolve) =>
+        canvas.toBlob((blob) => resolve(blob), "image/jpeg", quality),
+      );
+    },
+    [],
+  );
 
   const finish = useCallback(
     async (done: ChallengeName[], id: string) => {
@@ -176,6 +204,22 @@ export function LivenessCheck({
       formData.set("attemptId", id);
       formData.set("capture", new File([blob], "capture.jpg", { type: "image/jpeg" }));
       for (const challenge of done) formData.append("completed", challenge);
+
+      /*
+       * The sequence. Capped at eight — more is rejected outright by the
+       * endpoint — and sent oldest first so it reads as the movement it was.
+       *
+       * Sent even when short: the server decides what a given provider needs,
+       * and a deployment on manual review needs none of this. Silently
+       * withholding a partial sequence would turn a clear "the camera did not
+       * capture enough" into a confusing generic refusal.
+       */
+      for (const [index, frame] of sequenceRef.current.slice(0, 8).entries()) {
+        formData.append(
+          "liveness[]",
+          new File([frame], `liveness-${index}.jpg`, { type: "image/jpeg" }),
+        );
+      }
 
       const result = await submitVerificationAction(idleState, formData);
 
@@ -195,6 +239,8 @@ export function LivenessCheck({
     setPhase("loading");
     setMessage(null);
     setCompleted([]);
+    sequenceRef.current = [];
+    lastFrameAtRef.current = 0;
     blinkStateRef.current = { sawClosed: false, observed: false };
 
     const started = await startVerificationAction();
@@ -277,6 +323,32 @@ export function LivenessCheck({
         if (points && points.length > 0) {
           const current = issued[index];
 
+          /*
+           * Sample the sequence on a timer while the face is visible.
+           *
+           * Paced rather than every frame: at 60fps an unpaced loop would
+           * collect the eight it needs inside 150ms, which is one moment of
+           * movement rather than a sequence of it. Every ~350ms spreads the
+           * eight across the challenge, which is what makes them evidence.
+           *
+           * `void` because the loop must not await — blocking a rAF callback
+           * on a canvas encode drops frames from the detector that is
+           * actually judging the challenge.
+           */
+          const now = performance.now();
+
+          if (
+            sequenceRef.current.length < 8 &&
+            now - lastFrameAtRef.current > 350
+          ) {
+            lastFrameAtRef.current = now;
+            void capture(0.5, 0.8).then((frame) => {
+              if (frame && sequenceRef.current.length < 8) {
+                sequenceRef.current.push(frame);
+              }
+            });
+          }
+
           if (current === "blink") {
             const ear = eyeAspectRatio(points);
             if (ear < THRESHOLD.eyeClosed) blinkStateRef.current.sawClosed = true;
@@ -311,7 +383,7 @@ export function LivenessCheck({
           : "We could not start the camera check. Please try again, or use a different browser.",
       );
     }
-  }, [cleanup, finish]);
+  }, [capture, cleanup, finish]);
 
   const currentChallenge = challenges[completed.length];
 
