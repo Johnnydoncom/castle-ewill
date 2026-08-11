@@ -59,7 +59,8 @@ function TrustBar() {
     // subscription (or a year of Premium), and the charge is per Will rather
     // than a flat one-off, since lodging is compulsory on top of Basic.
     "Free updates while subscribed",
-    "Charged once, per Will",
+    "One-off payment per Will",
+    "Unique tamper-proof document ID",
   ];
   return (
     <div className="overflow-hidden border-b border-border bg-surface py-3.5">
