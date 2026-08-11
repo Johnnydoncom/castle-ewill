@@ -31,6 +31,7 @@ export function Field({
   required,
   defaultValue,
   errors,
+  onChange,
 }: {
   label: string;
   name: string;
@@ -41,6 +42,16 @@ export function Field({
   required?: boolean;
   defaultValue?: string;
   errors?: string[];
+  /**
+   * Optional observer, for the callers that need to react as somebody types —
+   * the account form reveals a password box only once the email is actually
+   * being changed.
+   *
+   * The field stays in charge of its own value; this is a notification, not a
+   * handover. A caller that took ownership of the value would lose the
+   * echo-back behaviour that keeps typed input after a failed submission.
+   */
+  onChange?: (event: React.ChangeEvent<HTMLInputElement>) => void;
 }) {
   const id = useId();
   // Props win; otherwise the field looks itself up in the form's last result.
@@ -71,7 +82,10 @@ export function Field({
         placeholder={placeholder}
         autoComplete={autoComplete}
         value={value}
-        onChange={(event) => setValue(event.target.value)}
+        onChange={(event) => {
+          setValue(event.target.value);
+          onChange?.(event);
+        }}
         aria-invalid={invalid}
         aria-describedby={describedBy}
         className={`w-full border-0 border-b bg-transparent px-0 py-2.5 font-serif text-lg text-navy transition-colors placeholder:font-sans placeholder:text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-0 ${

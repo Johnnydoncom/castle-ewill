@@ -17,6 +17,10 @@ const SECTIONS: Section[] = [
     title: "Making a Will",
     faqs: [
       {
+        q: "Do I need a lawyer to make a Will here?",
+        a: "No. This is a platform, not a law firm: you answer the questions, the system assembles a Will that complies with the law, and you can print and sign it the same day without a solicitor being involved. A review by a practising Nigerian solicitor is available as a paid extra if you want a second pair of eyes — it is included with Premium — but it is never something you have to pass through, and skipping it is a single click.",
+      },
+      {
         q: "Is a Will made on this platform legally binding?",
         a: "Yes, provided it is properly executed. The document we generate contains the clauses a valid Will requires — a declaration, revocation of earlier Wills, appointment of executors, disposition of the estate and an attestation clause. It becomes legally effective when you sign it in the simultaneous presence of two witnesses, who then sign in your presence. Until it is signed, it is a draft with no legal effect.",
       },
@@ -26,11 +30,11 @@ const SECTIONS: Section[] = [
       },
       {
         q: "How long does it take?",
-        a: "Most people finish the nine sections in fifteen to twenty-five minutes. You can save your progress at any point and return later; nothing is lost between sessions.",
+        a: "There are nine sections, designed to be finished in one sitting. Nothing is timed — you can save your progress at any point and return later, and nothing is lost between sessions.",
       },
       {
         q: "What if I own property outside Nigeria?",
-        a: "Immovable property is generally governed by the law of the country where it sits. If you hold land or a house abroad, tell us during drafting — in many cases a separate Will in that jurisdiction is the safer arrangement, and we will say so rather than let one document create a conflict.",
+        a: "Immovable property is generally governed by the law of the country where it sits. If you hold land or a house abroad, a separate Will in that jurisdiction is often the safer arrangement — one document covering both can create a conflict. This is exactly the case worth buying the solicitor review for, because nobody reads your draft unless you ask for one.",
       },
     ],
   },

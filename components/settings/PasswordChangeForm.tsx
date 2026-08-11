@@ -1,55 +1,54 @@
 "use client";
 
-import { changePasswordAction } from "@/lib/actions/account.client";
 import { useFormAction } from "@/hooks/use-api-form";
-import { StatefulForm } from "@/components/forms/StatefulForm";
+import { changePasswordAction } from "@/lib/actions/account.client";
 import {
   FormBanner,
   PasswordField,
   SubmitButton,
 } from "@/components/auth/FormControls";
+import { StatefulForm } from "@/components/forms/StatefulForm";
 
 /**
- * Changing a password from inside the account.
+ * Changing a password from inside the account, as distinct from resetting a
+ * forgotten one from an emailed token.
  *
- * Distinct from the reset flow, which exists for someone who cannot sign in
- * at all. This one is for the ordinary case — a password that has been shared,
- * reused elsewhere, or simply grown old — and it does not involve email.
+ * Separate from the details form deliberately: they are two different acts
+ * with two different costs. Correcting a misspelt surname should not demand a
+ * password, and changing a password should not quietly re-save a contact
+ * detail alongside it.
  *
- * The current password is required without exception. A session cookie proves
- * a browser, not a person, and this is the single action that can lock the
- * real owner out of their own account.
- *
- * `refresh: false`: nothing on the page reads from a password, so re-fetching
- * the server components would only cost a round trip.
+ * The current password is required without exception — a session cookie is not
+ * proof of the person, and this is the one action that can lock the real owner
+ * out of their own account.
  */
 export function PasswordChangeForm() {
-  const [state, action] = useFormAction(changePasswordAction, { refresh: false });
+  const [state, action] = useFormAction(changePasswordAction);
 
   return (
-    <StatefulForm state={state} action={action} className="space-y-8" noValidate>
+    <StatefulForm state={state} action={action} className="space-y-6" noValidate>
       <FormBanner state={state} />
 
       <PasswordField
         label="Current password"
-        name="current_password"
+        name="currentPassword"
         autoComplete="current-password"
+        errors={state.fieldErrors?.currentPassword}
       />
-
-      <div className="grid gap-8 sm:grid-cols-2">
-        <PasswordField
-          label="New password"
-          name="password"
-          autoComplete="new-password"
-          withMeter
-        />
-
-        <PasswordField
-          label="Confirm new password"
-          name="password_confirmation"
-          autoComplete="new-password"
-        />
-      </div>
+      <PasswordField
+        label="New password"
+        name="password"
+        autoComplete="new-password"
+        hint="10+ characters"
+        withMeter
+        errors={state.fieldErrors?.password}
+      />
+      <PasswordField
+        label="Confirm new password"
+        name="confirmPassword"
+        autoComplete="new-password"
+        errors={state.fieldErrors?.confirmPassword}
+      />
 
       <SubmitButton>Change password</SubmitButton>
     </StatefulForm>

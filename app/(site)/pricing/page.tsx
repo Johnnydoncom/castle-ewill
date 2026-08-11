@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "Charged once per Will. Basic from ₦40,000 plus the compulsory Probate Registry lodging fee, or Premium at ₦120,000 with lawyer review and lodging included.",
+    "Charged once per Will. Basic from ₦40,000 plus the compulsory Probate Registry lodging fee, or Premium at ₦120,000 with a solicitor's review and lodging included. Lawyers drafting for clients pay ₦10,000 per Will.",
 };
 
 export default async function PricingPage() {
@@ -41,8 +41,10 @@ export default async function PricingPage() {
             <span className="italic text-primary">per Will.</span>
           </h1>
           <p className="mx-auto mt-6 max-w-xl leading-relaxed text-muted-foreground">
-            No subscription is required to make a Will, and no renewal trap.
-            Every figure you will pay is shown below, including the Probate
+            You write your own Will here and print it the same day — a
+            solicitor&rsquo;s review is an optional extra, not a gate. No
+            subscription is required to make a Will, and no renewal trap. Every
+            figure you will pay is shown below, including the Probate
             Registry&rsquo;s own compulsory lodging fee.
           </p>
         </div>
@@ -99,6 +101,53 @@ export default async function PricingPage() {
               review={prices.review}
               subscription={prices.subscription}
             />
+
+            {/*
+              The professional rate.
+
+              Published to everyone, because a lawyer has to be able to price
+              the platform before opening an account. Buying at it needs an
+              enrolment number this office has checked against the roll, which
+              the checkout enforces — so the card sends practitioners to
+              registration rather than to a checkout that would refuse them.
+            */}
+            {prices.lawyerWill.length > 0 && (
+              <div className="mt-16 border-t border-border pt-14">
+                <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)] lg:items-center">
+                  <div className="min-w-0">
+                    <span className="text-[10px] font-semibold uppercase tracking-[0.35em] text-gold">
+                      For legal practitioners
+                    </span>
+                    <h2 className="mt-5 max-w-lg font-serif text-2xl leading-[1.1] text-navy sm:text-4xl">
+                      Drafting for your clients?
+                    </h2>
+                    <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground">
+                      Practitioners draft on the platform at a per-Will rate,
+                      with no subscription and no minimum volume. Register as a
+                      lawyer with your Supreme Court enrolment number and we
+                      will confirm it against the roll before your first bill.
+                      Lodging remains payable to the registry and is charged
+                      separately, exactly as it is for anyone else.
+                    </p>
+                  </div>
+
+                  {prices.lawyerWill.map((plan) => (
+                    <PlanCard
+                      key={plan.id}
+                      plan={plan}
+                      quote={prices.quotes[plan.slug]}
+                    >
+                      <Link
+                        href="/register?type=lawyer"
+                        className="mt-8 flex h-13 items-center justify-center bg-navy px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy-foreground transition-colors hover:bg-navy/90"
+                      >
+                        Register as a lawyer
+                      </Link>
+                    </PlanCard>
+                  ))}
+                </div>
+              </div>
+            )}
           </>
         )}
 

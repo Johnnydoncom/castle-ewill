@@ -1,51 +1,46 @@
-"use client";
-
 import { apiMutation } from "@/lib/api/browser";
 import { errorState, type FormState } from "./state";
 
 /**
- * The client's own account details.
+ * Editing one's own account.
  *
- * Browser-direct, like every other mutation: the session cookie and the CSRF
- * token both belong to Laravel's origin, and the password typed into the
- * change-password form has no reason to transit this Next server.
+ * Nothing is decided here. Which fields may change, what an email change costs
+ * and whether a password is correct are all settled server-side — these
+ * functions marshal a form into a request and the response back into the
+ * `FormState` the forms already render.
  *
- * Validation here is for feedback only. Every rule below is enforced again in
- * `UpdateAccountRequest` / `ChangePasswordRequest`, which are the guarantee —
- * including the one that matters most, that redirecting the account's email
- * costs the current password.
+ * Both endpoints act on the authenticated account and take no id, so there is
+ * nothing here for a caller to forge.
  */
-
-function text(formData: FormData, name: string): string {
-  return String(formData.get(name) ?? "").trim();
-}
 
 export async function updateAccountAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const name = text(formData, "name");
-  const email = text(formData, "email").toLowerCase();
-
-  if (name.length < 2) {
-    return errorState("Check the details below.", {
-      name: ["Enter your full name."],
-    });
-  }
-
-  const currentPassword = text(formData, "current_password");
+  const phone = String(formData.get("phone") ?? "").trim();
 
   return apiMutation("/me", {
     method: "PUT",
     body: {
-      name,
-      email,
-      phone: text(formData, "phone"),
-      // Omitted entirely rather than sent empty, so the backend's
-      // "required when the address is changing" rule reads a missing field
-      // rather than a blank one.
-      ...(currentPassword ? { current_password: currentPassword } : {}),
+      name: String(formData.get("name") ?? "").trim(),
+      email: String(formData.get("email") ?? "").trim(),
+      // An empty box means "remove it", which is a different instruction from
+      // "leave it alone" — sent as null rather than as "".
+      phone: phone === "" ? null : phone,
+      /*
+       * Only meaningful when the address is changing, and the server decides
+       * whether it was required. Sent whenever it was typed rather than
+       * guessing here: this tier does not know the current address well enough
+       * to judge, and guessing wrong means either a spurious prompt or a
+       * silently rejected save.
+       */
+      current_password: String(formData.get("currentPassword") ?? "") || null,
     },
+    onError: (result) => ({
+      status: "error",
+      message: result.message,
+      fieldErrors: mapFieldErrors(result.fieldErrors),
+    }),
   });
 }
 
@@ -53,21 +48,47 @@ export async function changePasswordAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const password = text(formData, "password");
-  const confirmation = text(formData, "password_confirmation");
+  const next = String(formData.get("password") ?? "");
+  const confirm = String(formData.get("confirmPassword") ?? "");
 
-  if (password !== confirmation) {
-    return errorState("Check the details below.", {
-      password_confirmation: ["Passwords do not match."],
+  // Checked here for a faster inline message; the server checks it again, and
+  // that check is the guarantee.
+  if (next !== confirm) {
+    return errorState("Please correct the highlighted fields.", {
+      confirmPassword: ["Passwords do not match"],
     });
   }
 
   return apiMutation("/me/password", {
     method: "PUT",
     body: {
-      current_password: text(formData, "current_password"),
-      password,
-      password_confirmation: confirmation,
+      current_password: String(formData.get("currentPassword") ?? ""),
+      password: next,
+      password_confirmation: confirm,
     },
+    onError: (result) => ({
+      status: "error",
+      message: result.message,
+      fieldErrors: mapFieldErrors(result.fieldErrors),
+    }),
   });
+}
+
+/** Snake_case from the API, camelCase on the form. */
+function mapFieldErrors(
+  errors: Record<string, string[]> | undefined,
+): Record<string, string[]> | undefined {
+  if (!errors) return undefined;
+
+  const aliases: Record<string, string> = {
+    current_password: "currentPassword",
+    password_confirmation: "confirmPassword",
+  };
+
+  return Object.fromEntries(
+    Object.entries(errors).map(([key, messages]) => [
+      aliases[key] ?? key,
+      messages,
+    ]),
+  );
 }

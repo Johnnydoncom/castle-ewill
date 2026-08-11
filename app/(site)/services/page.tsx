@@ -8,7 +8,7 @@ import { WILL_STEPS } from "@/lib/will/steps";
 export const metadata: Metadata = {
   title: "Services",
   description:
-    "Will drafting, trust administration, a guided questionnaire, an encrypted digital vault and probate support from Castle eWill & Trust.",
+    "A guided Will builder, an encrypted document vault, identity verification and probate lodging. You write the Will yourself; a solicitor's review is an optional extra.",
 };
 
 /** Drawn from the "Features" section of the client brief. */
@@ -87,10 +87,12 @@ export default function ServicesPage() {
             Everything an estate needs,{" "}
             <span className="italic text-primary">in one place.</span>
           </h1>
-          <p className="mt-6 max-w-xl leading-relaxed text-muted-foreground">
-            {COMPANY.legalName} exists to do one thing properly: {" "}
-            {COMPANY.business.toLowerCase()}, prepared to the standard we would
-            want for our own families.
+          <p className="mt-6 max-w-2xl leading-relaxed text-muted-foreground">
+            {COMPANY.legalName} is a platform, not a law firm. You answer the
+            questions and the system assembles a Will that complies with the
+            law; you can print and sign it the same day without a solicitor ever
+            being involved. If you would rather one read it first, that is a
+            service you can buy — never a gate you have to pass.
           </p>
         </div>
       </section>

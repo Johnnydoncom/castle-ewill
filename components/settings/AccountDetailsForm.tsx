@@ -1,120 +1,97 @@
 "use client";
 
-import { MailCheck, MailWarning } from "lucide-react";
+import { useState } from "react";
 
+import { useFormAction } from "@/hooks/use-api-form";
 import { updateAccountAction } from "@/lib/actions/account.client";
 import type { Profile } from "@/lib/actions/guards";
-import { useFormAction } from "@/hooks/use-api-form";
+import { Field, FormBanner, PasswordField, SubmitButton } from "@/components/auth/FormControls";
 import { StatefulForm } from "@/components/forms/StatefulForm";
-import {
-  Field,
-  FormBanner,
-  PasswordField,
-  SubmitButton,
-} from "@/components/auth/FormControls";
 
 /**
- * Name, email and phone, editable.
+ * The account details form.
  *
- * Three values, three different consequences to changing them, and the copy
- * says so rather than leaving the user to discover it after saving:
+ * Two forms rather than one, because they are two different acts with two
+ * different costs: correcting a misspelt surname should not require a
+ * password, and changing a password should not quietly re-save a contact
+ * detail alongside it.
  *
- *  - **Name** is cosmetic here. The legal name on a Will is held on the Will
- *    itself, at the Personal step, and is not touched by this form.
- *  - **Email** is where password-reset and confirmation mail is delivered, so
- *    moving it costs the current password and un-confirms the address.
- *  - **Phone** un-confirms the number, which matters only where the platform
- *    is currently asking for a confirmed one.
+ * Both are `StatefulForm`s, so a validation error comes back with the typed
+ * values still in the boxes — React resets an uncontrolled form on every
+ * settled action, and re-typing an address because a phone number was two
+ * digits short is exactly the behaviour that made this worth fixing.
  */
 export function AccountDetailsForm({ profile }: { profile: Profile }) {
   const [state, action] = useFormAction(updateAccountAction);
 
-  /*
-   * Three sources, most-recent first.
-   *
-   * `values` is the submission just rejected — restoring it is what stops a
-   * validation error wiping the form. `data` is the record the API returned
-   * on a successful save, used in preference to `profile` because the prop is
-   * still the pre-save render for the moment it takes `router.refresh()` to
-   * land, and flashing the old surname back at someone who has just corrected
-   * it reads as a failed save.
-   */
-  const saved = state.status === "success" ? state.data : undefined;
-  const shown = (name: string, fallback: string): string =>
-    state.values?.[name] ?? saved?.[name] ?? fallback;
+  const { name, email, phone } = profile;
 
   /*
-   * "Confirmed" describes the address on the *account*, so it must not sit
-   * beside an address that has been typed but not saved — after a rejected
-   * submission the box holds the new address while the account still holds
-   * the old one, and labelling that "Confirmed" is a claim about a mailbox
-   * nobody has proved anything about.
+   * The current-password box appears only once the address is actually being
+   * changed. Held in state because the field is conditional: an uncontrolled
+   * read of an input that is not rendered has nothing to read.
    */
-  const emailEdited = shown("email", profile.email) !== profile.email;
-  const verified = profile.is_email_verified;
+  const [nextEmail, setNextEmail] = useState(email);
+  const changingEmail = nextEmail.trim().toLowerCase() !== email.toLowerCase();
 
   return (
-    <StatefulForm state={state} action={action} className="space-y-8" noValidate>
+    <StatefulForm state={state} action={action} className="space-y-6" noValidate>
       <FormBanner state={state} />
 
-      <div className="grid gap-8 sm:grid-cols-2">
-        <Field
-          label="Full name"
-          name="name"
-          autoComplete="name"
-          required
-          defaultValue={shown("name", profile.name ?? "")}
-        />
-
-        <Field
-          label="Phone number"
-          name="phone"
-          type="tel"
-          autoComplete="tel"
-          placeholder="+234 803 123 4567"
-          hint={profile.is_phone_verified ? "Confirmed" : "Optional"}
-          defaultValue={shown("phone", profile.phone ?? "")}
-        />
-      </div>
-
       <Field
-        label="Email address"
-        name="email"
-        type="email"
-        autoComplete="email"
+        label="Full name"
+        name="name"
+        autoComplete="name"
+        defaultValue={name ?? ""}
         required
-        hint={
-          emailEdited
-            ? "Needs confirming once saved"
-            : verified
-              ? "Confirmed"
-              : "Not yet confirmed"
-        }
-        defaultValue={shown("email", profile.email)}
+        errors={state.fieldErrors?.name}
       />
 
-      <div className="border-l-2 border-gold/50 bg-muted/40 px-4 py-3">
-        <p className="flex items-start gap-2 text-xs leading-relaxed text-muted-foreground">
-          {verified ? (
-            <MailCheck className="mt-0.5 h-3.5 w-3.5 shrink-0 text-success" />
-          ) : (
-            <MailWarning className="mt-0.5 h-3.5 w-3.5 shrink-0 text-gold" />
-          )}
-          <span>
-            Changing your email address signs you out of nothing, but it does
-            un-confirm the address: we will send a fresh confirmation link to
-            the new one, and password-reset mail goes there from that moment.
-            That is why it needs your password.
-          </span>
-        </p>
+      <div>
+        <Field
+          label="Email"
+          name="email"
+          type="email"
+          autoComplete="email"
+          defaultValue={email}
+          required
+          onChange={(event) => setNextEmail(event.target.value)}
+          errors={state.fieldErrors?.email}
+        />
+        {changingEmail && (
+          <p className="mt-2 text-xs leading-relaxed text-gold">
+            Changing your address signs you out of nothing, but it does un-confirm
+            your email — we will send a fresh confirmation link to the new
+            address.
+          </p>
+        )}
       </div>
 
-      <PasswordField
-        label="Current password"
-        name="current_password"
-        autoComplete="current-password"
-        hint="Only needed to change your email"
-        required={false}
+      {/*
+        Required by the server only when the address is changing. Asking for a
+        password to fix a typo in a surname is friction with no security value;
+        asking before redirecting where account-recovery mail is delivered is
+        the whole defence against a borrowed session becoming a stolen account.
+      */}
+      {changingEmail && (
+        <PasswordField
+          label="Current password"
+          name="currentPassword"
+          autoComplete="current-password"
+          hint="Needed to change the address your account recovery goes to"
+          errors={state.fieldErrors?.currentPassword}
+        />
+      )}
+
+      <Field
+        label="Phone"
+        name="phone"
+        type="tel"
+        autoComplete="tel"
+        defaultValue={phone ?? ""}
+        placeholder="+234 801 234 5678"
+        hint="Optional. Changing it un-confirms the number."
+        errors={state.fieldErrors?.phone}
       />
 
       <SubmitButton>Save changes</SubmitButton>
