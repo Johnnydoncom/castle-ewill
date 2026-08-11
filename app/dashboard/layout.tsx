@@ -21,6 +21,14 @@ export default async function DashboardLayout({
 }) {
   const user = await requireCustomer();
 
+  /*
+   * The sidebar footer once read "Book a 20-minute review with a Nigerian
+   * estate lawyer / Reserve time". Two things were wrong with it: there is no
+   * booking system behind the link — it goes to the contact form — and the
+   * solicitor review actually sold is a lawyer *reading the Will and writing
+   * back*, not a scheduled call of a stated length. Promising a slot nothing
+   * can allocate is the same fault as the invented client on the homepage.
+   */
   return (
     <DashboardShell
       nav={nav}
@@ -30,9 +38,9 @@ export default async function DashboardLayout({
       headerKicker="Castle eWill & Trust"
       headerTitle="Private Dashboard"
       footer={{
-        title: "Counsel available",
-        body: "Book a 20-minute review with a Nigerian estate lawyer.",
-        cta: "Reserve time",
+        title: "Want a second opinion?",
+        body: "A Nigerian solicitor can read your Will clause by clause and write back. It is an optional paid extra.",
+        cta: "Ask about a review",
         href: "/contact",
       }}
     >
