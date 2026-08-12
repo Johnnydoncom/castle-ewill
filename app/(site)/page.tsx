@@ -158,24 +158,92 @@ function Proof() {
 
 function Steps() {
   /*
-   * The seven stages a client actually moves through, matching `WillJourney`
-   * on the backend exactly. Worth keeping in step with it: a page that
-   * promises a stage the server does not recognise is a support ticket.
+   * The seven stages a client moves through, matching `WillJourney` on the
+   * backend exactly. Worth keeping in step with it: a page promising a stage
+   * the server does not recognise is a support ticket.
    *
-   * Legal review is marked optional because it is — you can skip it with one
-   * click and print the same day. That is the whole positioning of this
-   * platform and the homepage should not imply a solicitor stands between you
-   * and your own Will.
+   * Grouped into three acts rather than laid out flat, for three reasons.
+   *
+   * Seven is an awkward number for a grid — the previous four-column layout
+   * left a dead cell in the corner, which is what made the section look
+   * broken. Seven is also more than anyone takes in at once, whereas three
+   * chunks are read at a glance with the detail there for whoever wants it.
+   * And a uniform grid of identical tiles says nothing about *order*, when
+   * order is the entire content: these are stages, not features.
+   *
+   * The `by` marker is the other half of the fix. A visitor's real question is
+   * "how much of this is on me?", and the old tiles could not answer it — they
+   * gave equal weight to something you do at your kitchen table and something
+   * we file at the registry. Legal review carries the loudest marker, because
+   * being able to skip it is the whole positioning of this platform.
    */
-  const steps = [
-    { n: "01", title: "Prepare", body: "Answer nine guided sections, at your own pace. Nothing to pay to start, and nothing to book." },
-    { n: "02", title: "Legal review", body: "Optional. Have a Nigerian solicitor read it clause by clause for a fixed fee — or skip it in one click.", optional: true },
-    { n: "03", title: "Print", body: "Pay, confirm your identity once, then download the finished instrument — branded, sealed and ready to sign." },
-    { n: "04", title: "Execute", body: "Sign it in front of two witnesses, who sign in front of you. We show you exactly how." },
-    { n: "05", title: "Lodge", body: "We file the executed Will with the Probate Registry on your behalf." },
-    { n: "06", title: "Protect", body: "Held in an encrypted vault and released only to the executors you named." },
-    { n: "07", title: "Update", body: "Life changes. Amend and re-issue whenever you need to, free while your subscription runs." },
+  const acts = [
+    {
+      range: "01 — 02",
+      title: "Write it",
+      promise: "Today, at your own pace. Nothing to pay to start.",
+      stages: [
+        {
+          n: "01",
+          title: "Prepare",
+          by: "You",
+          body: "Nine guided sections in plain English. Save and come back as often as you like.",
+        },
+        {
+          n: "02",
+          title: "Legal review",
+          by: "Optional",
+          highlight: true,
+          body: "Have a Nigerian solicitor read every clause for a fixed fee — or skip it in one click and carry straight on.",
+        },
+      ],
+    },
+    {
+      range: "03 — 05",
+      title: "Make it real",
+      promise: "The part that turns a document into an instrument.",
+      stages: [
+        {
+          n: "03",
+          title: "Print",
+          by: "You",
+          body: "Settle the fee, confirm your identity once, then download the finished Will — branded, and sealed with a QR code anyone can verify.",
+        },
+        {
+          n: "04",
+          title: "Execute",
+          by: "You + 2 witnesses",
+          body: "Sign in front of two witnesses, who each sign in front of you. We show you exactly how — and who may not witness.",
+        },
+        {
+          n: "05",
+          title: "Lodge",
+          by: "We handle it",
+          body: "The executed Will is filed with the Probate Registry on your behalf.",
+        },
+      ],
+    },
+    {
+      range: "06 — 07",
+      title: "Keep it current",
+      promise: "A Will is only as good as its last amendment.",
+      stages: [
+        {
+          n: "06",
+          title: "Protect",
+          by: "We handle it",
+          body: "Held in an encrypted vault and released only to the executors you named.",
+        },
+        {
+          n: "07",
+          title: "Update",
+          by: "While subscribed",
+          body: "Life changes. Amend and re-issue as often as you need, free for as long as your subscription runs.",
+        },
+      ],
+    },
   ];
+
   return (
     <section className="relative overflow-hidden bg-navy py-20 text-navy-foreground lg:py-28">
       <div
@@ -190,7 +258,7 @@ function Steps() {
         <div className="grid gap-8 lg:grid-cols-[1fr_auto] lg:items-end">
           <div>
             <span className="text-[10px] font-semibold uppercase tracking-[0.35em] text-gold">
-              Seven stages
+              Seven stages, three acts
             </span>
             <h2 className="mt-5 max-w-xl font-serif text-3xl leading-[1.05] sm:text-5xl">
               You write it. We make it hold up.
@@ -205,25 +273,72 @@ function Steps() {
           </Link>
         </div>
 
-        <div className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-white/10 bg-white/10 sm:grid-cols-2 lg:grid-cols-4">
-          {steps.map((s) => (
-            <div key={s.n} className="bg-navy/70 p-7 lg:p-8">
-              <div className="flex items-baseline justify-between gap-3">
-                <span className="font-serif text-base text-gold">{s.n}</span>
-                {s.optional && (
-                  <span className="text-[9px] uppercase tracking-[0.2em] text-navy-foreground/50">
-                    Optional
-                  </span>
-                )}
+        <ol className="mt-14 grid gap-px overflow-hidden rounded-3xl border border-white/10 bg-white/10 lg:grid-cols-3">
+          {acts.map((act) => (
+            <li key={act.title} className="bg-navy/70 p-7 sm:p-9">
+              {/* Act header: the numeral range, then a rule out to the column
+                  edge. Across the three panels it reads as one line. */}
+              <div className="flex items-center gap-4">
+                <span className="font-serif text-sm tracking-[0.1em] text-gold">
+                  {act.range}
+                </span>
+                <span aria-hidden className="h-px flex-1 bg-white/15" />
               </div>
-              <h3 className="mt-5 font-serif text-xl">{s.title}</h3>
-              <p className="mt-2.5 text-sm leading-relaxed text-navy-foreground/70">{s.body}</p>
-            </div>
-          ))}
-        </div>
 
-        <div className="mt-10 hidden md:grid gap-4 sm:grid-cols-3">
-          {['/images/signing-hands.jpg', '/images/father-daughter.jpg', '/images/legacy-still-life.jpg'].map((src, i) => (
+              <h3 className="mt-6 font-serif text-2xl">{act.title}</h3>
+              {/* Height reserved for two lines. One of these promises wraps
+                  and the others do not, which pushed that column's stage list
+                  out of line with its neighbours — the kind of few-pixel drift
+                  that reads as carelessness across three adjacent panels. */}
+              <p className="mt-2 text-sm leading-relaxed text-navy-foreground/55 lg:min-h-[2.75rem]">
+                {act.promise}
+              </p>
+
+              <ol className="relative mt-9 space-y-8">
+                {/* The rail the markers sit on, inset top and bottom so it
+                    begins at the first marker and ends at the last rather
+                    than running past them. */}
+                <span
+                  aria-hidden
+                  className="absolute bottom-2 left-[3px] top-2 w-px bg-white/12"
+                />
+
+                {act.stages.map((stage) => (
+                  <li key={stage.n} className="relative pl-9">
+                    <span
+                      aria-hidden
+                      className={`absolute left-0 top-[7px] h-[7px] w-[7px] rounded-full ${
+                        stage.highlight ? "bg-navy ring-1 ring-gold" : "bg-gold"
+                      }`}
+                    />
+
+                    <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+                      <h4 className="font-serif text-lg leading-none">
+                        {stage.title}
+                      </h4>
+                      <span
+                        className={`text-[9px] uppercase tracking-[0.2em] ${
+                          stage.highlight
+                            ? "border border-gold/50 px-2 py-0.5 text-gold"
+                            : "text-navy-foreground/40"
+                        }`}
+                      >
+                        {stage.by}
+                      </span>
+                    </div>
+
+                    <p className="mt-2.5 text-sm leading-relaxed text-navy-foreground/70">
+                      {stage.body}
+                    </p>
+                  </li>
+                ))}
+              </ol>
+            </li>
+          ))}
+        </ol>
+
+        <div className="mt-10 hidden gap-4 sm:grid-cols-3 md:grid">
+          {["/images/signing-hands.jpg", "/images/father-daughter.jpg", "/images/legacy-still-life.jpg"].map((src, i) => (
             <div key={i} className="overflow-hidden rounded-2xl">
               <Image
                 src={src}
