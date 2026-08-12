@@ -63,15 +63,44 @@ export default async function PricingPage() {
           </div>
         ) : (
           <>
-            <div className="grid gap-6 lg:grid-cols-2">
-              {prices.will.map((plan) => (
+            {/*
+              All three tiers in one row: Basic, Premium, Professional.
+
+              The professional rate used to sit in a separate section below,
+              which read as an afterthought and made the page's answer to "what
+              does this cost?" arrive in two instalments. A lawyer comparing us
+              against another platform should see the figure beside the others,
+              not after scrolling past them.
+
+              The eligibility rule it carried in that section now rides on the
+              card itself — see `badge` — and is enforced where it always was,
+              at checkout.
+            */}
+            <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {[...prices.will, ...prices.lawyerWill].map((plan) => (
                 <PlanCard
                   key={plan.id}
                   plan={plan}
                   quote={prices.quotes[plan.slug]}
                   featured={plan.is_popular}
+                  badge={
+                    plan.audience === "lawyer" ? "For legal practitioners" : undefined
+                  }
                 >
-                  {signedIn ? (
+                  {plan.audience === "lawyer" ? (
+                    /*
+                      Never a checkout. Buying at this rate needs an enrolment
+                      number checked against the roll, so the card sends
+                      practitioners to registration rather than to a payment
+                      that would be refused.
+                    */
+                    <Link
+                      href="/register?type=lawyer"
+                      className="mt-8 flex h-13 items-center justify-center bg-navy px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy-foreground transition-colors hover:bg-navy/90"
+                    >
+                      Register as a lawyer
+                    </Link>
+                  ) : signedIn ? (
                     <CheckoutButton
                       planSlug={plan.slug}
                       planName={plan.name}
@@ -102,52 +131,6 @@ export default async function PricingPage() {
               subscription={prices.subscription}
             />
 
-            {/*
-              The professional rate.
-
-              Published to everyone, because a lawyer has to be able to price
-              the platform before opening an account. Buying at it needs an
-              enrolment number this office has checked against the roll, which
-              the checkout enforces — so the card sends practitioners to
-              registration rather than to a checkout that would refuse them.
-            */}
-            {prices.lawyerWill.length > 0 && (
-              <div className="mt-16 border-t border-border pt-14">
-                <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)] lg:items-center">
-                  <div className="min-w-0">
-                    <span className="text-[10px] font-semibold uppercase tracking-[0.35em] text-gold">
-                      For legal practitioners
-                    </span>
-                    <h2 className="mt-5 max-w-lg font-serif text-2xl leading-[1.1] text-navy sm:text-4xl">
-                      Drafting for your clients?
-                    </h2>
-                    <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground">
-                      Practitioners draft on the platform at a per-Will rate,
-                      with no subscription and no minimum volume. Register as a
-                      lawyer with your Supreme Court enrolment number and we
-                      will confirm it against the roll before your first bill.
-                      Lodging remains payable to the registry and is charged
-                      separately, exactly as it is for anyone else.
-                    </p>
-                  </div>
-
-                  {prices.lawyerWill.map((plan) => (
-                    <PlanCard
-                      key={plan.id}
-                      plan={plan}
-                      quote={prices.quotes[plan.slug]}
-                    >
-                      <Link
-                        href="/register?type=lawyer"
-                        className="mt-8 flex h-13 items-center justify-center bg-navy px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy-foreground transition-colors hover:bg-navy/90"
-                      >
-                        Register as a lawyer
-                      </Link>
-                    </PlanCard>
-                  ))}
-                </div>
-              </div>
-            )}
           </>
         )}
 

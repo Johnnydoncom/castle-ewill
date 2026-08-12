@@ -18,12 +18,25 @@ export function PlanCard({
   plan,
   quote,
   featured = false,
+  badge,
   children,
 }: {
   plan: Plan;
   /** Composed server-side. Absent only if the backend was unreachable. */
   quote?: PriceQuote;
   featured?: boolean;
+  /**
+   * A label across the top of the card, for a plan whose *audience* differs
+   * rather than its price.
+   *
+   * The professional rate used to sit in its own section below the individual
+   * plans, with a paragraph beside it carrying that context. In a single row
+   * of three there is no such paragraph, so the card has to say who it is for
+   * on its own face — otherwise it reads as a third tier anyone may buy, and
+   * the first thing a member of the public would learn about the eligibility
+   * rule is the checkout refusing them.
+   */
+  badge?: string;
   /** The call to action — a link on the public page, a form in the dashboard. */
   children?: React.ReactNode;
 }) {
@@ -38,10 +51,23 @@ export function PlanCard({
           : "border-border bg-card"
       }`}
     >
-      {featured && (
+      {/*
+        One slot, so the two labels can never stack and knock the three cards
+        out of alignment. `featured` wins: "Most chosen" is the one that has to
+        catch the eye.
+      */}
+      {featured ? (
         <span className="mb-5 inline-block self-start bg-gold px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-navy">
           Most chosen
         </span>
+      ) : badge ? (
+        <span className="mb-5 inline-block self-start border border-navy/25 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-navy/70">
+          {badge}
+        </span>
+      ) : (
+        // Holds the same height as a labelled card so the plan names line up
+        // across the row whether or not a card carries a label.
+        <span aria-hidden className="mb-5 block h-[25px]" />
       )}
 
       <h3 className="font-serif text-2xl text-navy">{plan.name}</h3>

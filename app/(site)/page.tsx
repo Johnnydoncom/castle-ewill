@@ -566,22 +566,40 @@ async function PricingPreview() {
           </Link>
         </div>
 
-        <div className="mt-14 grid gap-6 lg:grid-cols-2">
-          {prices.will.map((plan) => (
+        {/*
+          Basic, Premium and Professional in one row of three.
+
+          The professional rate previously had its own section further down,
+          which read as an afterthought and split the page's answer to "what
+          does this cost?" in two. The eligibility rule that section explained
+          now rides on the card itself, and is enforced where it always was —
+          at checkout.
+        */}
+        <div className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+          {[...prices.will, ...prices.lawyerWill].map((plan) => (
             <PlanCard
               key={plan.id}
               plan={plan}
               quote={prices.quotes[plan.slug]}
               featured={plan.is_popular}
+              badge={
+                plan.audience === "lawyer" ? "For legal practitioners" : undefined
+              }
             >
               <Link
-                href={`/register?plan=${plan.slug}`}
+                href={
+                  plan.audience === "lawyer"
+                    ? "/register?type=lawyer"
+                    : `/register?plan=${plan.slug}`
+                }
                 className={`mt-8 flex h-13 items-center justify-center px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] transition-colors ${plan.is_popular
                   ? "bg-gold text-navy hover:bg-gold/90"
                   : "bg-navy text-navy-foreground hover:bg-navy/90"
                   }`}
               >
-                Choose {plan.name}
+                {plan.audience === "lawyer"
+                  ? "Register as a lawyer"
+                  : `Choose ${plan.name}`}
               </Link>
             </PlanCard>
           ))}
@@ -593,55 +611,6 @@ async function PricingPreview() {
           subscription={prices.subscription}
         />
 
-        {/*
-          The professional rate.
-          Advertised to everyone, because a lawyer has to be able to find out
-          what the platform costs before opening an account. Buying at it is a
-          different matter — that needs an enrolment number this office has
-          checked against the roll, and the checkout enforces it.
-        */}
-        {prices.lawyerWill.length > 0 && (
-          <div className="mt-16 border-t border-border pt-14">
-            <div className="grid gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,380px)] lg:items-center">
-              <div className="min-w-0">
-                <span className="text-[10px] font-semibold uppercase tracking-[0.35em] text-gold">
-                  For legal practitioners
-                </span>
-                <h3 className="mt-5 max-w-lg font-serif text-2xl leading-[1.1] text-navy sm:text-4xl">
-                  Drafting for your clients?
-                </h3>
-                <p className="mt-5 max-w-xl text-base leading-relaxed text-muted-foreground">
-                  Practitioners draft on the platform at a per-Will rate, with no
-                  subscription and no minimum volume. Register as a lawyer, give us
-                  your Supreme Court enrolment number, and we will confirm it against
-                  the roll before your first bill.
-                </p>
-                <Link
-                  href="/register?type=lawyer"
-                  className="mt-8 inline-flex items-center gap-3 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy"
-                >
-                  <span className="h-px w-8 bg-gold transition-all" />
-                  Open a practitioner account
-                </Link>
-              </div>
-
-              {prices.lawyerWill.map((plan) => (
-                <PlanCard
-                  key={plan.id}
-                  plan={plan}
-                  quote={prices.quotes[plan.slug]}
-                >
-                  <Link
-                    href="/register?type=lawyer"
-                    className="mt-8 flex h-13 items-center justify-center bg-navy px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy-foreground transition-colors hover:bg-navy/90"
-                  >
-                    Register as a lawyer
-                  </Link>
-                </PlanCard>
-              ))}
-            </div>
-          </div>
-        )}
       </div>
     </section>
   );
