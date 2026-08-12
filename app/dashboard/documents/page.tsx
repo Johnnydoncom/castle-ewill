@@ -32,7 +32,7 @@ export default async function DocumentsPage() {
       <PageHead
         kicker="Document Vault"
         title="Sealed Vault"
-        blurb="Everything you upload is encrypted before it leaves this server, and released only to the executors you name."
+        blurb="Everything you upload is encrypted before it touches a disk, readable only by you, and every access is logged."
       />
 
       <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">

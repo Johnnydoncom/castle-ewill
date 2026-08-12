@@ -232,7 +232,7 @@ function Steps() {
           n: "06",
           title: "Protect",
           by: "We handle it",
-          body: "Held in an encrypted vault and released only to the executors you named.",
+          body: "Held in an encrypted vault — every file sealed before it touches a disk, and every attempt to read one logged.",
         },
         {
           n: "07",
@@ -368,25 +368,40 @@ function Features() {
       title: "Solicitor review, if you want it",
       body: "Have your Will read clause by clause by admitted Nigerian counsel before you sign. Optional on Basic, included with Premium.",
     },
+    /*
+     * Three of these described things the platform does not do, and have been
+     * replaced rather than softened.
+     *
+     * "Access controls audited quarterly" — there is no such audit, and on a
+     * product holding identity documents that is not a claim to make loosely.
+     * "Witness coordination", promising invitations and scheduling from the
+     * dashboard — witnesses are recorded as a wizard step and never contacted.
+     * "Executor briefing", promising a handover pack — no such pack exists
+     * anywhere in the product.
+     *
+     * What replaced them was already built and was going unmentioned: the
+     * witness rule the server actually enforces, and the QR seal on every
+     * generated Will.
+     */
     {
       numeral: "III",
       title: "Encrypted vault",
-      body: "AES-256 encryption at rest and in transit. Access controls audited quarterly.",
+      body: "AES-256-GCM before a file touches a disk, HTTPS in transit, and every attempt to read a document logged whether it succeeds or fails.",
     },
     {
       numeral: "IV",
-      title: "Witness coordination",
-      body: "Invite your two required witnesses directly from the dashboard — we manage the scheduling.",
+      title: "The witness trap, avoided",
+      body: "A gift to someone who witnesses your Will is void in Nigeria — and it is the mistake people make most. We check your witnesses against your beneficiaries and refuse the combination outright.",
     },
     {
       numeral: "V",
-      title: "Executor briefing",
-      body: "A comprehensive handover pack prepared for your executor, ready the moment it is needed.",
+      title: "A document anyone can check",
+      body: "Every Will carries a QR seal. A bank or registry can scan it to confirm the copy in front of them is genuine and current, without telephoning anybody.",
     },
     {
       numeral: "VI",
-      title: "Unlimited updates",
-      body: "Life changes. Update your Will at any time on qualifying plans — no additional fee.",
+      title: "Updates while you subscribe",
+      body: "Life changes. Amend and re-issue your Will as often as you need, free for as long as your annual subscription runs.",
     },
   ];
 

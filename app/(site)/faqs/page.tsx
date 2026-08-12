@@ -89,20 +89,45 @@ const SECTIONS: Section[] = [
       },
     ],
   },
+  /*
+   * "Is this a subscription? — No. You pay once." was true when written and is
+   * not any more: amendments to an issued Will are covered by an annual
+   * subscription, and the server refuses to reopen one without it. An FAQ that
+   * contradicts the paywall a client is about to meet is worse than no FAQ, so
+   * the answer now draws the line where the product does — the Will itself is
+   * bought once, and only continuing amendments recur.
+   */
   {
     title: "Cost and updates",
     faqs: [
       {
         q: "Is this a subscription?",
-        a: "No. You pay once. Transparency is one of our stated values, and a renewal charge nobody expected is the opposite of that.",
+        a: "The Will is not — you pay once for it, and it is yours to keep, print and sign with no renewal charge. Only continuing amendments are a subscription: once a Will has been issued, reopening it to amend and re-issue is covered by an annual fee. If you never change it, you never pay again.",
       },
       {
         q: "Can I change my Will later?",
-        a: "Yes. Log in, revise the relevant section and re-sign the new document with two witnesses. Each version is recorded with its own document number and revision history.",
+        a: "Yes. While your Will is still a draft you can revise it freely at no cost. Once it has been issued, amendments are covered by the annual subscription — then you revise the relevant section, re-issue, and sign the new document afresh with two witnesses. Every version keeps its own document number and revision history.",
+      },
+      {
+        q: "When do I pay, and when do you check my identity?",
+        a: "You can write the whole Will before paying anything. Payment comes first at the point you want the finished document, and the identity check follows it — once only, the first time. If we have verified you before, all that remains is a short camera check to confirm it is you today.",
       },
       {
         q: "How often should I review it?",
         a: "Every twelve months as a matter of routine, and after any marriage, birth of a child, or acquisition of significant property. Marriage in particular can revoke a Will made beforehand. We will remind you.",
+      },
+    ],
+  },
+  {
+    title: "For legal practitioners",
+    faqs: [
+      {
+        q: "Can I draft for my clients on this platform?",
+        a: "Yes. Lawyers draft at a per-Will professional rate rather than the consumer price, with no subscription and no minimum volume. Register as a lawyer with your Supreme Court enrolment number and we will confirm it against the roll before your first bill. Lodging remains payable to the registry and is charged separately, exactly as it is for anyone else.",
+      },
+      {
+        q: "Do I have to pay for your review as well?",
+        a: "No. The solicitor's review is there for clients drafting without a lawyer. You are the lawyer on the matter, so there is nothing for us to add and nothing further to pay.",
       },
     ],
   },

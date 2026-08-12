@@ -11,12 +11,33 @@ export const metadata: Metadata = {
     "A guided Will builder, an encrypted document vault, identity verification and probate lodging. You write the Will yourself; a solicitor's review is an optional extra.",
 };
 
-/** Drawn from the "Features" section of the client brief. */
+/*
+ * Drawn from the "Features" section of the client brief, and then checked
+ * against the code.
+ *
+ * Three entries here described things this platform does not do. "Trustee
+ * appointments" — the wizard has no trustee step and the schema has no trustee.
+ * "Probate support", promising an executor briefing pack and registry-ready
+ * documentation prepared in advance — none of that exists. And the vault was
+ * said to release documents "only to those you name", when `DocumentVault`
+ * grants read access to the owner and an administrator and to nobody else;
+ * there is no executor-release mechanism to speak of.
+ *
+ * A services page is a page people buy from. Overstating a feature here is
+ * worse than an invented testimonial, because somebody may choose this
+ * platform *for* the thing that does not exist, and only find out when their
+ * executors do. The two unbuilt features are gone rather than softened, and
+ * the vault now claims what it actually enforces.
+ *
+ * Replaced with two things that are real and were missing: the QR seal the
+ * generated Will has carried since the PDF was rebuilt, and the professional
+ * rate for lawyers drafting on behalf of clients.
+ */
 const SERVICES = [
   {
     numeral: "I",
     title: "Guided Will builder",
-    body: "An interactive questionnaire, not a blank page. Instead of asking you to draft legal clauses, we ask who your beneficiaries are, who should administer your estate, and what you own. The system assembles a legally compliant Will from your answers.",
+    body: "An interactive questionnaire, not a blank page. Rather than asking you to draft legal clauses, we ask who your beneficiaries are, who should administer your estate, and what you own. The system assembles a Will that complies with the law from your answers.",
     points: [
       "Nine plain-English sections",
       "Inline explanations on every field",
@@ -25,31 +46,31 @@ const SERVICES = [
   },
   {
     numeral: "II",
-    title: "Trusts and executor support",
-    body: "Nominate executors, appoint trustees and name guardians for children under eighteen. We record alternates for each appointment, because the person you choose today may not be available when it matters.",
+    title: "Executors and guardians",
+    body: "Name the people who will carry out your wishes, in the order you want them to act, and appoint guardians for any children under eighteen. Alternates are recorded for each appointment, because the person you choose today may not be available when it matters.",
     points: [
-      "Multiple and alternate executors",
+      "Several executors, ranked in order",
+      "Alternates who step up if a first choice cannot act",
       "Guardianship for minor children",
-      "Trustee appointments",
     ],
   },
   {
     numeral: "III",
     title: "Encrypted digital vault",
-    body: "Store your Will alongside the documents your executors will need — title deeds, share certificates, identity documents. Everything is encrypted before it leaves our servers.",
+    body: "Store your Will alongside the documents your executors will need — title deeds, share certificates, identity documents. Every file is encrypted before it touches a disk, and each attempt to read one is logged whether it succeeds or not.",
     points: [
       "AES-256-GCM encryption at rest",
-      "Integrity checked on every download",
-      "Released only to those you name",
+      "Integrity re-checked on every download",
+      "Readable only by you, and every access recorded",
     ],
   },
   {
     numeral: "IV",
     title: "Identity verification",
-    body: "Email confirmation, phone verification, document authentication and a live face match, so that the person making a Will is demonstrably the person named in it. A Will that cannot be shown to be yours is a Will that can be challenged.",
+    body: "We confirm your email address, authenticate the government-issued ID you upload, and match it against a live camera check — so the person making a Will is demonstrably the person named in it. A Will that cannot be shown to be yours is a Will that can be challenged.",
     points: [
-      "Email and phone confirmation",
       "Passport photograph and valid ID",
+      "Live liveness check, issued fresh each time",
       "Full audit trail",
     ],
     href: "/security",
@@ -62,13 +83,14 @@ const SERVICES = [
   },
   {
     numeral: "VI",
-    title: "Probate support",
-    body: "Guidance for your executors when the time comes: what the registry expects, what to gather, and in what order. The handover pack is prepared in advance so nobody is starting from nothing.",
+    title: "A document anyone can check",
+    body: "Every Will we produce carries a QR seal at its foot. Scanning it confirms which Will it is, which version, and when it was issued — so a bank or a registry can satisfy itself that the copy in front of them is genuine and current, without telephoning anyone.",
     points: [
-      "Executor briefing pack",
-      "Registry-ready documentation",
-      "Guidance through the process",
+      "Sealed with a code only this office can mint",
+      "Shows whether a printout has been superseded",
+      "Discloses nothing about the estate",
     ],
+    href: "/verify",
   },
 ] as const;
 
