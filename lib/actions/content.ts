@@ -31,7 +31,7 @@ export type Post = {
  *
  * They were two functions in this module that each fetched `/plans`
  * separately — the pricing page requested the same list twice, and only ever
- * saw the tiers, never the compulsory lodging fee that makes up the rest of
+ * saw the tiers, never the lodging fee that can make up the rest of
  * the bill. `getPriceList()` is one request, grouped by kind, and carries
  * the precomposed totals.
  */

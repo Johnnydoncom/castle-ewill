@@ -31,7 +31,7 @@ export default async function AdminPricingPage() {
       <div className="border-l-2 border-gold bg-gold/5 px-5 py-4 text-sm leading-relaxed text-navy">
         <p>
           A <strong>Will plan</strong> is a tier the client chooses, charged
-          once per Will. The <strong>lodging fee</strong> is compulsory and is
+          once per Will. The <strong>lodging fee</strong> is optional and is
           added to any Will plan that does not absorb it. The{" "}
           <strong>annual subscription</strong> is optional and buys free
           amendments on the platform — it never covers lodging.

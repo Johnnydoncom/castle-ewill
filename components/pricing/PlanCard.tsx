@@ -139,13 +139,18 @@ export function PlanCard({
 }
 
 /**
- * The add-ons, stated plainly and labelled by whether they can be declined.
+ * The add-ons, stated plainly.
  *
- * They are not tiers and must not be shown as further cards to choose
- * between. The Required/Optional label is the point: lodging is unavoidable,
- * while the solicitor review and the subscription are genuinely optional —
- * presenting a review as though every Will must have one is what this
- * component exists to stop.
+ * They are not tiers and must not be shown as further cards to choose between
+ * — presenting a solicitor's review as though every Will must have one is what
+ * this component exists to stop.
+ *
+ * There was a per-item Required/Optional badge here, with lodging marked
+ * "Required" in the destructive colour. Lodging is now the client's own
+ * decision — it is paid on to the registry and they may lodge it themselves —
+ * so all three are optional and a badge saying so on each would be a constant
+ * repeated three times. It is stated once, in the heading, where it reads as a
+ * reassurance rather than as three warnings.
  */
 export function PricingFootnotes({
   lodging,
@@ -156,43 +161,43 @@ export function PricingFootnotes({
   review: Plan | null;
   subscription: Plan | null;
 }) {
-  const notes = [
-    lodging && { plan: lodging, required: true },
-    review && { plan: review, required: false },
-    subscription && { plan: subscription, required: false },
-  ].filter(Boolean) as { plan: Plan; required: boolean }[];
+  const notes = [lodging, review, subscription].filter(Boolean) as Plan[];
 
   if (notes.length === 0) return null;
 
   return (
-    <div className="mt-14 grid gap-6 border-t border-border pt-10 sm:grid-cols-2 lg:grid-cols-3">
-      {notes.map(({ plan, required }) => (
-        <div key={plan.id} className="flex gap-4">
-          <span className="mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-full border border-gold/40">
-            <Minus className="h-3.5 w-3.5 text-gold" />
-          </span>
-          <div className="min-w-0">
-            <span
-              className={`text-[10px] font-semibold uppercase tracking-[0.2em] ${
-                required ? "text-destructive" : "text-muted-foreground"
-              }`}
-            >
-              {required ? "Required" : "Optional"}
+    <div className="mt-14 border-t border-border pt-10">
+      <div className="flex items-baseline gap-3">
+        <h3 className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">
+          Optional extras
+        </h3>
+        <span className="text-xs text-muted-foreground">
+          Added only if you ask for them.
+        </span>
+      </div>
+
+      <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+        {notes.map((plan) => (
+          <div key={plan.id} className="flex gap-4">
+            <span className="mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-full border border-gold/40">
+              <Minus className="h-3.5 w-3.5 text-gold" />
             </span>
-            <h3 className="mt-1 font-serif text-lg text-navy">
-              {plan.name}
-              <span className="ml-2 text-sm text-gold">
-                {plan.price_formatted} {plan.charge_suffix}
-              </span>
-            </h3>
-            {plan.description && (
-              <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                {plan.description}
-              </p>
-            )}
+            <div className="min-w-0">
+              <h4 className="font-serif text-lg text-navy">
+                {plan.name}
+                <span className="ml-2 text-sm text-gold">
+                  {plan.price_formatted} {plan.charge_suffix}
+                </span>
+              </h4>
+              {plan.description && (
+                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                  {plan.description}
+                </p>
+              )}
+            </div>
           </div>
-        </div>
-      ))}
+        ))}
+      </div>
     </div>
   );
 }

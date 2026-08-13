@@ -19,7 +19,7 @@ const EMPTY: PriceList = {
  * The whole price list, in one request, grouped by kind.
  *
  * One call rather than the two this replaced — the pricing page used to fetch
- * `/plans` twice and still only saw the tiers, never the compulsory lodging
+ * `/plans` twice and still only saw the tiers, never the optional lodging
  * fee that makes up the rest of the bill.
  *
  * Degrades to empty rather than throwing: a momentary backend outage should

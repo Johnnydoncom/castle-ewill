@@ -83,6 +83,7 @@ function SelectionFields({
       {options.withSubscription && (
         <input type="hidden" name="withSubscription" value="on" />
       )}
+      {options.withLodging && <input type="hidden" name="withLodging" value="on" />}
     </>
   );
 }
@@ -91,6 +92,7 @@ export function WillCheckout({
   plans,
   review,
   subscription,
+  lodging,
   initialQuotes,
   flutterwaveEnabled,
   hasActiveSubscription,
@@ -100,6 +102,15 @@ export function WillCheckout({
   review: Plan | null;
   /** The optional annual add-on, or null if none is published. */
   subscription: Plan | null;
+  /**
+   * Lodging the executed Will with the Probate Registry.
+   *
+   * An add-on now rather than an unavoidable surcharge. It was added to every
+   * total automatically, so the cheapest route to a finished Will read
+   * ₦65,000 when drafting alone is ₦40,000 — and a client who intends to lodge
+   * it themselves was billed for a service they never asked for.
+   */
+  lodging: Plan | null;
   /** Composed server-side, keyed by slug — the state before any toggling. */
   initialQuotes: Record<string, PriceQuote>;
   flutterwaveEnabled: boolean;
@@ -141,6 +152,14 @@ export function WillCheckout({
       includedNote: "Included with this plan for twelve months.",
       heldNote: "Your subscription is active — amendments are already free.",
     },
+    {
+      key: "withLodging" as OptionKey,
+      plan: lodging,
+      includedByPlan: plan?.includes_lodging ?? false,
+      alreadyHeld: false,
+      includedNote: "Included with this plan.",
+      heldNote: null as string | null,
+    },
   ].filter((addOn) => addOn.plan !== null);
 
   /*
@@ -150,8 +169,9 @@ export function WillCheckout({
    * needs no request at all — only ticking a box does, and each answer is
    * kept so toggling back and forth asks once rather than every time.
    */
-  const untouched = !options.withReview && !options.withSubscription;
-  const cacheKey = `${selected}:${options.withReview}:${options.withSubscription}`;
+  const untouched =
+    !options.withReview && !options.withSubscription && !options.withLodging;
+  const cacheKey = `${selected}:${options.withReview}:${options.withSubscription}:${options.withLodging}`;
   const baseline = untouched ? initialQuotes[selected] : undefined;
   const quote = baseline ?? fetched[cacheKey] ?? null;
 

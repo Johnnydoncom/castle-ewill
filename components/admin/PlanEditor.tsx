@@ -16,7 +16,7 @@ import type { Plan, PlanKind } from "@/lib/pricing/types";
  *
  * Prices are entered in **naira**, converted to kobo once on the server. The
  * three kinds are not cosmetic: `will` is a tier a client chooses, `lodging`
- * is the compulsory registry fee added to any Will plan that does not absorb
+ * is the optional registry fee added to any Will plan that does not absorb
  * it, and `subscription` is the optional annual add-on. Changing a kind
  * changes how `PriceQuoteBuilder` composes every total, which is why the
  * field explains itself rather than being a bare select.
@@ -31,7 +31,7 @@ const KINDS: { value: PlanKind; label: string; hint: string }[] = [
   {
     value: "lodging",
     label: "Lodging fee",
-    hint: "Compulsory, added to every Will plan that does not include it. Only one is used.",
+    hint: "Optional. Added to a Will plan that does not include it, when the client asks us to lodge. Only one is used.",
   },
   {
     value: "review",
@@ -266,7 +266,7 @@ function PlanForm({ plan, onDone }: { plan: Plan | null; onDone: () => void }) {
                 Includes the lodging fee
               </span>
               <span className="block text-xs text-muted-foreground">
-                The compulsory registry fee is absorbed rather than added on
+                The registry fee is absorbed rather than added on
                 top.
               </span>
             </span>

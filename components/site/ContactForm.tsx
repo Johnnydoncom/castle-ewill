@@ -3,6 +3,8 @@
 import { useState } from "react";
 import { AlertCircle, CheckCircle2 } from "lucide-react";
 
+import { api } from "@/lib/api/browser";
+
 type FieldErrors = Record<string, string[] | undefined>;
 
 /**
@@ -13,8 +15,14 @@ type FieldErrors = Record<string, string[] | undefined>;
  * either throttling honest senders collectively or, if the limit were raised to
  * compensate, removing the control entirely.
  *
- * The endpoint is anonymous, so no credential travels with the request. CORS on
- * the backend allows exactly this origin and no other.
+ * Through `lib/api/browser`, not a bare `fetch`, and that distinction was a
+ * live bug rather than a tidiness point. Sanctum's `statefulApi()` decides a
+ * request is stateful from its **Origin**, not from whether it carries a
+ * credential — so a POST from this origin picks up the full web middleware
+ * stack, `ValidateCsrfToken` included, even though nobody is signed in. A hand
+ * -rolled `fetch` sent no `X-XSRF-TOKEN` and every message was refused with
+ * "CSRF token mismatch". `api()` primes `/sanctum/csrf-cookie` and sends the
+ * header, which is exactly why the convention is to have one door.
  *
  * Client validation here is purely for fast feedback. The backend validates
  * again, checks the honeypot and enforces the throttle.
@@ -37,30 +45,19 @@ export function ContactForm() {
     setBanner(null);
 
     try {
-      const base = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/+$/, "");
-
-      const response = await fetch(`${base}/contact`, {
+      const result = await api<{ message?: string }>("/contact", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(payload),
+        body: payload,
       });
 
-      const result = (await response.json().catch(() => ({}))) as {
-        message?: string;
-        errors?: FieldErrors;
-      };
-
-      if (!response.ok) {
-        setErrors(result.errors ?? {});
+      if (!result.ok) {
+        setErrors((result.fieldErrors ?? {}) as FieldErrors);
         setBanner({
           tone: "error",
           text:
-            response.status === 429
+            result.status === 429
               ? "You have sent several messages already. Please wait a little before sending another."
-              : result.message ??
+              : result.message ||
                 "We could not send your message. Please try again.",
         });
         return;
@@ -69,12 +66,7 @@ export function ContactForm() {
       form.reset();
       setBanner({
         tone: "success",
-        text: result.message ?? "Thank you — we have received your message.",
-      });
-    } catch {
-      setBanner({
-        tone: "error",
-        text: "We could not reach the server. Please check your connection and try again.",
+        text: result.data?.message ?? "Thank you — we have received your message.",
       });
     } finally {
       setPending(false);

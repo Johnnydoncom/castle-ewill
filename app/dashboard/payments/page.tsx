@@ -47,8 +47,8 @@ export default async function DashboardPaymentsPage() {
           <CalendarCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" />
           <p className="leading-relaxed">
             Your subscription is active until {expiresOn}. Amendments to your
-            Will on this platform are free until then — lodging a revised Will
-            with the registry remains chargeable.
+            Will on this platform are free until then. Lodging a revised Will
+            with the registry is optional and charged separately.
           </p>
         </div>
       )}
@@ -58,6 +58,7 @@ export default async function DashboardPaymentsPage() {
           plans={prices.will}
           review={prices.review}
           subscription={prices.subscription}
+          lodging={prices.lodging}
           initialQuotes={prices.quotes}
           flutterwaveEnabled={prices.providers.flutterwave}
           hasActiveSubscription={Boolean(profile?.has_active_subscription)}

@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "Charged once per Will. Basic from ₦40,000 plus the compulsory Probate Registry lodging fee, or Premium at ₦120,000 with a solicitor's review and lodging included. Lawyers drafting for clients pay ₦10,000 per Will.",
+    "Charged once per Will. Basic ₦40,000, or Premium at ₦120,000 with a solicitor's review and Probate Registry lodging included. Lodging is optional and charged separately. Lawyers drafting for clients pay ₦10,000 per Will.",
 };
 
 export default async function PricingPage() {
@@ -45,7 +45,7 @@ export default async function PricingPage() {
             solicitor&rsquo;s review is an optional extra, not a gate. No
             subscription is required to make a Will, and no renewal trap. Every
             figure you will pay is shown below, including the Probate
-            Registry&rsquo;s own compulsory lodging fee.
+            Registry&rsquo;s own lodging fee, should you ask us to lodge for you.
           </p>
         </div>
       </section>
@@ -137,8 +137,7 @@ export default async function PricingPage() {
         <p className="mt-12 text-center text-sm leading-relaxed text-muted-foreground">
           Payment by Paystack, Flutterwave or bank transfer. The annual
           subscription covers amendments on this platform only — lodging a
-          revised Will with the registry remains compulsory and is charged
-          separately.
+          revised Will with the registry is optional and charged separately.
         </p>
       </section>
     </>

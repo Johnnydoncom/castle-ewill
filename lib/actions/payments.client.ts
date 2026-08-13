@@ -17,11 +17,21 @@ import type { PriceQuote } from "@/lib/pricing/types";
 export type PriceOptions = {
   withReview: boolean;
   withSubscription: boolean;
+  /**
+   * Lodging the executed Will with the Probate Registry.
+   *
+   * An extra like the others. It used to be added to every quote as a
+   * compulsory fee, which made the cheapest route to a finished Will read
+   * ₦65,000 when the drafting itself is ₦40,000 — the client decides whether
+   * we lodge for them or they do it themselves.
+   */
+  withLodging: boolean;
 };
 
 export const NO_OPTIONS: PriceOptions = {
   withReview: false,
   withSubscription: false,
+  withLodging: false,
 };
 
 /** The wire shape the API expects. One place, so no key name can drift. */
@@ -29,6 +39,7 @@ function optionsToBody(options: PriceOptions) {
   return {
     with_review: options.withReview,
     with_subscription: options.withSubscription,
+    with_lodging: options.withLodging,
   };
 }
 
@@ -45,6 +56,7 @@ function selectionFrom(formData: FormData) {
     ...optionsToBody({
       withReview: formData.get("withReview") === "on",
       withSubscription: formData.get("withSubscription") === "on",
+      withLodging: formData.get("withLodging") === "on",
     }),
   };
 }

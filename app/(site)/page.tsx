@@ -57,7 +57,7 @@ function TrustBar() {
     "Executor & guardian clauses",
     // Both of these were unqualified too. Free updates come with the annual
     // subscription (or a year of Premium), and the charge is per Will rather
-    // than a flat one-off, since lodging is compulsory on top of Basic.
+    // than a flat one-off — lodging and a review are separate, optional extras.
     "Free updates while subscribed",
     "One-off payment per Will",
     "Unique tamper-proof document ID",
@@ -116,10 +116,12 @@ function Proof() {
             <span className="italic text-primary"> by you.</span>
           </h2>
           <p className="mt-6 max-w-lg text-base leading-relaxed text-muted-foreground sm:text-lg">
-            Making a Will in Nigeria usually means an appointment, an hourly rate and a
-            wait. Castle is a platform, not a law firm: you answer the questions yourself,
-            in your own time, and print the finished document the same day. A solicitor
-            reads it only if you ask for one — and only then do you pay for one.
+            Making a Will in Nigeria usually means booking time with a chambers,
+            explaining yourself twice, and a fee you only find out at the end.
+            Castle is a platform, not a law firm: you answer the questions
+            yourself, in your own time, and print the finished document the same
+            day. Every figure is on the page before you start. A solicitor reads
+            it only if you ask for one — and only then do you pay for one.
           </p>
           <div className="mt-10 grid grid-cols-2 gap-px overflow-hidden rounded-2xl border border-border bg-border">
             {stats.map(([n, l]) => (
@@ -137,14 +139,14 @@ function Proof() {
           <div className="overflow-hidden rounded-[2rem] shadow-elegant">
             <img
               src="/images/office-interior.jpg"
-              alt="Castle's estate practice office in Lagos"
+              alt=""
               loading="lazy"
               className="h-[420px] w-full object-cover sm:h-[560px]"
             />
           </div>
           <div className="mt-4 grid grid-cols-[minmax(0,1fr)_auto] items-center gap-4 rounded-2xl border border-border bg-card px-6 py-5 shadow-soft sm:absolute sm:-bottom-8 sm:left-8 sm:right-8 sm:mt-0">
             <p className="min-w-0 font-serif text-base italic text-navy">
-              “Every question a Nigerian estate lawyer would ask — without the appointment.”
+              “Every question a Nigerian estate lawyer would ask — answered in your own time.”
             </p>
             <span className="shrink-0 text-[10px] uppercase tracking-[0.24em] text-gold">
               Castle method
