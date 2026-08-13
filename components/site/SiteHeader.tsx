@@ -68,7 +68,7 @@ export function SiteHeader() {
                 <Link
                   key={n.href}
                   href={n.href}
-                  className={`group relative px-3.5 py-2 text-[14px] font-medium text-muted-foreground transition-colors hover:text-navy ${pathname === n.href ? "text-navy" : ""
+                  className={`group relative px-3.5 py-2 text-[15px] font-medium text-muted-foreground transition-colors hover:text-navy ${pathname === n.href ? "text-navy" : ""
                     }`}
                 >
                   {n.label}
@@ -79,13 +79,13 @@ export function SiteHeader() {
 
             <Link
               href="/login"
-              className="hidden h-11 items-center rounded-full px-5 text-[14px] font-semibold text-navy transition-colors hover:bg-muted md:inline-flex"
+              className="hidden h-11 items-center rounded-full px-5 text-[15px] font-semibold text-navy transition-colors hover:bg-muted md:inline-flex"
             >
               Sign in
             </Link>
             <Link
               href="/register"
-              className="group hidden h-11 items-center gap-2 rounded-full bg-navy px-6 text-[14px] font-semibold text-navy-foreground transition-all hover:shadow-elegant md:inline-flex"
+              className="group hidden h-11 items-center gap-2 rounded-full bg-navy px-6 text-[15px] font-semibold text-navy-foreground transition-all hover:shadow-elegant md:inline-flex"
             >
               Start your Will
               <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
