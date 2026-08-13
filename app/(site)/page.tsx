@@ -707,35 +707,67 @@ async function PricingPreview() {
           now rides on the card itself, and is enforced where it always was —
           at checkout.
         */}
+        {/*
+          Individual plans in their own row; the practitioner rate below it.
+
+          Not one grid over both. There are three individual plans and one
+          lawyer plan, so a single three-column grid strands the fourth card
+          alone on a second row. Splitting them also stops the professional
+          rate reading as a fourth tier an individual might weigh up — it is a
+          different product for a different buyer, sold through registration
+          rather than a checkout.
+        */}
         <div className="mt-14 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {[...prices.will, ...prices.lawyerWill].map((plan) => (
+          {prices.will.map((plan) => (
             <PlanCard
               key={plan.id}
               plan={plan}
               quote={prices.quotes[plan.slug]}
               featured={plan.is_popular}
-              badge={
-                plan.audience === "lawyer" ? "For legal practitioners" : undefined
-              }
             >
               <Link
-                href={
-                  plan.audience === "lawyer"
-                    ? "/register?type=lawyer"
-                    : `/register?plan=${plan.slug}`
-                }
+                href={`/register?plan=${plan.slug}`}
                 className={`mt-8 flex h-13 items-center justify-center px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] transition-colors ${plan.is_popular
                   ? "bg-gold text-navy hover:bg-gold/90"
                   : "bg-navy text-navy-foreground hover:bg-navy/90"
                   }`}
               >
-                {plan.audience === "lawyer"
-                  ? "Register as a lawyer"
-                  : `Choose ${plan.name}`}
+                Choose {plan.name}
               </Link>
             </PlanCard>
           ))}
         </div>
+
+        {prices.lawyerWill.length > 0 && (
+          <div className="mt-12 border-t border-border pt-10">
+            <div className="flex items-baseline gap-3">
+              <h3 className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">
+                For legal practitioners
+              </h3>
+              <span className="text-xs text-muted-foreground">
+                Drafting on behalf of your own clients.
+              </span>
+            </div>
+
+            <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+              {prices.lawyerWill.map((plan) => (
+                <PlanCard
+                  key={plan.id}
+                  plan={plan}
+                  quote={prices.quotes[plan.slug]}
+                  featured={false}
+                >
+                  <Link
+                    href="/register?type=lawyer"
+                    className="mt-8 flex h-13 items-center justify-center bg-navy px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy-foreground transition-colors hover:bg-navy/90"
+                  >
+                    Register as a lawyer
+                  </Link>
+                </PlanCard>
+              ))}
+            </div>
+          </div>
+        )}
 
         <PricingFootnotes
           lodging={prices.lodging}

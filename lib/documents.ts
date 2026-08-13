@@ -52,6 +52,8 @@ export type UploadableKind = (typeof UPLOADABLE_KINDS)[number]["value"];
 export const DOCUMENT_KIND_LABELS: Record<string, string> = {
   identity_document: "Identity document",
   passport_photograph: "Passport photograph",
+  witness_identity: "Witness identification",
+  will_video: "Will recording",
   supporting_document: "Supporting document",
   generated_will: "Generated Will",
   signed_will: "Signed Will",

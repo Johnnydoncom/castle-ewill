@@ -76,31 +76,27 @@ export default async function PricingPage() {
               card itself — see `badge` — and is enforced where it always was,
               at checkout.
             */}
+            {/*
+              Individual plans in their own row, the practitioner rate in its
+              own section below.
+
+              Not one grid over both. There are three individual plans and one
+              lawyer plan, so a single three-column grid leaves a fourth card
+              orphaned on a second row — the same dead-cell problem the seven
+              stages had. Splitting them is also the more honest layout: the
+              professional rate is not a fourth tier an individual might weigh
+              up, it is a different product for a different buyer, and it is
+              sold through registration rather than a checkout.
+            */}
             <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {[...prices.will, ...prices.lawyerWill].map((plan) => (
+              {prices.will.map((plan) => (
                 <PlanCard
                   key={plan.id}
                   plan={plan}
                   quote={prices.quotes[plan.slug]}
                   featured={plan.is_popular}
-                  badge={
-                    plan.audience === "lawyer" ? "For legal practitioners" : undefined
-                  }
                 >
-                  {plan.audience === "lawyer" ? (
-                    /*
-                      Never a checkout. Buying at this rate needs an enrolment
-                      number checked against the roll, so the card sends
-                      practitioners to registration rather than to a payment
-                      that would be refused.
-                    */
-                    <Link
-                      href="/register?type=lawyer"
-                      className="mt-8 flex h-13 items-center justify-center bg-navy px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy-foreground transition-colors hover:bg-navy/90"
-                    >
-                      Register as a lawyer
-                    </Link>
-                  ) : signedIn ? (
+                  {signedIn ? (
                     <CheckoutButton
                       planSlug={plan.slug}
                       planName={plan.name}
@@ -124,6 +120,43 @@ export default async function PricingPage() {
                 </PlanCard>
               ))}
             </div>
+
+            {prices.lawyerWill.length > 0 && (
+              <div className="mt-16 border-t border-border pt-12">
+                <div className="flex items-baseline gap-3">
+                  <h2 className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">
+                    For legal practitioners
+                  </h2>
+                  <span className="text-xs text-muted-foreground">
+                    Drafting on behalf of your own clients.
+                  </span>
+                </div>
+
+                <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {prices.lawyerWill.map((plan) => (
+                    <PlanCard
+                      key={plan.id}
+                      plan={plan}
+                      quote={prices.quotes[plan.slug]}
+                      featured={false}
+                    >
+                      {/*
+                        Never a checkout. Buying at this rate needs an enrolment
+                        number checked against the roll, so the card sends
+                        practitioners to registration rather than to a payment
+                        that would be refused.
+                      */}
+                      <Link
+                        href="/register?type=lawyer"
+                        className="mt-8 flex h-13 items-center justify-center bg-navy px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy-foreground transition-colors hover:bg-navy/90"
+                      >
+                        Register as a lawyer
+                      </Link>
+                    </PlanCard>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <PricingFootnotes
               lodging={prices.lodging}

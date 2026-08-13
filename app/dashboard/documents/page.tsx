@@ -4,6 +4,8 @@ import { KeyRound, Lock, ShieldCheck } from "lucide-react";
 import { PageHead } from "@/components/dashboard/PageHead";
 import { DocumentVault } from "@/components/documents/DocumentVault";
 import { listUserDocuments } from "@/lib/actions/documents";
+import { getProfile } from "@/lib/actions/guards";
+import { WillRecordingUpload } from "@/components/will/WillRecordingUpload";
 import { formatBytes } from "@/lib/documents";
 
 export const metadata: Metadata = {
@@ -14,6 +16,15 @@ export const metadata: Metadata = {
 export default async function DocumentsPage() {
   // Scoped to the caller by the API — never by an id passed from here.
   const records = await listUserDocuments();
+
+  /*
+   * The Platinum capability. Read from the profile rather than worked out
+   * here: entitlement follows a settled payment, and a page that guessed at it
+   * would eventually offer a control the server refuses.
+   */
+  const profile = await getProfile();
+  const canRecord = profile?.can_attach_will_video ?? false;
+  const hasRecording = records.some((r) => r.kind === "will_video");
 
   const totalBytes = records.reduce((sum, r) => sum + r.size_bytes, 0);
 
@@ -34,6 +45,8 @@ export default async function DocumentsPage() {
         title="Sealed Vault"
         blurb="Everything you upload is encrypted before it touches a disk, readable only by you, and every access is logged."
       />
+
+      {canRecord && <WillRecordingUpload existing={hasRecording} />}
 
       <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         {stats.map((stat) => {

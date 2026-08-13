@@ -49,7 +49,7 @@ export function AuthShell({
         </div>
         <div className="relative flex h-full flex-col justify-between p-10">
           <div className="flex items-center justify-between">
-            <Logo linked={false} variant="light" />
+            <Logo linked={true} variant="light" />
             <div className="flex items-center gap-3 font-serif text-xs uppercase tracking-[0.3em] text-gold">
               <span className="h-px w-8 bg-gold/60" />
               RC 9701348

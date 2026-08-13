@@ -41,6 +41,8 @@ export type Profile = {
   /** Whether amendments are currently free — see `User::hasActiveSubscription()`. */
   has_active_subscription: boolean;
   subscription_expires_at: string | null;
+  /** Platinum: may attach a recording of themselves reading their Will. */
+  can_attach_will_video: boolean;
   two_factor_enabled: boolean;
   created_at: string | null;
   last_login_at?: string | null;
