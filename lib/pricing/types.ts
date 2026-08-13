@@ -8,9 +8,9 @@
  *
  * The rule these types encode: **no money arithmetic in the browser**. Every
  * amount arrives as a preformatted string composed by `PriceQuoteBuilder`
- * server-side, because Basic's headline ₦40,000 is not what Basic costs, and
- * a page that worked that out for itself could differ from what the gateway
- * charges.
+ * server-side. A headline price is not a bill — extras are added, and a plan
+ * that bundles one shows it as an included, zero-amount line — so a page that
+ * worked the total out for itself could differ from what the gateway charges.
  */
 
 export type PlanKind = "will" | "lodging" | "review" | "subscription";

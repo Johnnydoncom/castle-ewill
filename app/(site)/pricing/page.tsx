@@ -18,7 +18,7 @@ export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Pricing",
   description:
-    "Charged once per Will. Basic ₦40,000, or Premium at ₦120,000 with a solicitor's review and Probate Registry lodging included. Lodging is optional and charged separately. Lawyers drafting for clients pay ₦10,000 per Will.",
+    "Charged once per Will. Basic ₦40,000; Premium ₦125,000 with a solicitor's review and Probate Registry lodging included; Platinum ₦150,000, which adds a recording of you reading your signed Will. Lodging is optional and charged separately. Lawyers drafting for clients pay ₦10,000 per Will.",
 };
 
 export default async function PricingPage() {

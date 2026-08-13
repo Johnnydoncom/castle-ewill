@@ -197,11 +197,22 @@ export function HeroSlides() {
               {slide.cta.label}
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-1" />
             </Link>
+            {/*
+              "From ₦25,000" was hard-coded here and had stopped being true —
+              no plan has sold at that figure since the pricing model changed,
+              and the cheapest Will is ₦40,000. A price on a hero is a promise,
+              and one typed into a component drifts silently from the `plans`
+              table that actually bills people.
+
+              It now says where to look rather than restating a number this
+              file cannot keep correct. The pricing page renders the live
+              figures from the API.
+            */}
             <Link
               href="/pricing"
               className="group inline-flex h-14 items-center justify-center gap-2 rounded-full border border-white/20 px-8 text-[13px] font-semibold uppercase tracking-[0.18em] text-navy-foreground/85 transition-colors hover:border-gold/60 hover:text-gold"
             >
-              From ₦25,000
+              See pricing
               <ArrowUpRight className="h-4 w-4 transition-transform group-hover:-translate-y-0.5" />
             </Link>
           </div>
