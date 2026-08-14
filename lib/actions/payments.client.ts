@@ -62,7 +62,7 @@ function selectionFrom(formData: FormData) {
 }
 
 async function startCheckout(
-  provider: "paystack" | "flutterwave",
+  provider: "nomba" | "paystack" | "flutterwave",
   formData: FormData,
 ): Promise<FormState> {
   const selection = selectionFrom(formData);
@@ -101,7 +101,21 @@ export async function fetchQuoteAction(
   return result.ok ? result.data.data : null;
 }
 
+/**
+ * The primary checkout.
+ *
+ * Nomba is the house gateway, so this is what the main button uses. Named for
+ * its role rather than its vendor — swapping the primary later should be a
+ * change here, not a rename at every call site.
+ */
 export async function startCheckoutAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  return startCheckout("nomba", formData);
+}
+
+export async function startPaystackCheckoutAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {

@@ -12,7 +12,7 @@ const EMPTY: PriceList = {
   review: null,
   subscription: null,
   quotes: {},
-  providers: { paystack: false, flutterwave: false, bank_transfer: true },
+  providers: { nomba: false, paystack: false, flutterwave: false, bank_transfer: true },
 };
 
 /**

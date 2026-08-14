@@ -8,6 +8,7 @@ import { useFormAction } from "@/hooks/use-api-form";
 import {
   fetchQuoteAction,
   startCheckoutAction,
+  startPaystackCheckoutAction,
   startFlutterwaveCheckoutAction,
   startBankTransferAction,
   NO_OPTIONS,
@@ -95,6 +96,7 @@ export function WillCheckout({
   lodging,
   initialQuotes,
   flutterwaveEnabled,
+  paystackEnabled,
   hasActiveSubscription,
 }: {
   plans: Plan[];
@@ -114,6 +116,8 @@ export function WillCheckout({
   /** Composed server-side, keyed by slug — the state before any toggling. */
   initialQuotes: Record<string, PriceQuote>;
   flutterwaveEnabled: boolean;
+  /** Offered only when configured — see CheckoutButton. */
+  paystackEnabled: boolean;
   /** Already subscribed: the option is shown as met rather than offered again. */
   hasActiveSubscription: boolean;
 }) {
@@ -125,6 +129,7 @@ export function WillCheckout({
   const [repricing, startReprice] = useTransition();
 
   const [cardState, card] = useFormAction(startCheckoutAction);
+  const [paystackState, paystack] = useFormAction(startPaystackCheckoutAction);
   const [flwState, flutterwave] = useFormAction(startFlutterwaveCheckoutAction);
   const [transferState, transfer] = useFormAction(startBankTransferAction);
 
@@ -195,7 +200,7 @@ export function WillCheckout({
   }, [selected, options, cacheKey, baseline, fetched]);
 
   const error =
-    [cardState, flwState, transferState].find((s) => s.status === "error")
+    [cardState, paystackState, flwState, transferState].find((s) => s.status === "error")
       ?.message ?? null;
 
   if (plans.length === 0) {
@@ -345,12 +350,21 @@ export function WillCheckout({
       )}
 
       <div className="space-y-4">
+        {/* Nomba, the primary gateway. It offers card, transfer, USSD and QR
+            on its own hosted page, so the label names the act rather than the
+            instrument. */}
         <form action={card}>
           <SelectionFields planSlug={selected} options={options} />
-          <Submit label="Pay by card" featured />
+          <Submit label="Pay now" featured />
         </form>
 
         <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+          {paystackEnabled && (
+            <form action={paystack}>
+              <SelectionFields planSlug={selected} options={options} />
+              <SecondarySubmit label="Paystack" />
+            </form>
+          )}
           {flutterwaveEnabled && (
             <form action={flutterwave}>
               <SelectionFields planSlug={selected} options={options} />

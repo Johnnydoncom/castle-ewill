@@ -103,6 +103,7 @@ export default async function PricingPage() {
                       planName={plan.name}
                       featured={plan.is_popular}
                       flutterwaveEnabled={prices.providers.flutterwave}
+                      paystackEnabled={prices.providers.paystack}
                     />
                   ) : (
                     // Anonymous visitors create an account first; checkout needs

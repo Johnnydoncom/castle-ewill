@@ -61,6 +61,7 @@ export default async function DashboardPaymentsPage() {
           lodging={prices.lodging}
           initialQuotes={prices.quotes}
           flutterwaveEnabled={prices.providers.flutterwave}
+          paystackEnabled={prices.providers.paystack}
           hasActiveSubscription={Boolean(profile?.has_active_subscription)}
         />
       </section>

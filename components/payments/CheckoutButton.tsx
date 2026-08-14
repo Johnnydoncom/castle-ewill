@@ -3,6 +3,7 @@
 import { useFormAction } from "@/hooks/use-api-form";
 import {
   startCheckoutAction,
+  startPaystackCheckoutAction,
   startFlutterwaveCheckoutAction,
   startBankTransferAction,
 } from "@/lib/actions/payments.client";
@@ -60,29 +61,45 @@ export function CheckoutButton({
   planName,
   featured = false,
   flutterwaveEnabled = false,
+  paystackEnabled = false,
 }: {
   planSlug: string;
   planName: string;
   featured?: boolean;
-  /** Resolved on the server; the option is hidden rather than shown broken. */
+  /** Resolved on the server; an option is hidden rather than shown broken. */
   flutterwaveEnabled?: boolean;
+  paystackEnabled?: boolean;
 }) {
-  const [cardState, card] = useFormAction(startCheckoutAction);
+  /*
+   * The main button goes to Nomba, the primary gateway. The others are
+   * offered underneath only when they are actually configured — a button that
+   * can only answer "that payment method is not enabled yet" is worse than no
+   * button.
+   */
+  const [primaryState, primary] = useFormAction(startCheckoutAction);
+  const [paystackState, paystack] = useFormAction(startPaystackCheckoutAction);
   const [flwState, flutterwave] = useFormAction(startFlutterwaveCheckoutAction);
   const [transferState, transfer] = useFormAction(startBankTransferAction);
 
   const error =
-    [cardState, flwState, transferState].find((s) => s.status === "error")
-      ?.message ?? null;
+    [primaryState, paystackState, flwState, transferState].find(
+      (s) => s.status === "error",
+    )?.message ?? null;
 
   return (
     <div className="mt-8 space-y-4">
-      <form action={card}>
+      <form action={primary}>
         <input type="hidden" name="planSlug" value={planSlug} />
         <Submit label={`Choose ${planName}`} featured={featured} />
       </form>
 
       <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
+        {paystackEnabled && (
+          <form action={paystack}>
+            <input type="hidden" name="planSlug" value={planSlug} />
+            <SecondarySubmit label="Paystack" />
+          </form>
+        )}
         {flutterwaveEnabled && (
           <form action={flutterwave}>
             <input type="hidden" name="planSlug" value={planSlug} />

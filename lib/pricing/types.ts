@@ -74,6 +74,7 @@ export type PriceQuote = {
 };
 
 export type PaymentProviders = {
+  nomba: boolean;
   paystack: boolean;
   flutterwave: boolean;
   bank_transfer: boolean;

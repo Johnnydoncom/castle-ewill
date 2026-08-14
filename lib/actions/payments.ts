@@ -21,7 +21,7 @@ import { errorState, type FormState } from "./state";
 export type PaymentRecord = {
   id: string;
   reference: string;
-  provider: "paystack" | "flutterwave" | "bank_transfer";
+  provider: "nomba" | "paystack" | "flutterwave" | "bank_transfer";
   status: "pending" | "success" | "failed" | "abandoned" | "refunded";
   amount_kobo: number;
   amount_formatted: string;
