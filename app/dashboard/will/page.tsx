@@ -5,7 +5,6 @@ import { Download, FileText } from "lucide-react";
 
 import { JourneyActions } from "@/components/will/JourneyActions";
 import { JourneyBar } from "@/components/will/JourneyBar";
-import { getProfile } from "@/lib/actions/guards";
 import { getOrCreateDraft } from "@/lib/actions/will";
 import {
   applicableSteps,
@@ -46,14 +45,17 @@ export default async function WillBuilderPage({
   const { step: stepParam } = await searchParams;
 
   /*
-   * Frontend convenience only — the actual gate is the `kyc.verified`
-   * middleware on the backend's `wills` route group. This just avoids
-   * rendering the wizard for a moment before the API refuses it.
+   * No identity gate here, deliberately.
+   *
+   * This used to redirect anyone without `is_kyc_verified` straight to the KYC
+   * flow, mirroring a `kyc.verified` middleware that guarded the backend's
+   * `wills` routes. That middleware was removed when identity proofing moved
+   * to *after payment and before printing* — but this redirect was left
+   * behind, so the wizard still bounced every new client to a document check
+   * before they had written a word. Anyone may draft; the gate is on releasing
+   * the finished instrument, and it lives in `WillJourney::printBlockedBy()`
+   * where the server can enforce it.
    */
-  const profile = await getProfile();
-  if (!profile?.is_kyc_verified) {
-    redirect("/dashboard/kyc");
-  }
 
   // Scoped to the caller by the API. Returns the active draft, creating one on
   // first visit, with every child collection and the computed progress.
