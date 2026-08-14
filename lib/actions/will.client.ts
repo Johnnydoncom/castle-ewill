@@ -231,12 +231,21 @@ export async function submitWillAction(
 
   return apiMutation(`/wills/${willId}/submit`, {
     body: { confirmed_accurate: formData.get("confirmedAccurate") === "on" },
+    /*
+     * Straight on to payment, which is genuinely the next thing owed.
+     *
+     * Committing the answers is not the end of anything the client cares
+     * about — they want the document. Payment comes before printing, and
+     * identity after payment, so leaving them on a "submitted, now what?"
+     * screen would make them hunt for the step the journey already knows.
+     */
+    redirect: "/dashboard/payments?from=will",
     onError: (result) => ({
       status: "error",
       /*
-       * `verification_required` and `incomplete` both come back with copy the
-       * user can act on. Passing the backend's message through keeps one
-       * description of each rule rather than two that drift apart.
+       * `incomplete` comes back with copy the user can act on. Passing the
+       * backend's message through keeps one description of the rule rather
+       * than two that drift apart.
        */
       message: result.message,
       data: result.code ? { code: result.code } : undefined,

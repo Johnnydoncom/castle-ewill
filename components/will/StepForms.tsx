@@ -683,7 +683,14 @@ export function ReviewStep({
         </CheckboxField>
       </div>
 
-      <WizardFooter backHref={backHref} label="Submit for review" />
+      {/*
+        Not "Submit for review". Review is the *optional* stage, and most
+        clients skip it — labelling the only way out of the form as though it
+        summoned a solicitor promised something the platform does not do by
+        default. What the button actually does is commit the answers and move
+        on to payment.
+      */}
+      <WizardFooter backHref={backHref} label="Save & continue" />
     </form>
   );
 }
