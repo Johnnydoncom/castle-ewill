@@ -5,6 +5,7 @@ import { ArrowRight, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { HeroSlides } from "@/components/site/HeroSlides";
 import { PlanCard, PricingFootnotes } from "@/components/pricing/PlanCard";
+import { ProfessionalBand } from "@/components/pricing/ProfessionalBand";
 import { getPriceList } from "@/lib/pricing";
 
 export const metadata: Metadata = {
@@ -738,36 +739,13 @@ async function PricingPreview() {
           ))}
         </div>
 
-        {prices.lawyerWill.length > 0 && (
-          <div className="mt-12 border-t border-border pt-10">
-            <div className="flex items-baseline gap-3">
-              <h3 className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">
-                For legal practitioners
-              </h3>
-              <span className="text-xs text-muted-foreground">
-                Drafting on behalf of your own clients.
-              </span>
-            </div>
-
-            <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-              {prices.lawyerWill.map((plan) => (
-                <PlanCard
-                  key={plan.id}
-                  plan={plan}
-                  quote={prices.quotes[plan.slug]}
-                  featured={false}
-                >
-                  <Link
-                    href="/register?type=lawyer"
-                    className="mt-8 flex h-13 items-center justify-center bg-navy px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy-foreground transition-colors hover:bg-navy/90"
-                  >
-                    Register as a lawyer
-                  </Link>
-                </PlanCard>
-              ))}
-            </div>
-          </div>
-        )}
+        {prices.lawyerWill.map((plan) => (
+          <ProfessionalBand
+            key={plan.id}
+            plan={plan}
+            quote={prices.quotes[plan.slug]}
+          />
+        ))}
 
         <PricingFootnotes
           lodging={prices.lodging}

@@ -3,6 +3,7 @@ import Link from "next/link";
 
 import { getPriceList } from "@/lib/pricing";
 import { PlanCard, PricingFootnotes } from "@/components/pricing/PlanCard";
+import { ProfessionalBand } from "@/components/pricing/ProfessionalBand";
 import { CheckoutButton } from "@/components/payments/CheckoutButton";
 import { COMPANY } from "@/lib/company";
 import { currentUser } from "@/lib/actions/guards";
@@ -121,42 +122,13 @@ export default async function PricingPage() {
               ))}
             </div>
 
-            {prices.lawyerWill.length > 0 && (
-              <div className="mt-16 border-t border-border pt-12">
-                <div className="flex items-baseline gap-3">
-                  <h2 className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">
-                    For legal practitioners
-                  </h2>
-                  <span className="text-xs text-muted-foreground">
-                    Drafting on behalf of your own clients.
-                  </span>
-                </div>
-
-                <div className="mt-6 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {prices.lawyerWill.map((plan) => (
-                    <PlanCard
-                      key={plan.id}
-                      plan={plan}
-                      quote={prices.quotes[plan.slug]}
-                      featured={false}
-                    >
-                      {/*
-                        Never a checkout. Buying at this rate needs an enrolment
-                        number checked against the roll, so the card sends
-                        practitioners to registration rather than to a payment
-                        that would be refused.
-                      */}
-                      <Link
-                        href="/register?type=lawyer"
-                        className="mt-8 flex h-13 items-center justify-center bg-navy px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy-foreground transition-colors hover:bg-navy/90"
-                      >
-                        Register as a lawyer
-                      </Link>
-                    </PlanCard>
-                  ))}
-                </div>
-              </div>
-            )}
+            {prices.lawyerWill.map((plan) => (
+              <ProfessionalBand
+                key={plan.id}
+                plan={plan}
+                quote={prices.quotes[plan.slug]}
+              />
+            ))}
 
             <PricingFootnotes
               lodging={prices.lodging}
