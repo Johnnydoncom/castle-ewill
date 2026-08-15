@@ -8,7 +8,7 @@ import { JourneyActions } from "@/components/will/JourneyActions";
 import { JourneyBar } from "@/components/will/JourneyBar";
 import { ReviewSummary } from "@/components/will/ReviewSummary";
 import { WitnessIdentityUpload } from "@/components/will/WitnessIdentityUpload";
-import { getWill } from "@/lib/actions/will";
+import { readWill } from "@/lib/actions/will";
 import { getPriceList } from "@/lib/pricing";
 import { getProfile } from "@/lib/actions/guards";
 import { WillCheckout } from "@/components/payments/WillCheckout";
@@ -42,11 +42,46 @@ export default async function WillDetailPage({
   await requireUser();
 
   const { id } = await params;
-  const will = await getWill(id);
+  const read = await readWill(id);
 
-  // The API scopes reads to the caller, so somebody else's id simply is not
-  // found — never a 403, which would confirm it exists.
-  if (!will) notFound();
+  // The API scopes reads to the caller, so somebody else's id is a 404 too —
+  // never a 403, which would confirm it exists.
+  if (read.status === "not_found") notFound();
+
+  /*
+   * A failed read is not a missing Will, and must not be shown as one. This
+   * page used to render "Page not found" whenever the API was unreachable or
+   * refused — so a client whose Will was sitting safely in the database was
+   * told it did not exist, with nothing to act on and no way to tell the two
+   * apart.
+   */
+  if (read.status === "unavailable") {
+    return (
+      <div className="space-y-8">
+        <Link
+          href="/dashboard/wills"
+          className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-navy"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          All Wills
+        </Link>
+
+        <div className="border-l-2 border-destructive bg-destructive/5 p-6">
+          <h1 className="font-serif text-xl text-navy">
+            We could not open this Will just now.
+          </h1>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            Your Will is safe — this is a problem reading it, not a problem with
+            the document. Please try again in a moment, and tell us if it keeps
+            happening.
+          </p>
+          <p className="mt-3 text-xs text-muted-foreground">{read.message}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const will = read.will;
 
   /*
    * Witness identification is collected only when identity verification falls

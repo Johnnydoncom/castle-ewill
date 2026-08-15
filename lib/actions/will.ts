@@ -174,8 +174,44 @@ export async function getOrCreateDraft(): Promise<ApiWill | null> {
   return result.data.data;
 }
 
+/**
+ * One Will, or why it could not be read.
+ *
+ * `apiData` collapses every failure into its fallback, which meant a Will that
+ * exists but whose read was refused looked exactly like a Will that does not
+ * exist — and the page turned both into "Page not found". A client was told
+ * their own Will was missing while it sat in the database.
+ *
+ * The distinction matters because the remedies are opposite: "not found" is
+ * final, while a failed read is worth retrying and worth reporting.
+ */
+export type WillRead =
+  | { status: "found"; will: ApiWill }
+  | { status: "not_found" }
+  | { status: "unavailable"; message: string };
+
+export async function readWill(willId: string): Promise<WillRead> {
+  const result = await api<{ data: ApiWill }>(`/wills/${willId}`);
+
+  if (result.ok) {
+    return result.data?.data
+      ? { status: "found", will: result.data.data }
+      : { status: "unavailable", message: "The Will came back empty." };
+  }
+
+  // Only a 404 means the Will is genuinely not there for this client — the
+  // API scopes reads to the caller, so somebody else's Will is a 404 too.
+  if (result.status === 404) return { status: "not_found" };
+
+  console.error(`[will] could not read ${willId} — ${result.status} ${result.message}`);
+
+  return { status: "unavailable", message: result.message };
+}
+
 export async function getWill(willId: string): Promise<ApiWill | null> {
-  return apiData<ApiWill | null>(`/wills/${willId}`, null);
+  const read = await readWill(willId);
+
+  return read.status === "found" ? read.will : null;
 }
 
 export async function listWills(): Promise<ApiWill[]> {
