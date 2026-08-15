@@ -35,13 +35,20 @@ export const WILL_STEPS = [
     help: "An executor gathers your assets, settles debts and distributes what remains. A beneficiary may also serve as an executor.",
   },
   {
+    /*
+     * Specific gifts come before the residue, because that is the order the
+     * estate is actually distributed in. Dividing "what is left" before
+     * anything has been given away asks the testator to think backwards — it
+     * was step 6 and is now step 4 for exactly that reason.
+     */
     step: 4,
-    slug: "beneficiaries",
+    slug: "bequests",
     numeral: "IV",
-    title: "Beneficiaries",
-    eyebrow: "Who inherits",
-    intro: "Specify who inherits your estate, and in what proportion.",
-    help: "Shares of the residuary estate must total exactly 100%. Name a contingent beneficiary in case someone predeceases you.",
+    title: "Specific bequests",
+    eyebrow: "Particular gifts",
+    intro:
+      "List individual gifts of property or items, and who should receive them.",
+    help: "Describe each item precisely enough that a stranger could identify it. These are given out first; whatever remains is the residuary estate, which you divide in the next step.",
   },
   {
     step: 5,
@@ -55,13 +62,13 @@ export const WILL_STEPS = [
   },
   {
     step: 6,
-    slug: "bequests",
+    slug: "beneficiaries",
     numeral: "VI",
-    title: "Specific bequests",
-    eyebrow: "Particular gifts",
+    title: "Share of residuary estate",
+    eyebrow: "Who inherits what remains",
     intro:
-      "List individual gifts of property or items, and who should receive them.",
-    help: "Describe each item precisely enough that a stranger could identify it. Specific gifts are distributed before the residuary estate.",
+      "The residuary estate is everything left after the specific gifts above. Say who receives it, and in what proportion.",
+    help: "Shares must total exactly 100%. If you would rather leave the division to your executors' judgement, say so in the directions box instead of splitting it here.",
   },
   {
     step: 7,

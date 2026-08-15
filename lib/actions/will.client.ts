@@ -182,6 +182,9 @@ export async function saveBequestsAction(
 ): Promise<FormState> {
   const body: Record<string, unknown> = {
     bequests: collectRows(formData, "bequests"),
+    // "I have no specific gifts to make" — how a required step is finished
+    // honestly by an estate that genuinely has none.
+    bequests_declared_none: formData.get("bequestsDeclaredNone") === "on",
   };
 
   /*

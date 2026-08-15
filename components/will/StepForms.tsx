@@ -331,27 +331,23 @@ export function BeneficiariesStep({ will, help, backHref }: StepProps) {
                 defaultValue={fieldValue(state, name("address"), row?.address ?? "")}
                 className="sm:col-span-2"
               />
-              <div className="sm:col-span-2">
-                <CheckboxField
-                  name={name("isContingent")}
-                  defaultChecked={fieldChecked(state, name("isContingent"), row?.is_contingent ?? false)}
-                >
-                  This is a <strong>contingent</strong> beneficiary, who inherits
-                  only if a primary beneficiary predeceases me. Contingent shares
-                  are excluded from the 100% total.
-                </CheckboxField>
-              </div>
             </div>
           );
         }}
       />
 
+      {/*
+        Where a testator can say, in their own words, how the residue should be
+        handled — including leaving it to the executors' judgement. That is a
+        real instruction rather than a footnote, so it is not labelled
+        "Optional".
+      */}
       <TextArea
-        label="Further directions as to residue"
+        label="Directions to your executors about the residue"
         name="residuaryEstate"
-        hint="Optional"
-        rows={3}
-        placeholder="Any additional instructions about how the residue should be divided."
+        hint="In your own words"
+        rows={4}
+        placeholder="For example: my executors may divide the residue among my children in such shares as they think fit."
         defaultValue={fieldValue(state, "residuaryEstate", will.residuary_estate ?? "")}
       />
 
@@ -515,7 +511,6 @@ export function BequestsStep({ will, help, backHref }: StepProps) {
               <TextField
                 label="Relationship"
                 name={name("recipientRelationship")}
-                hint="Optional"
                 placeholder="Son"
                 defaultValue={fieldValue(state, name("recipientRelationship"), row?.recipient_relationship ?? "")}
               />
@@ -530,6 +525,22 @@ export function BequestsStep({ will, help, backHref }: StepProps) {
           );
         }}
       />
+
+      {/*
+        Specific bequests are a required step now, but an estate may genuinely
+        have no specific gifts. Without this, "required" would push people into
+        inventing a bequest to get past the screen — which is worse than the
+        optional step it replaced, because then the Will says something untrue.
+      */}
+      <div className="border border-border bg-background p-6">
+        <CheckboxField
+          name="bequestsDeclaredNone"
+          defaultChecked={fieldChecked(state, "bequestsDeclaredNone", will.bequests_declared_none ?? false)}
+        >
+          I have no specific gifts to make — everything I own forms the
+          residuary estate.
+        </CheckboxField>
+      </div>
 
       <WizardFooter backHref={backHref} />
     </form>

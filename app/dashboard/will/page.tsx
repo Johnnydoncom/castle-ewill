@@ -176,9 +176,11 @@ export default async function WillBuilderPage({
           {current === 1 && <PersonalStep {...stepProps} />}
           {current === 2 && <DeclarationStep {...stepProps} />}
           {current === 3 && <ExecutorsStep {...stepProps} />}
-          {current === 4 && <BeneficiariesStep {...stepProps} />}
+          {/* 4 is specific bequests and 6 the residuary shares — gifts are
+              made before what remains is divided. See lib/will/steps.ts. */}
+          {current === 4 && <BequestsStep {...stepProps} />}
           {current === 5 && <GuardianshipStep {...stepProps} />}
-          {current === 6 && <BequestsStep {...stepProps} />}
+          {current === 6 && <BeneficiariesStep {...stepProps} />}
           {current === 7 && <FuneralStep {...stepProps} />}
           {current === 8 && <WitnessesStep {...stepProps} />}
           {current === 9 && (

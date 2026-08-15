@@ -54,17 +54,14 @@ export function ReviewSummary({ will }: { will: ApiWill }) {
     },
     {
       step: 4,
-      title: "Beneficiaries",
-      rows: will.beneficiaries.length
-        ? will.beneficiaries.map(
-            (b) =>
-              `${b.full_name} (${b.relationship}) — ${
-                b.is_contingent
-                  ? "contingent"
-                  : `${Number(b.share_percent)}%`
-              }`,
+      title: "Specific bequests",
+      rows: will.bequests.length
+        ? will.bequests.map(
+            (b) => `${b.item_description} → ${b.recipient_name}`,
           )
-        : ["No beneficiaries named"],
+        : will.bequests_declared_none
+          ? ["No specific gifts — everything forms the residuary estate"]
+          : ["Not yet answered"],
     },
     {
       step: 5,
@@ -81,12 +78,13 @@ export function ReviewSummary({ will }: { will: ApiWill }) {
     },
     {
       step: 6,
-      title: "Specific bequests",
-      rows: will.bequests.length
-        ? will.bequests.map(
-            (b) => `${b.item_description} → ${b.recipient_name}`,
+      title: "Share of residuary estate",
+      rows: will.beneficiaries.length
+        ? will.beneficiaries.map(
+            (b) =>
+              `${b.full_name} (${b.relationship}) — ${Number(b.share_percent)}%`,
           )
-        : ["None recorded (optional)"],
+        : ["No beneficiaries named"],
     },
     {
       step: 7,

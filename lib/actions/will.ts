@@ -115,6 +115,7 @@ export type ApiWill = {
   funeral_preference: string | null;
   funeral_instructions: string | null;
   residuary_estate: string | null;
+  bequests_declared_none: boolean;
   special_instructions: string | null;
   confirmed_accurate: boolean;
   executors: WillPerson[];
