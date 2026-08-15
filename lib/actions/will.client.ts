@@ -111,7 +111,14 @@ async function saveStep(
     };
   }
 
-  return redirectState(`/dashboard/will?step=${result.data.data.current_step}`);
+  /*
+   * Back to this Will's own editor. Redirecting to `/dashboard/will` resolved
+   * whichever Will was in flight, so saving a step on one Will could move the
+   * client onto another between steps.
+   */
+  return redirectState(
+    `/dashboard/wills/${willId}/edit?step=${result.data.data.current_step}`,
+  );
 }
 
 /* -------------------------------------------------------------------------- */
