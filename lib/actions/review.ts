@@ -474,6 +474,10 @@ export async function saveSettingsGroupAction(
   if (Object.keys(fields).length > 0) body.fields = fields;
 
   return apiMutation(`/admin/settings/${group}`, {
+    // PUT, not the helper's default POST. The route is registered PUT-only —
+    // this is a replacement of a named group, not the creation of a new one —
+    // and the mismatch failed with "The POST method is not supported".
+    method: "PUT",
     body,
     successMessage: "Settings saved.",
   });

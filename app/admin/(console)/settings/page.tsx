@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { CheckCircle2, XCircle } from "lucide-react";
 
 import { PageHead } from "@/components/dashboard/PageHead";
@@ -6,7 +7,6 @@ import { StatusBadge } from "@/components/admin/DataTable";
 import { BankAccountForm } from "@/components/admin/BankAccountForm";
 import { VerificationProviderForm } from "@/components/admin/VerificationProviderForm";
 import { VerificationRequirementsForm } from "@/components/admin/VerificationRequirementsForm";
-import { SettingsGroupForm } from "@/components/admin/SettingsGroupForm";
 import {
   getAdminHealth,
   getSettingGroups,
@@ -82,11 +82,61 @@ export default async function AdminSettingsPage() {
         </ul>
       </section>
 
-      <div className="space-y-6">
-        {groups.map((group) => (
-          <SettingsGroupForm key={group.key} group={group} />
-        ))}
-      </div>
+      {/*
+        Cards, not the forms themselves. Every group on one scrolling page made
+        "change the SMS sender" a hunt through payment credentials, and put a
+        live gateway secret on screen next to an unrelated edit. Each module
+        now has its own page; this is the index, and it says at a glance how
+        much of each is configured.
+      */}
+      <section className="space-y-4">
+        <h2 className="font-serif text-xl text-navy">Configuration</h2>
+
+        <div className="grid gap-px border border-border bg-border sm:grid-cols-2">
+          {groups.map((group) => {
+            const set = group.fields.filter((f) => f.is_set).length;
+            const fromEnv = group.fields.filter(
+              (f) => f.source === "environment",
+            ).length;
+
+            return (
+              <Link
+                key={group.key}
+                href={`/admin/settings/${group.key}`}
+                className="group bg-background p-6 transition-colors hover:bg-surface"
+              >
+                <div className="flex items-baseline justify-between gap-3">
+                  <h3 className="font-serif text-lg text-navy">{group.label}</h3>
+                  <span className="shrink-0 text-[10px] uppercase tracking-[0.16em] text-muted-foreground">
+                    {set} of {group.fields.length} set
+                  </span>
+                </div>
+
+                <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+                  {group.description}
+                </p>
+
+                <div className="mt-4 flex flex-wrap items-center gap-x-4 gap-y-1 text-[10px] uppercase tracking-[0.16em]">
+                  {group.option && (
+                    <span className="text-gold">
+                      {group.option.choices[group.option.selected] ??
+                        group.option.selected}
+                    </span>
+                  )}
+                  {fromEnv > 0 && (
+                    <span className="text-muted-foreground">
+                      {fromEnv} from server .env
+                    </span>
+                  )}
+                  <span className="ml-auto text-navy transition-transform group-hover:translate-x-0.5">
+                    Configure &rarr;
+                  </span>
+                </div>
+              </Link>
+            );
+          })}
+        </div>
+      </section>
 
       <section className="space-y-4">
         <h2 className="font-serif text-xl text-navy">Company record</h2>
