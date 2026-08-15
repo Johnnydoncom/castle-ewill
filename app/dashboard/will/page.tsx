@@ -1,7 +1,6 @@
 import type { Metadata } from "next";
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Download, FileText } from "lucide-react";
+import { FileText } from "lucide-react";
 
 import { JourneyActions } from "@/components/will/JourneyActions";
 import { JourneyBar } from "@/components/will/JourneyBar";
@@ -13,7 +12,6 @@ import {
   stepByNumber,
   TOTAL_STEPS,
 } from "@/lib/will/steps";
-import { WILL_STATUS_LABELS } from "@/lib/will/reference";
 import {
   CompletionPill,
   StepHeading,
@@ -120,7 +118,20 @@ export default async function WillBuilderPage({
     backHref,
   };
 
-  // A submitted Will is read-only until a new version is started.
+  /*
+   * A submitted Will: no longer editable, but very much not finished.
+   *
+   * This screen used to say "locked while it is with our review team, you will
+   * be notified when the review is complete" and offer a Download PDF button.
+   * All three were wrong once review became optional and payment moved ahead
+   * of printing: nobody is necessarily reviewing it, no notification is coming,
+   * and the download 402s until the Will is paid for and its owner identified.
+   *
+   * A client whose session expired during checkout landed here and found no
+   * way back to payment at all. So it now shows the journey and its next
+   * action — the same components the final wizard step uses — which is the
+   * route back to paying, verifying and printing.
+   */
   if (will.status !== "draft") {
     return (
       <div className="space-y-8">
@@ -132,22 +143,25 @@ export default async function WillBuilderPage({
             </p>
           </div>
           <h1 className="font-serif text-3xl text-navy sm:text-4xl">
-            Your Will is {WILL_STATUS_LABELS[will.status]?.toLowerCase()}.
+            Your Will is written.
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            This document is locked while it is with our review team. You will be
-            notified as soon as the review is complete.
+            The answers are locked in. What remains is below — and you can pick
+            it up here whenever you like.
           </p>
-          <div className="mt-6 flex flex-wrap gap-3">
-            <Link
-              href={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${will.id}/pdf`}
-              className="inline-flex items-center gap-2 bg-navy px-6 py-3 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy-foreground transition-colors hover:bg-navy/90"
-            >
-              <Download className="h-4 w-4" />
-              Download PDF
-            </Link>
-          </div>
         </header>
+
+        {will.journey && (
+          <div className="space-y-6">
+            <JourneyBar journey={will.journey} />
+            <JourneyActions
+              willId={will.id}
+              journey={will.journey}
+              pdfUrl={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${will.id}/pdf`}
+            />
+          </div>
+        )}
+
         <ReviewSummary will={will} />
       </div>
     );
