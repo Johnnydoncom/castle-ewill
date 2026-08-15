@@ -235,14 +235,15 @@ export async function submitWillAction(
   return apiMutation(`/wills/${willId}/submit`, {
     body: { confirmed_accurate: formData.get("confirmedAccurate") === "on" },
     /*
-     * Straight on to payment, which is genuinely the next thing owed.
+     * Straight on to this Will's own page, where payment now lives.
      *
      * Committing the answers is not the end of anything the client cares
-     * about — they want the document. Payment comes before printing, and
-     * identity after payment, so leaving them on a "submitted, now what?"
-     * screen would make them hunt for the step the journey already knows.
+     * about — they want the document — so this lands them on the next thing
+     * owed rather than a "submitted, now what?" screen. It used to point at
+     * the global billing page, which no longer takes Will payments and could
+     * not have known which Will was meant anyway.
      */
-    redirect: "/dashboard/payments?from=will",
+    redirect: `/dashboard/wills/${willId}`,
     onError: (result) => ({
       status: "error",
       /*
@@ -278,9 +279,19 @@ export async function goToStepAction(
     { method: "POST", body: { step } },
   );
 
-  if (!result.ok) return redirectState("/dashboard/will");
+  /*
+   * Back to *this* Will's editor, not to the entry route.
+   *
+   * Redirecting to `/dashboard/will` resolved whichever Will was in flight, so
+   * paging through the wizard on one Will could silently move a client onto
+   * another. The failure case keeps the id too — landing on the right document
+   * matters more when something has just gone wrong, not less.
+   */
+  const editor = `/dashboard/wills/${willId}/edit`;
 
-  return redirectState(`/dashboard/will?step=${result.data.data.current_step}`);
+  if (!result.ok) return redirectState(editor);
+
+  return redirectState(`${editor}?step=${result.data.data.current_step}`);
 }
 
 /** "Save & Exit" — progress is already persisted, so this just leaves. */

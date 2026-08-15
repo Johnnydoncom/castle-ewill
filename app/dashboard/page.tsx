@@ -129,7 +129,7 @@ export default async function DashboardPage({
               <div className="mt-8 flex flex-wrap gap-3">
                 {activeWill.status === "draft" ? (
                   <Link
-                    href={`/dashboard/will?step=${resumeStep}`}
+                    href={`/dashboard/wills/${activeWill.id}/edit?step=${resumeStep}`}
                     className="group inline-flex items-center gap-3 bg-navy px-7 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy-foreground transition-colors hover:bg-navy/90"
                   >
                     {activeWill.completion_percent === 0
@@ -139,10 +139,10 @@ export default async function DashboardPage({
                   </Link>
                 ) : (
                   <Link
-                    href="/dashboard/will"
+                    href={`/dashboard/wills/${activeWill.id}`}
                     className="inline-flex items-center gap-3 bg-navy px-7 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy-foreground transition-colors hover:bg-navy/90"
                   >
-                    View your Will
+                    Manage your Will
                   </Link>
                 )}
                 {/*

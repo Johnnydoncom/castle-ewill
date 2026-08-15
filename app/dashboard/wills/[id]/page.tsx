@@ -165,9 +165,10 @@ export default async function WillDetailPage({
         </section>
       )}
 
+      {/* This Will's own editor, not "whichever is in flight". */}
       {will.status === "draft" && (
         <Link
-          href="/dashboard/will"
+          href={`/dashboard/wills/${will.id}/edit?step=${will.current_step}`}
           className="inline-flex items-center gap-2 border border-border px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy transition-colors hover:border-gold hover:text-gold"
         >
           Continue writing this Will
@@ -190,7 +191,7 @@ export default async function WillDetailPage({
 
       {needsWitnessId && <WitnessIdentityUpload uploaded={witnessIdCount} />}
 
-      <ReviewSummary will={will} />
+      <ReviewSummary will={will} editBasePath={`/dashboard/wills/${will.id}/edit`} />
     </div>
   );
 }

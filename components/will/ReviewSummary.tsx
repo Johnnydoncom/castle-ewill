@@ -11,7 +11,18 @@ import { WILL_STEPS } from "@/lib/will/steps";
  * the same rules that gate submission — so a section shown as complete here is
  * one the server agrees is complete.
  */
-export function ReviewSummary({ will }: { will: ApiWill }) {
+export function ReviewSummary({
+  will,
+  /*
+   * Where an Edit link should go. Defaults to the entry route, which resolves
+   * the Will in flight — but a caller that already knows which Will this is
+   * passes its own editor path, so the link cannot land on a different one.
+   */
+  editBasePath = "/dashboard/will",
+}: {
+  will: ApiWill;
+  editBasePath?: string;
+}) {
   const completions = new Map(
     (will.progress?.steps ?? []).map((c) => [c.step, c]),
   );
@@ -134,7 +145,7 @@ export function ReviewSummary({ will }: { will: ApiWill }) {
                   )}
                 </div>
                 <Link
-                  href={`/dashboard/will?step=${section.step}`}
+                  href={`${editBasePath}?step=${section.step}`}
                   className="shrink-0 text-xs uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-navy"
                 >
                   Edit
