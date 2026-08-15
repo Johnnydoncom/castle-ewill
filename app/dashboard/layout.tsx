@@ -5,11 +5,24 @@ import { requireCustomer } from "@/lib/actions/guards";
 export const dynamic = "force-dynamic";
 
 const nav = [
+  /*
+   * Organised around the Will, because that is the object clients think in and
+   * they may hold several.
+   *
+   * "Witnesses" and "Advisors" are gone. Both were properties of one Will
+   * wearing the costume of a destination: witnesses duplicated wizard step
+   * eight, advisors showed a single Will's review status. With more than one
+   * Will neither had an answer to "whose?", and both quietly picked one for
+   * you. They live on the Will now.
+   *
+   * Documents stays top-level: identity documents and the passport photograph
+   * belong to the *person*, not to any one Will. Billing stays too, narrowed
+   * to what is genuinely account-level — the subscription and the receipts.
+   * Paying for a Will happens on that Will.
+   */
   { href: "/dashboard", label: "Overview", icon: "overview" },
-  { href: "/dashboard/will", label: "Will Builder", icon: "will" },
+  { href: "/dashboard/wills", label: "My Wills", icon: "will" },
   { href: "/dashboard/documents", label: "Documents", icon: "documents" },
-  { href: "/dashboard/witnesses", label: "Witnesses", icon: "witnesses" },
-  { href: "/dashboard/advisors", label: "Advisors", icon: "advisors" },
   { href: "/dashboard/payments", label: "Billing", icon: "payments" },
   { href: "/dashboard/settings", label: "Settings", icon: "settings" },
 ] as const;

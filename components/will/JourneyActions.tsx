@@ -33,7 +33,16 @@ function Submit({ children }: { children: React.ReactNode }) {
  */
 const BLOCKERS: Record<
   PrintBlocker,
-  { icon: typeof CreditCard; title: string; body: string; cta: { label: string; href: string } | null }
+  {
+    icon: typeof CreditCard;
+    title: string;
+    body: string;
+    /*
+     * `href: null` means "this Will's own page" — payment happens on the Will
+     * it pays for, and only the component knows which Will that is.
+     */
+    cta: { label: string; href: string | null } | null;
+  }
 > = {
   incomplete: {
     icon: Scale,
@@ -45,7 +54,8 @@ const BLOCKERS: Record<
     icon: CreditCard,
     title: "Payment is the next step",
     body: "Your Will is complete. Settle the fee and we will produce the signed-ready document.",
-    cta: { label: "Go to payment", href: "/dashboard/payments" },
+    // Filled in per-Will below — payment happens on the Will it pays for.
+    cta: { label: "Go to payment", href: null },
   },
   kyc_required: {
     icon: ScanFace,
@@ -163,7 +173,7 @@ export function JourneyActions({
                 </p>
                 {blocker.cta && (
                   <Link
-                    href={blocker.cta.href}
+                    href={blocker.cta.href ?? `/dashboard/wills/${willId}`}
                     className="mt-5 inline-flex h-11 items-center bg-navy px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-foreground transition-colors hover:bg-navy/90"
                   >
                     {blocker.cta.label}

@@ -71,14 +71,17 @@ function SecondarySubmit({ label }: { label: string }) {
  * Flutterwave and transfer paths cannot get out of step over what was chosen.
  */
 function SelectionFields({
+  willId,
   planSlug,
   options,
 }: {
+  willId?: string;
   planSlug: string;
   options: PriceOptions;
 }) {
   return (
     <>
+      {willId && <input type="hidden" name="willId" value={willId} />}
       <input type="hidden" name="planSlug" value={planSlug} />
       {options.withReview && <input type="hidden" name="withReview" value="on" />}
       {options.withSubscription && (
@@ -90,6 +93,7 @@ function SelectionFields({
 }
 
 export function WillCheckout({
+  willId,
   plans,
   review,
   subscription,
@@ -99,6 +103,14 @@ export function WillCheckout({
   paystackEnabled,
   hasActiveSubscription,
 }: {
+  /*
+   * Which Will is being paid for.
+   *
+   * Sent explicitly because the server used to guess — "the most recently
+   * updated Will" — which is a coin flip once a client holds two, and credits
+   * the wrong one.
+   */
+  willId?: string;
   plans: Plan[];
   /** Optional per Will: a solicitor reads the draft. Null if unpublished. */
   review: Plan | null;
@@ -354,25 +366,25 @@ export function WillCheckout({
             on its own hosted page, so the label names the act rather than the
             instrument. */}
         <form action={card}>
-          <SelectionFields planSlug={selected} options={options} />
+          <SelectionFields willId={willId} planSlug={selected} options={options} />
           <Submit label="Pay now" featured />
         </form>
 
         <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
           {paystackEnabled && (
             <form action={paystack}>
-              <SelectionFields planSlug={selected} options={options} />
+              <SelectionFields willId={willId} planSlug={selected} options={options} />
               <SecondarySubmit label="Paystack" />
             </form>
           )}
           {flutterwaveEnabled && (
             <form action={flutterwave}>
-              <SelectionFields planSlug={selected} options={options} />
+              <SelectionFields willId={willId} planSlug={selected} options={options} />
               <SecondarySubmit label="Flutterwave" />
             </form>
           )}
           <form action={transfer}>
-            <SelectionFields planSlug={selected} options={options} />
+            <SelectionFields willId={willId} planSlug={selected} options={options} />
             <SecondarySubmit label="Bank transfer" />
           </form>
         </div>

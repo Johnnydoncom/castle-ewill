@@ -51,8 +51,13 @@ function optionsToBody(options: PriceOptions) {
  * from the `plans` table.
  */
 function selectionFrom(formData: FormData) {
+  const willId = String(formData.get("willId") ?? "");
+
   return {
     plan_slug: String(formData.get("planSlug") ?? ""),
+    // Which Will this pays for. Omitted rather than sent empty, so the server
+    // falls back to the Will in flight instead of trying to match "".
+    ...(willId ? { will_id: willId } : {}),
     ...optionsToBody({
       withReview: formData.get("withReview") === "on",
       withSubscription: formData.get("withSubscription") === "on",

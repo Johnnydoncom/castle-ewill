@@ -3,7 +3,6 @@ import Link from "next/link";
 import { CalendarCheck, Receipt } from "lucide-react";
 
 import { PageHead } from "@/components/dashboard/PageHead";
-import { WillCheckout } from "@/components/payments/WillCheckout";
 import { getPriceList } from "@/lib/pricing";
 import { listUserPayments } from "@/lib/actions/payments";
 import { getProfile, requireCustomer } from "@/lib/actions/guards";
@@ -36,10 +35,18 @@ export default async function DashboardPaymentsPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-10">
+      {/*
+        Account-level only.
+        
+        Paying for a Will moved onto the Will itself — a global checkout had to
+        guess which Will a client meant, and guessed wrong the moment they held
+        two. What is genuinely account-level stays: one subscription and one
+        payment history, however many Wills.
+      */}
       <PageHead
         kicker="Billing"
-        title="Pay for your Will"
-        blurb="Charged once, per Will. Everything payable is itemised before you are sent to the gateway."
+        title="Subscription and receipts"
+        blurb="Your subscription, and every payment you have made. Paying for a Will happens on that Will."
       />
 
       {profile?.has_active_subscription && expiresOn && (
@@ -53,18 +60,6 @@ export default async function DashboardPaymentsPage() {
         </div>
       )}
 
-      <section className="border border-border bg-background p-6 sm:p-8">
-        <WillCheckout
-          plans={prices.will}
-          review={prices.review}
-          subscription={prices.subscription}
-          lodging={prices.lodging}
-          initialQuotes={prices.quotes}
-          flutterwaveEnabled={prices.providers.flutterwave}
-          paystackEnabled={prices.providers.paystack}
-          hasActiveSubscription={Boolean(profile?.has_active_subscription)}
-        />
-      </section>
 
       <section className="space-y-4">
         <h2 className="font-serif text-xl text-navy">Your payments</h2>
