@@ -441,3 +441,40 @@ export type AdminAccountRow = {
 export async function listAdmins(): Promise<AdminAccountRow[]> {
   return apiData<AdminAccountRow[]>("/admin/admins", []);
 }
+
+/* -------------------------------------------------------------------------- */
+/*  Operator-editable configuration                                            */
+/* -------------------------------------------------------------------------- */
+
+export type SettingField = {
+  key: string;
+  label: string;
+  secret: boolean;
+  hint: string | null;
+  is_set: boolean;
+  /** Where the value in force came from — the question an operator has. */
+  source: "console" | "environment" | "unset";
+  /** Present for non-secret fields only. A secret never leaves the server. */
+  value: string | null;
+};
+
+export type SettingGroup = {
+  key: string;
+  label: string;
+  description: string;
+  fields: SettingField[];
+  option?: {
+    key: string;
+    label: string;
+    choices: Record<string, string>;
+    selected: string;
+  };
+};
+
+export async function getSettingGroups(): Promise<SettingGroup[]> {
+  const data = await apiData<{ groups: SettingGroup[] }>("/admin/settings", {
+    groups: [],
+  });
+
+  return data.groups;
+}

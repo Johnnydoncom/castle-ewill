@@ -6,7 +6,12 @@ import { StatusBadge } from "@/components/admin/DataTable";
 import { BankAccountForm } from "@/components/admin/BankAccountForm";
 import { VerificationProviderForm } from "@/components/admin/VerificationProviderForm";
 import { VerificationRequirementsForm } from "@/components/admin/VerificationRequirementsForm";
-import { getAdminHealth, getVerificationSettings } from "@/lib/actions/admin";
+import { SettingsGroupForm } from "@/components/admin/SettingsGroupForm";
+import {
+  getAdminHealth,
+  getSettingGroups,
+  getVerificationSettings,
+} from "@/lib/actions/admin";
 import { requireAdminPermission } from "@/lib/actions/guards";
 import { COMPANY } from "@/lib/company";
 
@@ -27,9 +32,10 @@ export const dynamic = "force-dynamic";
 export default async function AdminSettingsPage() {
   await requireAdminPermission("manage_settings");
 
-  const [{ checks, bank_account: bank }, verification] = await Promise.all([
+  const [{ checks, bank_account: bank }, verification, groups] = await Promise.all([
     getAdminHealth(),
     getVerificationSettings(),
+    getSettingGroups(),
   ]);
 
   return (
@@ -40,6 +46,12 @@ export default async function AdminSettingsPage() {
         blurb="Platform configuration and the health of every external dependency."
       />
 
+      {/*
+        Configuration sits directly under the health panel on purpose: a check
+        reporting "not configured" used to be a dead end, with the remedy in a
+        .env file on a server the reader may not have access to. Now the fix is
+        the next thing on the page.
+      */}
       <section className="space-y-4">
         <h2 className="font-serif text-xl text-navy">System health</h2>
         <ul className="divide-y divide-border border border-border bg-background">
@@ -69,6 +81,12 @@ export default async function AdminSettingsPage() {
           ))}
         </ul>
       </section>
+
+      <div className="space-y-6">
+        {groups.map((group) => (
+          <SettingsGroupForm key={group.key} group={group} />
+        ))}
+      </div>
 
       <section className="space-y-4">
         <h2 className="font-serif text-xl text-navy">Company record</h2>

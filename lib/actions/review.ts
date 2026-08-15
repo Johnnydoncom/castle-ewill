@@ -425,3 +425,56 @@ export async function setContactStatusAction(
     body: { status },
   });
 }
+
+/* -------------------------------------------------------------------------- */
+/*  Operator-editable configuration                                            */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Saves one settings group.
+ *
+ * Only fields the operator actually typed into are sent. A form that posted
+ * every field would clear every secret it was never allowed to display back —
+ * the server treats an empty value as "clear this override", which is a real
+ * and useful action, so it must not be sent by accident.
+ *
+ * Clearing is still reachable: a field explicitly emptied carries a marker so
+ * the intent survives the filter.
+ */
+export async function saveSettingsGroupAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const group = String(formData.get("group") ?? "");
+
+  if (!group) return errorState("That settings group could not be found.");
+
+  const fields: Record<string, string> = {};
+  const body: Record<string, unknown> = {};
+
+  for (const [name, raw] of formData.entries()) {
+    if (typeof raw !== "string") continue;
+
+    if (name.startsWith("field.")) {
+      const key = name.slice("field.".length);
+      const value = raw.trim();
+
+      // Untouched secrets arrive empty and must be left alone; a deliberate
+      // clear arrives with its own checkbox ticked.
+      const clearing = formData.get(`clear.${key}`) === "on";
+
+      if (value !== "" || clearing) fields[key] = value;
+    }
+
+    if (name === "option" && raw !== "") {
+      body[String(formData.get("optionKey") ?? "option")] = raw;
+    }
+  }
+
+  if (Object.keys(fields).length > 0) body.fields = fields;
+
+  return apiMutation(`/admin/settings/${group}`, {
+    body,
+    successMessage: "Settings saved.",
+  });
+}
