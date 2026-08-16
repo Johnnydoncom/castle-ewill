@@ -52,7 +52,17 @@ export default async function KycPage() {
         </p>
       </header>
 
+      {/*
+        "Awaiting review" needs a capture to review.
+        
+        This tested `status === "pending"` alone, but an attempt is created
+        pending the moment a challenge is issued — so a client whose liveness
+        check failed, or who simply closed the tab, came back to "recorded and
+        awaiting review" with the retry hidden behind it. Nothing had been
+        recorded, and no review was coming.
+      */}
       {verification.latest?.status === "pending" &&
+      verification.latest.is_submitted &&
       verification.latest.purpose === "kyc" ? (
         <div className="flex items-start gap-3 border-l-2 border-gold bg-gold/5 px-5 py-4 text-sm text-navy">
           <Clock className="mt-0.5 h-4 w-4 shrink-0 text-gold" />

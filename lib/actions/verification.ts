@@ -25,6 +25,14 @@ export type VerificationRecord = {
   challenges: string[] | null;
   completed_challenges: string[] | null;
   failure_reason: string | null;
+  /**
+   * Whether the client actually sent a capture.
+   *
+   * `status` cannot answer it: an attempt is `pending` from the moment it is
+   * issued, so one that was abandoned looks exactly like one awaiting a
+   * decision.
+   */
+  is_submitted: boolean;
   expires_at: string | null;
   created_at: string | null;
 };
