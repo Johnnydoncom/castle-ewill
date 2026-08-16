@@ -10,6 +10,8 @@ import {
 import { idleState } from "@/lib/actions/state";
 
 import {
+  baselineFrom,
+  type FaceBaseline,
   satisfies,
   THRESHOLD,
   eyeAspectRatio,
@@ -114,6 +116,17 @@ export function LivenessCheck({
     error: typeof console.error;
     warn: typeof console.warn;
   } | null>(null);
+
+  /*
+   * The client's resting face, measured before the first gesture is judged.
+   *
+   * Smiling and opening the mouth used to be compared against fixed ratios,
+   * which no ordinary face could reach — so those two challenges failed for
+   * everybody who did exactly what was asked. They are judged against this
+   * instead: a smile is wider than *your own* resting mouth.
+   */
+  const baselineRef = useRef<FaceBaseline | null>(null);
+  const baselineSamplesRef = useRef<Array<{ x: number; y: number }[]>>([]);
 
   const [phase, setPhase] = useState<Phase>("idle");
   const [message, setMessage] = useState<string | null>(null);
@@ -349,6 +362,25 @@ export function LivenessCheck({
             });
           }
 
+          /*
+           * The first ~10 frames are the resting face, not an attempt at the
+           * gesture. Collected while the prompt is still being read, so it
+           * costs the client nothing.
+           */
+          if (baselineRef.current === null) {
+            baselineSamplesRef.current.push(points);
+
+            if (baselineSamplesRef.current.length >= 10) {
+              baselineRef.current = baselineFrom(baselineSamplesRef.current);
+            }
+
+            // Judging a gesture against a half-built baseline would be worse
+            // than waiting a few frames for a reliable one.
+            rafRef.current = requestAnimationFrame(tick);
+
+            return;
+          }
+
           if (current === "blink") {
             const ear = eyeAspectRatio(points);
             if (ear < THRESHOLD.eyeClosed) blinkStateRef.current.sawClosed = true;
@@ -357,7 +389,7 @@ export function LivenessCheck({
             }
           }
 
-          if (satisfies(current, points, blinkStateRef.current.observed)) {
+          if (satisfies(current, points, blinkStateRef.current.observed, baselineRef.current)) {
             done.push(current);
             setCompleted([...done]);
             index += 1;
@@ -387,115 +419,159 @@ export function LivenessCheck({
 
   const currentChallenge = challenges[completed.length];
 
-  return (
-    <div className="border border-border bg-background p-6 sm:p-8">
-      <div className="flex items-start gap-3">
-        <Camera className="mt-0.5 h-5 w-5 shrink-0 text-gold" />
-        <div className="min-w-0 flex-1">
-          <h2 className="font-serif text-xl text-navy">{title}</h2>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            {description}
-          </p>
+  const currentPrompt = currentChallenge
+    ? CHALLENGE_PROMPTS[currentChallenge]
+    : null;
 
-          <div className="mt-6 grid gap-6 sm:grid-cols-[280px_1fr]">
-            <div className="relative aspect-[4/3] overflow-hidden border border-border bg-navy/5">
+  const isLive = phase === "running" || phase === "loading";
+
+  return (
+    /*
+     * A single centred card with the camera in an oval, rather than a video
+     * panel beside a checklist.
+     *
+     * The old layout put a 4:3 rectangle next to a column of text, which made
+     * the client's own face small and secondary while the instructions
+     * competed with it. Framing the face is what tells somebody where to sit
+     * and how close to be — the oval is doing real work, not decoration, and
+     * everything else is arranged around it.
+     */
+    <div className="mx-auto w-full max-w-md">
+      <div className="overflow-hidden rounded-3xl border border-border bg-background shadow-elegant">
+        <div className="p-6 sm:p-8">
+          <div className="text-center">
+            <h2 className="font-serif text-xl text-navy">{title}</h2>
+            <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+              {description}
+            </p>
+          </div>
+
+          {/* The face frame. */}
+          <div className="relative mx-auto mt-7 aspect-[3/4] w-full max-w-[16rem]">
+            <div
+              className={`absolute inset-0 overflow-hidden border-[3px] transition-colors duration-300 ${
+                phase === "done"
+                  ? "border-success"
+                  : phase === "error"
+                    ? "border-destructive"
+                    : isLive
+                      ? "border-gold"
+                      : "border-border"
+              }`}
+              // An oval, not a circle: a head is taller than it is wide, and a
+              // circle invites people to fill it by leaning in too close.
+              style={{ borderRadius: "50% / 42%" }}
+            >
               <video
                 ref={videoRef}
                 playsInline
                 muted
-                // Mirrored so movements feel natural; the yaw thresholds account
-                // for this.
+                // Mirrored so movements feel natural; the yaw thresholds
+                // account for this.
                 className="h-full w-full -scale-x-100 object-cover"
               />
-              <canvas ref={canvasRef} className="hidden" />
 
               {phase === "idle" && (
-                <div className="absolute inset-0 flex items-center justify-center text-xs uppercase tracking-[0.2em] text-muted-foreground">
-                  Camera off
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-surface text-center">
+                  <Camera className="h-6 w-6 text-muted-foreground/50" />
+                  <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                    Camera off
+                  </span>
                 </div>
               )}
+
               {phase === "loading" && (
-                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-xs text-muted-foreground">
-                  <Loader2 className="h-5 w-5 animate-spin text-gold" />
-                  Preparing…
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-surface">
+                  <Loader2 className="h-6 w-6 animate-spin text-gold" />
+                  <span className="text-[10px] uppercase tracking-[0.22em] text-muted-foreground">
+                    Preparing
+                  </span>
                 </div>
-              )}
-            </div>
-
-            <div>
-              {phase === "running" && currentChallenge && (
-                <div className="border-l-2 border-gold bg-gold/5 px-4 py-3">
-                  <p className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">
-                    Step {completed.length + 1} of {challenges.length}
-                  </p>
-                  <p className="mt-2 font-serif text-lg text-navy">
-                    {CHALLENGE_PROMPTS[currentChallenge]}
-                  </p>
-                </div>
-              )}
-
-              {challenges.length > 0 && (
-                <ol className="mt-4 space-y-2">
-                  {challenges.map((challenge, i) => {
-                    const isDone = i < completed.length;
-                    return (
-                      <li
-                        key={challenge}
-                        className={`flex items-center gap-2.5 text-sm ${
-                          isDone ? "text-navy" : "text-muted-foreground"
-                        }`}
-                      >
-                        {isDone ? (
-                          <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />
-                        ) : (
-                          <span className="h-4 w-4 shrink-0 rounded-full border border-border" />
-                        )}
-                        {CHALLENGE_PROMPTS[challenge]}
-                      </li>
-                    );
-                  })}
-                </ol>
-              )}
-
-              {message && (
-                <p
-                  role="status"
-                  className={`mt-4 flex items-start gap-2 text-sm ${
-                    phase === "done" ? "text-success" : "text-destructive"
-                  }`}
-                >
-                  {phase === "done" ? (
-                    <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
-                  ) : (
-                    <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
-                  )}
-                  {message}
-                </p>
-              )}
-
-              {(phase === "idle" || phase === "error") && (
-                <button
-                  type="button"
-                  onClick={start}
-                  className="mt-5 flex h-11 items-center justify-center gap-2 bg-navy px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-foreground transition-colors hover:bg-navy/90"
-                >
-                  {phase === "error" ? "Try again" : "Start identity check"}
-                </button>
               )}
 
               {phase === "submitting" && (
-                <p className="mt-5 flex items-center gap-2 text-sm text-muted-foreground">
-                  <Loader2 className="h-4 w-4 animate-spin text-gold" />
-                  Checking…
-                </p>
+                <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-navy/70 backdrop-blur-sm">
+                  <Loader2 className="h-6 w-6 animate-spin text-gold" />
+                  <span className="text-[10px] uppercase tracking-[0.22em] text-navy-foreground">
+                    Checking
+                  </span>
+                </div>
               )}
             </div>
           </div>
 
-          <p className="mt-6 text-xs leading-relaxed text-muted-foreground">
-            {footerNote}
-          </p>
+          <canvas ref={canvasRef} className="hidden" />
+
+          {/*
+            Progress as pips rather than a numbered checklist. With two
+            gestures a list of ticks is more furniture than information, and
+            the pips read at a glance while the client is looking at the
+            camera rather than at the words.
+          */}
+          {challenges.length > 0 && phase !== "done" && (
+            <div className="mt-6 flex items-center justify-center gap-2">
+              {challenges.map((challenge, i) => (
+                <span
+                  key={challenge}
+                  aria-hidden
+                  className={`h-1.5 rounded-full transition-all duration-300 ${
+                    i < completed.length
+                      ? "w-8 bg-success"
+                      : i === completed.length
+                        ? "w-8 bg-gold"
+                        : "w-4 bg-border"
+                  }`}
+                />
+              ))}
+            </div>
+          )}
+
+          {/* One instruction at a time, where the eye already is. */}
+          <div className="mt-4 min-h-[3.5rem] text-center">
+            {phase === "running" && currentPrompt && (
+              <>
+                <p className="text-[10px] uppercase tracking-[0.28em] text-gold">
+                  Step {completed.length + 1} of {challenges.length}
+                </p>
+                <p className="mt-1.5 font-serif text-lg text-navy">
+                  {currentPrompt}
+                </p>
+              </>
+            )}
+
+            {message && (
+              <p
+                role="status"
+                aria-live="polite"
+                className={`flex items-start justify-center gap-2 text-sm ${
+                  phase === "done" ? "text-success" : "text-destructive"
+                }`}
+              >
+                {phase === "done" ? (
+                  <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
+                ) : (
+                  <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                )}
+                <span className="text-left">{message}</span>
+              </p>
+            )}
+          </div>
+
+          {(phase === "idle" || phase === "error") && (
+            <button
+              type="button"
+              onClick={start}
+              className="mt-2 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-navy px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-foreground transition-colors hover:bg-navy/90"
+            >
+              <Camera className="h-4 w-4" />
+              {phase === "error" ? "Try again" : "Start camera check"}
+            </button>
+          )}
         </div>
+
+        <p className="border-t border-border bg-surface px-6 py-4 text-center text-xs leading-relaxed text-muted-foreground">
+          {footerNote}
+        </p>
       </div>
     </div>
   );

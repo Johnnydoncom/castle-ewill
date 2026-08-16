@@ -129,13 +129,80 @@ export const CHALLENGE_PROMPTS: Record<ChallengeName, string> = {
   smile: "Smile",
 };
 
+/**
+ * Thresholds.
+ *
+ * `yaw` and the eye ratios are absolute, because they measure a *shape* that
+ * barely varies between faces: an eye is either open or shut, and a head is
+ * either turned or it is not.
+ *
+ * Smiling and opening the mouth are different. Both were absolute too — a
+ * smile had to make the mouth 0.95× the distance between the outer eye
+ * corners, and an open mouth needed a height:width ratio above 0.5. Neither is
+ * reachable by an ordinary face: mouth width sits around 0.55–0.65 of eye
+ * width even on a broad smile, so "Smile" could not be passed by anyone, and
+ * "Open your mouth wide" demanded a full yawn.
+ *
+ * They are now measured against the person's **own neutral face**, captured
+ * while the prompt is being read. Faces differ far too much for one number to
+ * fit them all; what does not differ is that a smile is wider than your own
+ * resting mouth.
+ */
 export const THRESHOLD = {
   yaw: 0.35,
-  mouthOpen: 0.5,
   eyeOpen: 0.19,
   eyeClosed: 0.11,
-  smile: 0.95,
+
+  /** A smile must widen the mouth by this fraction of its resting width. */
+  smileGain: 0.08,
+  /** An open mouth must add this much to the resting height:width ratio. */
+  mouthOpenGain: 0.12,
+
+  /*
+   * Floors, for the case where no baseline was captured — a face that arrived
+   * mid-expression, or a camera that started late. Deliberately generous: a
+   * challenge that cannot be passed is worse than one that is easy, because
+   * the client is stuck rather than merely unchallenged, and this check is a
+   * first filter rather than the anti-spoofing control.
+   */
+  smileFloor: 0.62,
+  mouthOpenFloor: 0.28,
 } as const;
+
+/**
+ * A person's resting face, used to judge their own expressions against.
+ *
+ * Captured over several frames rather than one, so a blink or a twitch at the
+ * wrong instant cannot set a baseline nobody can then beat.
+ */
+export type FaceBaseline = {
+  smile: number;
+  mouthOpen: number;
+};
+
+export function baselineFrom(samples: Point[][]): FaceBaseline | null {
+  const smiles: number[] = [];
+  const mouths: number[] = [];
+
+  for (const points of samples) {
+    const smile = smileRatio(points);
+    const mouth = mouthAspectRatio(points);
+
+    if (smile > 0) smiles.push(smile);
+    if (mouth > 0) mouths.push(mouth);
+  }
+
+  if (smiles.length < 3 || mouths.length < 3) return null;
+
+  // Median, not mean: one frame caught mid-word should not drag the resting
+  // measurement with it.
+  const median = (xs: number[]) => {
+    const sorted = [...xs].sort((a, b) => a - b);
+    return sorted[Math.floor(sorted.length / 2)];
+  };
+
+  return { smile: median(smiles), mouthOpen: median(mouths) };
+}
 
 export type ChallengeName =
   | "turn_left"
@@ -155,6 +222,7 @@ export function satisfies(
   challenge: ChallengeName,
   points: Point[],
   blinkObserved = false,
+  baseline: FaceBaseline | null = null,
 ): boolean {
   switch (challenge) {
     case "turn_left":
@@ -163,9 +231,13 @@ export function satisfies(
     case "turn_right":
       return yawRatio(points) > THRESHOLD.yaw;
     case "open_mouth":
-      return mouthAspectRatio(points) > THRESHOLD.mouthOpen;
+      return baseline
+        ? mouthAspectRatio(points) >= baseline.mouthOpen + THRESHOLD.mouthOpenGain
+        : mouthAspectRatio(points) >= THRESHOLD.mouthOpenFloor;
     case "smile":
-      return smileRatio(points) > THRESHOLD.smile;
+      return baseline
+        ? smileRatio(points) >= baseline.smile * (1 + THRESHOLD.smileGain)
+        : smileRatio(points) >= THRESHOLD.smileFloor;
     case "blink":
       return blinkObserved;
     default:
