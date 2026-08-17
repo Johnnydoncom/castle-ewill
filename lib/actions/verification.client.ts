@@ -4,10 +4,11 @@ import { errorState, successState, type FormState } from "./state";
 /**
  * Identity verification's mutations, called directly from the browser.
  *
- * No image passes through here, and that is the whole shape of the hosted
- * integration: this module opens an attempt, receives a token, and later
- * reports that Smile ID accepted the job. The captures go from the client's
- * browser to Smile ID inside their own iframe.
+ * No image passes through here. We own the flow now — the screens are mounted
+ * in our own page from `@smileid/web-sdk` — but the job still goes from the
+ * client's browser straight to Smile ID's V3 API. This module opens an
+ * attempt, receives the token that authorises that post, and afterwards
+ * records the job id their 202 returned.
  */
 
 /**
@@ -18,19 +19,23 @@ import { errorState, successState, type FormState } from "./state";
  * the token seals the job id so a result cannot be pointed at somebody else.
  */
 export type SmileIdConfig = {
+  /** Short-lived v3 token, minted by our backend. The API key never leaves it. */
   token: string;
-  /**
-   * Required on the config object, not merely inside the token.
-   *
-   * Their script validates it and throws before opening anything — which it
-   * did, because the minted token already carries one and that looked like
-   * enough.
-   */
-  callback_url: string;
-  /** `camera` and `upload`, so an unreadable photograph can be replaced with a file. */
-  document_capture_modes?: string[];
-  product: string;
+  /** Where the browser posts the job — follows the configured environment. */
+  endpoint: string;
   environment: "sandbox" | "production";
+  callback_url: string;
+  country: string;
+  /**
+   * How a verdict finds its attempt.
+   *
+   * Smile ID generate `job_id` and `user_id` themselves and return them in the
+   * 202, so — unlike the hosted modal, where we chose the job id — this is what
+   * travels with the submission and comes back on the webhook verbatim.
+   */
+  partner_params: { attempt_id: string };
+  consent: { notice_language: string; notice_privacy_policy_url: string };
+  document_capture_modes: string;
   partner_details: {
     partner_id: string;
     name: string;
@@ -85,18 +90,22 @@ export async function startVerificationAction(
 }
 
 /**
- * Records that the hosted flow's job was accepted.
+ * Records that Smile ID accepted the job.
  *
- * Not a verdict, and carries nothing: Smile ID already has the captures — the
- * browser uploaded them inside their iframe. This exists so the client's own
- * dashboard stops offering a retry for a check that is already running.
+ * Not a verdict: the browser posted the captures to Smile ID directly and read
+ * `job_id` from their 202. This records that, so the client's own dashboard
+ * stops offering a retry for a check that is already running, and so anyone
+ * looking later can find the job.
  */
 export async function submittedVerificationAction(
   attemptId: string,
+  jobId: string | null,
 ): Promise<FormState> {
   const result = await api<{ message: string }>("/verification/submitted", {
     method: "POST",
-    body: { attempt_id: attemptId },
+    // The job id is Smile ID's, read from their 202 by the browser that
+    // submitted. Null on the manual path, where no vendor job exists.
+    body: { attempt_id: attemptId, job_id: jobId },
   });
 
   if (!result.ok) {

@@ -108,16 +108,16 @@ describe("reporting a submission", () => {
   it("sends the attempt id and nothing else", async () => {
     api.mockResolvedValue({ ok: true, data: { message: "Submitted." } });
 
-    await submittedVerificationAction("attempt-1");
+    await submittedVerificationAction("attempt-1", "job_9");
 
     /*
-     * No images. Smile ID already has them — the browser uploaded them inside
-     * their iframe — and a payload here carrying a client's face would mean
-     * the relay had come back.
+     * No images. The browser posted them straight to Smile ID's V3 API; a
+     * payload here carrying a client's face would mean the relay had come
+     * back. Only the job id from their 202 travels this way.
      */
     expect(api).toHaveBeenCalledWith("/verification/submitted", {
       method: "POST",
-      body: { attempt_id: "attempt-1" },
+      body: { attempt_id: "attempt-1", job_id: "job_9" },
     });
   });
 
@@ -127,7 +127,7 @@ describe("reporting a submission", () => {
       message: "That attempt has expired. Please start again.",
     });
 
-    const result = await submittedVerificationAction("attempt-1");
+    const result = await submittedVerificationAction("attempt-1", "job_9");
 
     expect(result).toMatchObject({
       status: "error",

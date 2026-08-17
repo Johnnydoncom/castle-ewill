@@ -128,7 +128,6 @@ export function KycOnboarding({
         title="Verify your identity"
         description={`You'll be asked to photograph your ${label?.toLowerCase()} and then your face. It takes about a minute.`}
         footerNote="Your photographs are sent straight to our identity provider for checking. We do not keep them."
-        documentType={documentType}
         onVerified={() => {
           // A full reload rather than a client-side refresh: this is the
           // moment `is_kyc_verified` flips, and every server component down
