@@ -171,7 +171,12 @@ export function SmileIdCapture({
 
   const open = useCallback(
     (config: SmileIdConfig) => {
-      if (typeof window.SmileIdentity !== "function") {
+      /*
+       * Both halves checked before the call, because a failure inside their
+       * script surfaces as an unhandled rejection with no way to tell the
+       * client what happened.
+       */
+      if (typeof window.SmileIdentity !== "function" || !config?.token) {
         setPhase("error");
         setMessage(
           "We could not load the identity check. Check your connection and try again.",

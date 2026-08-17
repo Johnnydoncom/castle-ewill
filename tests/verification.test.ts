@@ -75,6 +75,20 @@ describe("starting an attempt", () => {
     }
   });
 
+  it("refuses when the API predates the hosted flow, instead of opening it with nothing", async () => {
+    // A stale deployment answers without the key at all. Opening the SDK with
+    // `undefined` threw inside their script — "can't access property token" —
+    // where there was no way to tell the client what had happened.
+    api.mockResolvedValue({
+      ok: true,
+      data: { data: { attempt_id: "attempt-1" } },
+    });
+
+    const result = await startVerificationAction();
+
+    expect(result.status).toBe("error");
+  });
+
   it("surfaces a refusal rather than pretending it started", async () => {
     api.mockResolvedValue({
       ok: false,

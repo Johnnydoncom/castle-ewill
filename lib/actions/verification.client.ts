@@ -37,7 +37,7 @@ export async function startVerificationAction(
   | { status: "success"; attemptId: string; smileId: SmileIdConfig | null }
 > {
   const result = await api<{
-    data: { attempt_id: string; smile_id: SmileIdConfig | null };
+    data: { attempt_id: string; smile_id?: SmileIdConfig | null };
   }>("/verification/start", {
     method: "POST",
     body: documentType ? { document_type: documentType } : {},
@@ -47,12 +47,30 @@ export async function startVerificationAction(
     return { status: "error", message: result.message };
   }
 
+  const payload = result.data.data;
+
+  /*
+   * `null` and *absent* are different answers, and conflating them is what
+   * turned a stale deployment into "can't access property token of undefined".
+   *
+   * Null is a real answer from a current server: no vendor is configured, so a
+   * person will decide this attempt. An absent key means the API answering us
+   * predates the hosted flow — there is no token coming, and opening the SDK
+   * with `undefined` would throw inside their script where we cannot explain
+   * it. Refused here instead, with something the client can act on.
+   */
+  if (!("smile_id" in payload)) {
+    return {
+      status: "error",
+      message:
+        "The identity check is unavailable just now. Please try again shortly.",
+    };
+  }
+
   return {
     status: "success",
-    attemptId: result.data.data.attempt_id,
-    // Null when no vendor is configured, which the screen reads as "a person
-    // will decide this".
-    smileId: result.data.data.smile_id,
+    attemptId: payload.attempt_id,
+    smileId: payload.smile_id ?? null,
   };
 }
 
