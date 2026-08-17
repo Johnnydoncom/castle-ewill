@@ -447,17 +447,23 @@ export function LivenessCheck({
           </div>
 
           {/* The face frame. */}
-          <div className="relative mx-auto mt-7 aspect-[3/4] w-full max-w-[16rem]">
+          <div className={`relative border-4 overflow-hidden mx-auto mt-7 aspect-[3/4] w-full max-w-[16rem] rounded-1/2 ${phase === "done"
+              ? "border-success"
+              : phase === "error"
+                ? "border-destructive"
+                : isLive
+                  ? "border-gold"
+                  : "border-border"
+            }`}>
             <div
-              className={`absolute inset-0 overflow-hidden border-[3px] transition-colors duration-300 ${
-                phase === "done"
+              className={`absolute inset-0 overflow-hidden border-[3px] transition-colors duration-300 ${phase === "done"
                   ? "border-success"
                   : phase === "error"
                     ? "border-destructive"
                     : isLive
                       ? "border-gold"
                       : "border-border"
-              }`}
+                }`}
               // An oval, not a circle: a head is taller than it is wide, and a
               // circle invites people to fill it by leaning in too close.
               style={{ borderRadius: "50% / 42%" }}
@@ -514,13 +520,12 @@ export function LivenessCheck({
                 <span
                   key={challenge}
                   aria-hidden
-                  className={`h-1.5 rounded-full transition-all duration-300 ${
-                    i < completed.length
+                  className={`h-1.5 rounded-full transition-all duration-300 ${i < completed.length
                       ? "w-8 bg-success"
                       : i === completed.length
                         ? "w-8 bg-gold"
                         : "w-4 bg-border"
-                  }`}
+                    }`}
                 />
               ))}
             </div>
@@ -543,9 +548,8 @@ export function LivenessCheck({
               <p
                 role="status"
                 aria-live="polite"
-                className={`flex items-start justify-center gap-2 text-sm ${
-                  phase === "done" ? "text-success" : "text-destructive"
-                }`}
+                className={`flex items-start justify-center gap-2 text-sm ${phase === "done" ? "text-success" : "text-destructive"
+                  }`}
               >
                 {phase === "done" ? (
                   <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
