@@ -456,7 +456,7 @@ export function LivenessCheck({
                 : "border-border"
             }`}>
             <div
-              className={`absolute inset-0 overflow-hidden border-[3px] transition-colors duration-300 ${phase === "done"
+              className={`absolute inset-0 overflow-hiddenn bborder-[3px] transition-colors duration-300 ${phase === "done"
                 ? "border-success"
                 : phase === "error"
                   ? "border-destructive"
