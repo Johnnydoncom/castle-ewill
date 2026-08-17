@@ -5,115 +5,108 @@ import { AlertCircle, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
 
 import {
   startVerificationAction,
-  submitVerificationAction,
-  type CaptureConfig,
-  type PublishedImage,
+  submittedVerificationAction,
+  type SmileIdConfig,
 } from "@/lib/actions/verification.client";
 
 /**
- * Identity capture, by Smile ID's own web component.
+ * Identity verification, run by Smile ID's hosted web flow.
  *
- * ## Why a script tag and not a package
+ * ## What this component does, and what it deliberately does not
  *
- * The CDN build is a self-contained classic script — it bundles its own Preact
- * runtime and MediaPipe models and registers sixteen custom elements when it
- * runs. The npm package publishes unbundled ES modules that expect a bundler
- * to resolve their siblings, which is more machinery for the same component,
- * and it would put a megabyte of vendor code through our build for something
- * only one page uses. Loaded on demand, so nobody downloads it who never
- * reaches a verification.
+ * It asks our API to open an attempt and mint a **web token**, then calls
+ * `window.SmileIdentity({ token, … })`. Everything after that belongs to Smile
+ * ID: their screens, their camera handling, their liveness checks, and their
+ * upload — the captures go from the client's browser to Smile ID directly and
+ * never touch our servers. `onSuccess` means the job was accepted (202), not
+ * that it passed; the verdict arrives on our webhook.
  *
- * ## Why the version is pinned
+ * An earlier revision embedded Smile ID's `smart-camera-web` component and
+ * relayed base64 frames through our API. That is their *other* integration —
+ * the one for partners doing their own server-to-server submission — and it
+ * put us in the middle of the most sensitive images in the product for no
+ * benefit. This is the integration their documentation prescribes for a web
+ * app, and the one their example shows.
  *
- * `…/js/v11/…` tracks the major version and would update itself. This script
- * runs on the page where clients photograph their passport, so a silent
- * third-party update is a supply-chain change to the most sensitive screen in
- * the product. Bumping a number here is cheap; not knowing which code ran is
- * not.
+ * ## The script
+ *
+ * A plain tag, loaded on demand, exactly as documented. It defines
+ * `window.SmileIdentity` and opens an iframe on `links.usesmileid.com`.
  */
-const SDK_VERSION = "11.6.2";
-const SDK_SRC = `https://cdn.smileidentity.com/js/v${SDK_VERSION}/smart-camera-web.js`;
+const SDK_SRC = "https://cdn.smileidentity.com/inline/v1/js/script.min.js";
 
 /**
- * `<smart-camera-web>` for TypeScript.
+ * The hosted flow's configuration, as their documentation defines it.
  *
- * A typed alias over the tag name rather than an augmentation of the global
- * JSX namespace: React renders a string component as that element, so this is
- * the same markup with none of the reach. Only the attributes we set are
- * listed — the component observes many more, and enumerating them here would
- * be a second copy of its API, quietly drifting from the real one.
+ * Deliberately not a copy of every option they accept — only what we set. The
+ * rest is theirs to default.
  */
-type SmartCameraWebProps = React.HTMLAttributes<HTMLElement> & {
-  ref?: React.Ref<HTMLElement | null>;
-  "capture-id"?: string;
-  "document-type"?: string;
-  "partner-name"?: string;
-  "policy-url"?: string;
-  "theme-color"?: string;
+type SmileIdentityOptions = {
+  token: string;
+  product: string;
+  callback_url?: string;
+  environment: "sandbox" | "production";
+  partner_details: {
+    partner_id: string;
+    name: string;
+    logo_url: string;
+    policy_url: string;
+    theme_color: string;
+  };
+  onSuccess?: () => void;
+  onClose?: () => void;
+  onError?: (error: unknown) => void;
 };
 
-const SmartCameraWeb = "smart-camera-web" as unknown as React.FC<SmartCameraWebProps>;
-
-/** What the component hands over on `smart-camera-web.publish`. */
-type PublishDetail = {
-  images?: PublishedImage[];
-  meta?: { libraryVersion?: string };
-};
+declare global {
+  interface Window {
+    SmileIdentity?: (options: SmileIdentityOptions) => void;
+  }
+}
 
 /**
- * Loads the SDK once per page, however many times this mounts.
+ * Loads the script once per page, however many times this mounts.
  *
- * Kept at module scope rather than in a ref: two components mounting together
- * would otherwise each append a script tag, and the second registration of a
- * custom element throws.
+ * Module scope rather than a ref: two mounts would otherwise each append a tag
+ * and race to define the same global.
  */
 let sdkPromise: Promise<void> | null = null;
 
 function loadSdk(): Promise<void> {
   if (typeof window === "undefined") return Promise.resolve();
+  if (typeof window.SmileIdentity === "function") return Promise.resolve();
 
   if (sdkPromise === null) {
     sdkPromise = new Promise<void>((resolve, reject) => {
-      // Already defined — a previous mount got there first, or the script was
-      // cached and executed before this ran.
-      if (window.customElements?.get("smart-camera-web")) {
-        resolve();
-
-        return;
-      }
-
       const existing = document.querySelector<HTMLScriptElement>(
         `script[src="${SDK_SRC}"]`,
       );
 
-      const script = existing ?? document.createElement("script");
+      if (existing) {
+        existing.addEventListener("load", () => resolve());
+        existing.addEventListener("error", () =>
+          reject(new Error("The identity check could not be loaded.")),
+        );
 
-      // Resolve on the element being *defined*, not merely on load: the script
-      // registers the element as it executes, and rendering the tag before
-      // that leaves an inert unknown element on screen.
-      const settle = () =>
-        window.customElements
-          .whenDefined("smart-camera-web")
-          .then(() => resolve())
-          .catch(reject);
+        // Already executed — a previous mount got there first.
+        if (typeof window.SmileIdentity === "function") resolve();
 
-      script.addEventListener("load", settle);
+        return;
+      }
+
+      const script = document.createElement("script");
+
+      script.src = SDK_SRC;
+      script.async = true;
+      script.addEventListener("load", () => resolve());
       script.addEventListener("error", () =>
         reject(new Error("The identity check could not be loaded.")),
       );
 
-      if (!existing) {
-        script.src = SDK_SRC;
-        script.async = true;
-        document.head.appendChild(script);
-      } else if (existing.dataset.loaded === "true") {
-        settle();
-      }
-
-      script.dataset.loaded = "true";
+      document.head.appendChild(script);
     }).catch((error) => {
       // A failed load must not be cached as a permanent failure — the client's
-      // next attempt should get a fresh script tag rather than this rejection.
+      // next attempt should get a fresh tag rather than this rejection.
       sdkPromise = null;
 
       throw error;
@@ -123,7 +116,7 @@ function loadSdk(): Promise<void> {
   return sdkPromise;
 }
 
-type Phase = "idle" | "loading" | "capturing" | "submitting" | "done" | "error";
+type Phase = "idle" | "loading" | "running" | "recording" | "done" | "error";
 
 export function SmileIdCapture({
   title,
@@ -135,19 +128,86 @@ export function SmileIdCapture({
   title: string;
   description: string;
   footerNote: string;
-  /**
-   * Which ID the client said they would photograph. Advisory — it shapes the
-   * capture frame the component draws, and the server decides whether a
-   * document is captured at all.
-   */
+  /** Which ID the client said they would show. Advisory — the server decides the product. */
   documentType?: string | null;
   onVerified: () => void;
 }) {
-  const hostRef = useRef<HTMLElement | null>(null);
   const [phase, setPhase] = useState<Phase>("idle");
   const [message, setMessage] = useState<string | null>(null);
-  const [attemptId, setAttemptId] = useState<string | null>(null);
-  const [capture, setCapture] = useState<CaptureConfig | null>(null);
+
+  /*
+   * The attempt, held in a ref rather than state.
+   *
+   * Smile ID's callbacks fire from inside their iframe long after `start` has
+   * returned, and a closure over state would still be looking at the render
+   * that opened the flow.
+   */
+  const attemptRef = useRef<string | null>(null);
+
+  const reportSubmitted = useCallback(async () => {
+    const attemptId = attemptRef.current;
+
+    if (attemptId === null) return;
+
+    setPhase("recording");
+
+    /*
+     * Only tells our own API the job was accepted. It is not the verdict —
+     * that arrives on our webhook — and its purpose is to stop this client's
+     * dashboard offering a retry for a check already running.
+     */
+    const result = await submittedVerificationAction(attemptId);
+
+    setPhase("done");
+    setMessage(
+      result.status === "success"
+        ? (result.message ??
+            "Your identity check has been submitted. We will email you as soon as it is confirmed.")
+        : "Your identity check was submitted. We will email you as soon as it is confirmed.",
+    );
+
+    onVerified();
+  }, [onVerified]);
+
+  const open = useCallback(
+    (config: SmileIdConfig) => {
+      if (typeof window.SmileIdentity !== "function") {
+        setPhase("error");
+        setMessage(
+          "We could not load the identity check. Check your connection and try again.",
+        );
+
+        return;
+      }
+
+      setPhase("running");
+
+      window.SmileIdentity({
+        token: config.token,
+        product: config.product,
+        environment: config.environment,
+        partner_details: config.partner_details,
+        onSuccess: () => {
+          void reportSubmitted();
+        },
+        onClose: () => {
+          // Closing is not failing. The attempt stays open and the client can
+          // start again without being told anything went wrong.
+          setPhase("idle");
+          setMessage(null);
+        },
+        onError: (error: unknown) => {
+          setPhase("error");
+          setMessage(
+            typeof error === "string" && error.includes("ConsentDenied")
+              ? "The check cannot go ahead without your consent. You can start it again when you are ready."
+              : "The identity check could not be completed. Please try again.",
+          );
+        },
+      });
+    },
+    [reportSubmitted],
+  );
 
   const start = useCallback(async () => {
     setPhase("loading");
@@ -165,9 +225,9 @@ export function SmileIdCapture({
     }
 
     /*
-     * The attempt is opened after the SDK is loaded, so a client on a blocked
-     * network or an unsupported browser does not spend one on a check they
-     * were never going to be able to start.
+     * The attempt is opened after the script is loaded, so a client on a
+     * blocked network does not spend one on a check they were never going to
+     * be able to start.
      */
     const started = await startVerificationAction(documentType);
 
@@ -178,128 +238,48 @@ export function SmileIdCapture({
       return;
     }
 
-    setAttemptId(started.attemptId);
-    setCapture(started.capture);
-    setPhase("capturing");
-  }, [documentType]);
+    attemptRef.current = started.attemptId;
 
-  const publish = useCallback(
-    async (detail: PublishDetail) => {
-      const images = detail.images ?? [];
+    if (started.smileId === null) {
+      /*
+       * No vendor configured. The attempt is real and a person will decide it,
+       * so the client is told that rather than shown a broken camera.
+       */
+      await reportSubmitted();
 
-      if (attemptId === null) return;
+      return;
+    }
 
-      setPhase("submitting");
+    open(started.smileId);
+  }, [documentType, open, reportSubmitted]);
 
-      const result = await submitVerificationAction({
-        attemptId,
-        images,
-        libraryVersion: detail.meta?.libraryVersion ?? null,
-        documentType,
-      });
-
-      if (result.status === "success") {
-        setPhase("done");
-        setMessage(result.message ?? "Verification complete.");
-        onVerified();
-
-        return;
-      }
-
-      setPhase("error");
-      setMessage(
-        result.message ?? "We could not verify your identity. Please try again.",
-      );
-    },
-    [attemptId, documentType, onVerified],
-  );
-
-  /*
-   * Custom events, bound by hand.
-   *
-   * React's `on*` props only reach known DOM events, so a JSX
-   * `onSmart-camera-web.publish` would silently never fire. Bound on the host
-   * element instead, and rebound whenever the handler changes so it never
-   * closes over a stale attempt id.
-   */
-  useEffect(() => {
-    const host = hostRef.current;
-
-    if (host === null || phase !== "capturing") return;
-
-    const onPublish = (event: Event) => {
-      void publish((event as CustomEvent<PublishDetail>).detail ?? {});
-    };
-
-    const onCancelled = () => {
-      setPhase("idle");
-      setAttemptId(null);
-    };
-
-    host.addEventListener("smart-camera-web.publish", onPublish);
-    host.addEventListener("smart-camera-web.cancelled", onCancelled);
-    host.addEventListener("smart-camera-web.close", onCancelled);
-
-    return () => {
-      host.removeEventListener("smart-camera-web.publish", onPublish);
-      host.removeEventListener("smart-camera-web.cancelled", onCancelled);
-      host.removeEventListener("smart-camera-web.close", onCancelled);
-    };
-  }, [phase, publish]);
+  // Nothing to unmount: the flow lives in Smile ID's own overlay.
+  useEffect(() => () => undefined, []);
 
   return (
     <div className="mx-auto w-full max-w-md">
       <div className="overflow-hidden rounded-3xl border border-border bg-background shadow-elegant">
-        <div className="p-6 sm:p-8">
-          {phase !== "capturing" && (
-            <div className="text-center">
-              <ShieldCheck className="mx-auto h-6 w-6 text-gold" />
-              <h2 className="mt-3 font-serif text-xl text-navy">{title}</h2>
-              <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
-                {description}
-              </p>
-            </div>
-          )}
+        <div className="p-6 sm:p-8 text-center">
+          <ShieldCheck className="mx-auto h-6 w-6 text-gold" />
+          <h2 className="mt-3 font-serif text-xl text-navy">{title}</h2>
+          <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
+            {description}
+          </p>
 
-          {phase === "capturing" && capture !== null && (
-            /*
-             * The component sizes itself to its container — its own styles are
-             * `height: 100%` on the host — so this box is what decides how much
-             * room the camera gets.
-             */
-            <div className="h-[32rem] w-full">
-              <SmartCameraWeb
-                ref={hostRef}
-                // Presence, not value: the component reads `hasAttribute`, so
-                // any string turns document capture on.
-                {...(capture.document ? { "capture-id": "true" } : {})}
-                {...(capture.document_type
-                  ? { "document-type": capture.document_type }
-                  : {})}
-                partner-name={capture.partner_name}
-                policy-url={capture.policy_url}
-                // The editorial navy, so the vendor's screens do not arrive as
-                // a differently-branded interruption in the middle of ours.
-                theme-color="#0f1e3d"
-              />
-            </div>
-          )}
-
-          {phase === "loading" && (
+          {(phase === "loading" ||
+            phase === "running" ||
+            phase === "recording") && (
             <p className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin text-gold" />
-              Preparing your identity check…
+              {phase === "loading"
+                ? "Preparing your identity check…"
+                : phase === "running"
+                  ? "Follow the steps in the window that opened."
+                  : "Recording your submission…"}
             </p>
           )}
 
-          {phase === "submitting" && (
-            <p className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin text-gold" />
-              Checking what you captured…
-            </p>
-          )}
-
-          {message && phase !== "capturing" && (
+          {message && (
             <p
               role="status"
               aria-live="polite"
@@ -327,11 +307,9 @@ export function SmileIdCapture({
           )}
         </div>
 
-        {phase !== "capturing" && (
-          <p className="border-t border-border bg-surface px-6 py-4 text-center text-xs leading-relaxed text-muted-foreground">
-            {footerNote}
-          </p>
-        )}
+        <p className="border-t border-border bg-surface px-6 py-4 text-center text-xs leading-relaxed text-muted-foreground">
+          {footerNote}
+        </p>
       </div>
     </div>
   );

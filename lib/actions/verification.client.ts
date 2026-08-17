@@ -4,32 +4,40 @@ import { errorState, successState, type FormState } from "./state";
 /**
  * Identity verification's mutations, called directly from the browser.
  *
- * Capture belongs to the Smile ID Web SDK; this module only opens an attempt
- * and forwards what the component published. It decides nothing about the
- * images — not whether there are enough of them, not whether a document is
- * among them. Those are the server's questions, and a browser that answered
- * them itself would turn a precise refusal ("the camera did not capture enough
- * of the check") into a generic one.
+ * No image passes through here, and that is the whole shape of the hosted
+ * integration: this module opens an attempt, receives a token, and later
+ * reports that Smile ID accepted the job. The captures go from the client's
+ * browser to Smile ID inside their own iframe.
  */
 
-/** How the SDK should be configured for this person — decided by the server. */
-export type CaptureConfig = {
-  /** Whether to photograph an identity document as well as a face. */
-  document: boolean;
-  /** Smile ID's name for the document type, for the capture frame. */
-  document_type: string | null;
-  partner_name: string;
-  policy_url: string;
+/**
+ * Everything `window.SmileIdentity()` is called with, decided by the server.
+ *
+ * None of it is the browser's to choose: the product follows from whether this
+ * is a first verification or a recheck, the branding is company identity, and
+ * the token seals the job id so a result cannot be pointed at somebody else.
+ */
+export type SmileIdConfig = {
+  token: string;
+  product: string;
+  environment: "sandbox" | "production";
+  partner_details: {
+    partner_id: string;
+    name: string;
+    logo_url: string;
+    policy_url: string;
+    theme_color: string;
+  };
 };
 
 export async function startVerificationAction(
   documentType?: string | null,
 ): Promise<
   | { status: "error"; message: string }
-  | { status: "success"; attemptId: string; capture: CaptureConfig }
+  | { status: "success"; attemptId: string; smileId: SmileIdConfig | null }
 > {
   const result = await api<{
-    data: { attempt_id: string; capture: CaptureConfig };
+    data: { attempt_id: string; smile_id: SmileIdConfig | null };
   }>("/verification/start", {
     method: "POST",
     body: documentType ? { document_type: documentType } : {},
@@ -42,48 +50,25 @@ export async function startVerificationAction(
   return {
     status: "success",
     attemptId: result.data.data.attempt_id,
-    capture: result.data.data.capture,
+    // Null when no vendor is configured, which the screen reads as "a person
+    // will decide this".
+    smileId: result.data.data.smile_id,
   };
 }
 
-/** One image as `smart-camera-web.publish` hands it over. */
-export type PublishedImage = {
-  image: string;
-  image_type_id: number;
-};
-
 /**
- * Completes an attempt.
+ * Records that the hosted flow's job was accepted.
  *
- * JSON rather than multipart, because that is the shape the images arrive in:
- * the component publishes base64 strings tagged with Smile ID's own
- * `image_type_id`, and re-encoding them into file parts would discard the tag
- * that says which is the selfie and which the document.
+ * Not a verdict, and carries nothing: Smile ID already has the captures — the
+ * browser uploaded them inside their iframe. This exists so the client's own
+ * dashboard stops offering a retry for a check that is already running.
  */
-export async function submitVerificationAction(input: {
-  attemptId: string;
-  images: PublishedImage[];
-  libraryVersion?: string | null;
-  documentType?: string | null;
-}): Promise<FormState> {
-  if (!input.attemptId) {
-    return errorState("That verification attempt was not valid.");
-  }
-
-  if (input.images.length === 0) {
-    return errorState(
-      "No image was captured. Please allow camera access and try again.",
-    );
-  }
-
-  const result = await api<{ message: string }>("/verification/submit", {
+export async function submittedVerificationAction(
+  attemptId: string,
+): Promise<FormState> {
+  const result = await api<{ message: string }>("/verification/submitted", {
     method: "POST",
-    body: {
-      attempt_id: input.attemptId,
-      images: input.images,
-      library_version: input.libraryVersion ?? null,
-      document_type: input.documentType ?? null,
-    },
+    body: { attempt_id: attemptId },
   });
 
   if (!result.ok) {

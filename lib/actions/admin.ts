@@ -347,8 +347,6 @@ export type AdminVerificationRow = {
     match_score: number | null;
     liveness_score: number | null;
     /** The captured frame lives in the vault; this is its document id. */
-    /** Slot names still held for review; empty once decided. */
-    held_images?: string[] | null;
     created_at: string | null;
   };
   client: {

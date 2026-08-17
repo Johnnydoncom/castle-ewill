@@ -2,59 +2,56 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   startVerificationAction,
-  submitVerificationAction,
+  submittedVerificationAction,
 } from "@/lib/actions/verification.client";
 
 /**
- * The wire contract between the Smile ID Web SDK and Laravel.
+ * The seam between Smile ID's hosted flow and our API.
  *
- * This tier does not judge a verification — it forwards one. So what is worth
- * asserting is exactly that: the payload the component published arrives
- * unaltered, with the tags that say which image is which, and nothing this
- * module invented along the way. Everything else about the check happens on the
- * other side of this call.
+ * There is very little of it, which is the point of the integration: the
+ * browser hands a server-minted token to `window.SmileIdentity()` and uploads
+ * to Smile ID directly. So what is worth asserting is that this tier stays out
+ * of the way — it never invents configuration, never carries an image, and
+ * passes a refusal through rather than dressing it up.
  */
 
 const api = vi.hoisted(() => vi.fn());
 
 vi.mock("@/lib/api/browser", () => ({ api }));
 
-/** One image as `smart-camera-web.publish` hands it over. */
-const SELFIE = { image: "c2VsZmll", image_type_id: 2 };
-const LIVENESS = { image: "bGl2ZW5lc3M=", image_type_id: 6 };
-const ID_FRONT = { image: "aWQtZnJvbnQ=", image_type_id: 3 };
+const CONFIG = {
+  token: "sid.web.token",
+  product: "doc_verification",
+  environment: "sandbox" as const,
+  partner_details: {
+    partner_id: "9055",
+    name: "Castle eWill and Trust Limited",
+    logo_url: "https://castlewilltrust.com/logo.png",
+    policy_url: "https://castlewilltrust.com/privacy",
+    theme_color: "#0f1e3d",
+  },
+};
 
 beforeEach(() => {
   api.mockReset();
 });
 
 describe("starting an attempt", () => {
-  it("asks the server how the SDK should be configured", async () => {
+  it("takes the whole hosted-flow configuration from the server", async () => {
     api.mockResolvedValue({
       ok: true,
-      data: {
-        data: {
-          attempt_id: "attempt-1",
-          capture: {
-            document: true,
-            document_type: "NATIONAL_ID",
-            partner_name: "Castle eWill and Trust Limited",
-            policy_url: "https://castlewilltrust.com/privacy",
-          },
-        },
-      },
+      data: { data: { attempt_id: "attempt-1", smile_id: CONFIG } },
     });
 
     const result = await startVerificationAction("national_id");
 
     expect(result.status).toBe("success");
 
-    // Whether a document is photographed at all is the server's decision — it
-    // follows from whether this is a first verification or a recheck, and the
-    // browser is told, not asked.
     if (result.status === "success") {
-      expect(result.capture.document).toBe(true);
-      expect(result.capture.document_type).toBe("NATIONAL_ID");
+      // Nothing here is the browser's to choose — least of all the token,
+      // which is what seals the job id this result will settle against.
+      expect(result.smileId).toEqual(CONFIG);
+      expect(result.attemptId).toBe("attempt-1");
     }
 
     expect(api).toHaveBeenCalledWith("/verification/start", {
@@ -63,81 +60,64 @@ describe("starting an attempt", () => {
     });
   });
 
-  it("surfaces a refusal rather than pretending it started", async () => {
-    api.mockResolvedValue({ ok: false, message: "Too many attempts." });
+  it("reports no hosted flow when no vendor is configured", async () => {
+    api.mockResolvedValue({
+      ok: true,
+      data: { data: { attempt_id: "attempt-1", smile_id: null } },
+    });
 
     const result = await startVerificationAction();
 
-    expect(result).toEqual({ status: "error", message: "Too many attempts." });
+    // Null is a real answer — a person will decide this one — not a failure to
+    // be shown as a broken camera.
+    if (result.status === "success") {
+      expect(result.smileId).toBeNull();
+    }
+  });
+
+  it("surfaces a refusal rather than pretending it started", async () => {
+    api.mockResolvedValue({
+      ok: false,
+      message: "The identity check is unavailable just now.",
+    });
+
+    const result = await startVerificationAction();
+
+    expect(result).toEqual({
+      status: "error",
+      message: "The identity check is unavailable just now.",
+    });
   });
 });
 
-describe("submitting what was captured", () => {
-  it("forwards the published images untouched, tags and all", async () => {
-    api.mockResolvedValue({ ok: true, data: { message: "Recorded." } });
+describe("reporting a submission", () => {
+  it("sends the attempt id and nothing else", async () => {
+    api.mockResolvedValue({ ok: true, data: { message: "Submitted." } });
 
-    await submitVerificationAction({
-      attemptId: "attempt-1",
-      images: [SELFIE, LIVENESS, ID_FRONT],
-      libraryVersion: "11.6.2",
-      documentType: "national_id",
-    });
+    await submittedVerificationAction("attempt-1");
 
     /*
-     * `image_type_id` is the only thing that says which frame is the selfie and
-     * which the document — the list is otherwise homogeneous. Re-encoding these
-     * into file parts, as the previous multipart flow did, would throw that
-     * away.
+     * No images. Smile ID already has them — the browser uploaded them inside
+     * their iframe — and a payload here carrying a client's face would mean
+     * the relay had come back.
      */
-    expect(api).toHaveBeenCalledWith("/verification/submit", {
+    expect(api).toHaveBeenCalledWith("/verification/submitted", {
       method: "POST",
-      body: {
-        attempt_id: "attempt-1",
-        images: [SELFIE, LIVENESS, ID_FRONT],
-        library_version: "11.6.2",
-        document_type: "national_id",
-      },
+      body: { attempt_id: "attempt-1" },
     });
   });
 
-  it("refuses an empty capture without calling the server", async () => {
-    const result = await submitVerificationAction({
-      attemptId: "attempt-1",
-      images: [],
-    });
-
-    expect(result.status).toBe("error");
-    expect(api).not.toHaveBeenCalled();
-  });
-
-  it("does not decide for itself whether a capture is complete", async () => {
-    api.mockResolvedValue({ ok: true, data: { message: "Recorded." } });
-
-    // One frame and no document. The server decides whether that is enough —
-    // a browser that withheld it would turn a precise "the camera did not
-    // capture enough of the check" into a generic refusal.
-    await submitVerificationAction({
-      attemptId: "attempt-1",
-      images: [SELFIE],
-    });
-
-    expect(api).toHaveBeenCalledOnce();
-  });
-
-  it("passes a server refusal back to the client screen", async () => {
+  it("passes a server refusal back to the screen", async () => {
     api.mockResolvedValue({
       ok: false,
-      message: "Your identity document was not captured.",
+      message: "That attempt has expired. Please start again.",
     });
 
-    const result = await submitVerificationAction({
-      attemptId: "attempt-1",
-      images: [SELFIE],
-    });
+    const result = await submittedVerificationAction("attempt-1");
 
     expect(result).toMatchObject({
       status: "error",
-      message: "Your identity document was not captured.",
+      message: "That attempt has expired. Please start again.",
     });
   });
 });

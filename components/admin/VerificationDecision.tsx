@@ -50,36 +50,11 @@ function Submit({
  * a reviewer looking at a client's face should leave a trace.
  */
 
-/** Slot names, in the order a reviewer wants to see them. */
-const SLOT_LABEL: Record<string, string> = {
-  selfie: "Face",
-  id_front: "ID, front",
-  id_back: "ID, back",
-};
-
-function slotLabel(slot: string): string {
-  return (
-    SLOT_LABEL[slot] ??
-    (slot.startsWith("liveness-")
-      ? `Frame ${Number(slot.slice("liveness-".length)) + 1}`
-      : slot)
-  );
-}
-
 export function VerificationDecision({
   verificationId,
-  heldImages,
   witnessIdentities,
 }: {
   verificationId: string;
-  /**
-   * Which images are still held for this attempt.
-   *
-   * Empty is normal, not an error: images live outside the vault and are
-   * deleted the moment an attempt is decided, and an automated provider never
-   * writes them at all — it keeps its own copy and shows its own console.
-   */
-  heldImages?: string[] | null;
   /** The two witnesses' ID, on a kyc attempt — what the attestation is checked against. */
   witnessIdentities?: { id: string; file_name: string }[] | null;
 }) {
@@ -99,26 +74,12 @@ export function VerificationDecision({
 
   return (
     <div className="space-y-3">
-      {(heldImages ?? []).length > 0 ? (
-        <div className="flex flex-wrap gap-2">
-          {(heldImages ?? []).map((slot) => (
-            <a
-              key={slot}
-              href={`${apiBase}/admin/verifications/${verificationId}/images/${slot}`}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-block border border-border px-2.5 py-1 text-xs text-navy transition-colors hover:border-gold hover:text-gold"
-            >
-              {slotLabel(slot)}
-            </a>
-          ))}
-        </div>
-      ) : (
-        <p className="text-xs italic text-muted-foreground">
-          No images are held for this check — either the provider is doing the
-          comparison, or it has already been decided.
-        </p>
-      )}
+      {/*
+        No captures to show. Smile ID's hosted flow uploads them directly to
+        Smile ID, so a reviewer overturning an automated result looks at them
+        in Smile ID's own console — what this screen decides is the outcome,
+        not the photographs.
+      */}
 
       {(witnessIdentities ?? []).length > 0 && (
         <div className="flex flex-wrap items-center gap-2">
