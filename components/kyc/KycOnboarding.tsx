@@ -128,6 +128,7 @@ function UploadStep({
   title,
   hint,
   onBack,
+  backLabel = "Change",
   onUploaded,
 }: {
   kind: "identity_document" | "passport_photograph";
@@ -135,6 +136,7 @@ function UploadStep({
   title: string;
   hint: string;
   onBack?: () => void;
+  backLabel?: string;
   onUploaded: () => void;
 }) {
   const [state, action] = useFormAction(uploadDocumentAction, {
@@ -165,7 +167,7 @@ function UploadStep({
                 onClick={onBack}
                 className="shrink-0 text-xs uppercase tracking-[0.15em] text-muted-foreground underline underline-offset-4 hover:text-gold"
               >
-                Change
+                {backLabel}
               </button>
             )}
           </div>
@@ -221,6 +223,75 @@ function UploadStep({
   );
 }
 
+/**
+ * What is on file, with a way to change it, shown beside the liveness check.
+ *
+ * Without this the liveness step was a dead end: a client who realised their
+ * passport photograph was blurred, or that they had uploaded the wrong ID, had
+ * no route back and no way to fix it except to ask us. The documents are only
+ * replaceable up to this point — the page redirects once verified, and the
+ * vault refuses a replacement after that — so this is the last moment it can
+ * be offered, which is exactly why it has to be.
+ */
+function DocumentsOnFile({
+  onReplace,
+}: {
+  onReplace: (which: Replacing) => void;
+}) {
+  const rows: Array<{ which: Exclude<Replacing, null>; label: string }> = [
+    { which: "identity", label: "Identity document" },
+    { which: "passport", label: "Passport photograph" },
+  ];
+
+  return (
+    <div className="border border-border bg-surface px-5 py-4">
+      <p className="font-serif text-[10px] uppercase tracking-[0.28em] text-navy">
+        Documents on file
+      </p>
+
+      <ul className="mt-3 space-y-2">
+        {rows.map((row) => (
+          <li
+            key={row.which}
+            className="flex items-center justify-between gap-3 text-sm"
+          >
+            <span className="flex min-w-0 items-center gap-2 text-navy">
+              <CheckCircle2 className="h-4 w-4 shrink-0 text-success" />
+              <span className="truncate">{row.label}</span>
+            </span>
+            <button
+              type="button"
+              onClick={() => onReplace(row.which)}
+              className="shrink-0 text-xs uppercase tracking-[0.15em] text-muted-foreground underline underline-offset-4 hover:text-gold"
+            >
+              Replace
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+        Not clear enough, or the wrong document? Replace it before you start the
+        check — once your identity is verified these can no longer be changed
+        here.
+      </p>
+    </div>
+  );
+}
+
+/** A way out of a replacement the client thought better of, so choosing "Replace" is never a trap of its own. */
+function CancelReplacement({ onCancel }: { onCancel: () => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onCancel}
+      className="mx-auto block text-xs uppercase tracking-[0.15em] text-muted-foreground underline underline-offset-4 hover:text-gold"
+    >
+      Keep what I already uploaded
+    </button>
+  );
+}
+
 function RejectionNotice({
   reason,
   onReupload,
@@ -247,6 +318,9 @@ function RejectionNotice({
   );
 }
 
+/** Which document the client has asked to swap out, if any. */
+type Replacing = "identity" | "passport" | null;
+
 export function KycOnboarding({
   hasIdDocument,
   hasPassportPhoto,
@@ -260,24 +334,43 @@ export function KycOnboarding({
   const [idOnFile, setIdOnFile] = useState(hasIdDocument);
   const [passportOnFile, setPassportOnFile] = useState(hasPassportPhoto);
   const [documentType, setDocumentType] = useState<IdentityDocumentType | null>(null);
-  // A rejection might have been about the documents themselves, not the
-  // liveness check — offered once, rather than forcing a re-upload nobody asked for.
-  const [reuploading, setReuploading] = useState(false);
+  /*
+   * Which document is being swapped out, rather than a single "start again"
+   * flag.
+   *
+   * A client fixing a blurred passport photograph should not have to
+   * re-photograph an ID that was fine — and a rejection is just as likely to
+   * be about one document as both.
+   */
+  const [replacing, setReplacing] = useState<Replacing>(null);
   // `rejectionReason` is a server prop, stale the instant a fresh upload
   // completes client-side — once acted on, it must not reappear next to the
   // liveness check for documents the client just replaced.
   const [noticeDismissed, setNoticeDismissed] = useState(false);
 
-  const notice = rejectionReason && !noticeDismissed && !reuploading && (
-    <RejectionNotice reason={rejectionReason} onReupload={() => setReuploading(true)} />
+  const notice = rejectionReason && !noticeDismissed && replacing === null && (
+    <RejectionNotice
+      reason={rejectionReason}
+      onReupload={() => setReplacing("identity")}
+    />
   );
 
-  if (!idOnFile || reuploading) {
+  function replace(which: Replacing) {
+    setReplacing(which);
+    // The ID's type is chosen again with it; the old choice belongs to the
+    // document being discarded.
+    if (which === "identity") setDocumentType(null);
+  }
+
+  if (!idOnFile || replacing === "identity") {
     if (!documentType) {
       return (
         <div className="space-y-6">
           {notice}
           <DocumentTypeStep onChosen={setDocumentType} />
+          {replacing === "identity" && (
+            <CancelReplacement onCancel={() => setReplacing(null)} />
+          )}
         </div>
       );
     }
@@ -295,16 +388,18 @@ export function KycOnboarding({
           onBack={() => setDocumentType(null)}
           onUploaded={() => {
             setIdOnFile(true);
-            setPassportOnFile(false);
-            setReuploading(false);
+            setReplacing(null);
             setNoticeDismissed(true);
           }}
         />
+        {replacing === "identity" && (
+          <CancelReplacement onCancel={() => setReplacing(null)} />
+        )}
       </div>
     );
   }
 
-  if (!passportOnFile) {
+  if (!passportOnFile || replacing === "passport") {
     return (
       <div className="space-y-6">
         {notice}
@@ -312,11 +407,26 @@ export function KycOnboarding({
           kind="passport_photograph"
           title="Upload a passport photograph"
           hint="A recent, well-lit photograph of your face — this becomes the reference we compare against each time you submit or amend your Will."
+          // Only on the first pass: mid-flow this goes back a step, whereas a
+          // deliberate replacement is abandoned by the link below instead.
+          onBack={
+            replacing === null
+              ? () => {
+                  setIdOnFile(false);
+                  setDocumentType(null);
+                }
+              : undefined
+          }
+          backLabel="Back to ID"
           onUploaded={() => {
             setPassportOnFile(true);
+            setReplacing(null);
             setNoticeDismissed(true);
           }}
         />
+        {replacing === "passport" && (
+          <CancelReplacement onCancel={() => setReplacing(null)} />
+        )}
       </div>
     );
   }
@@ -324,6 +434,7 @@ export function KycOnboarding({
   return (
     <div className="space-y-6">
       {notice}
+      <DocumentsOnFile onReplace={replace} />
       <LivenessCheck
         title="Verify your identity"
         description="Now let's confirm it's really you. You'll be asked to perform a few short movements on camera, compared against the ID document you just uploaded."
