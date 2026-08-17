@@ -464,9 +464,9 @@ export function LivenessCheck({
                     ? "border-gold"
                     : "border-border"
                 }`}
-              // An oval, not a circle: a head is taller than it is wide, and a
-              // circle invites people to fill it by leaning in too close.
-              style={{ borderRadius: "50% / 42%" }}
+            // An oval, not a circle: a head is taller than it is wide, and a
+            // circle invites people to fill it by leaning in too close.
+            // style={{ borderRadius: "50% / 42%" }}
             >
               <video
                 ref={videoRef}
