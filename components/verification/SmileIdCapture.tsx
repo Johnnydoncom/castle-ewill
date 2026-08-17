@@ -294,7 +294,6 @@ export function SmileIdCapture({
               <span className="text-left">{message}</span>
             </p>
           )}
-
           {(phase === "idle" || phase === "error") && (
             <button
               type="button"
