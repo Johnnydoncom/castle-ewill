@@ -2,25 +2,38 @@ import { api } from "@/lib/api/browser";
 import { errorState, successState, type FormState } from "./state";
 
 /**
- * Face verification's mutations, called directly from the browser.
+ * Identity verification's mutations, called directly from the browser.
  *
- * The challenge sequence is issued and stored server-side (see
- * `verification.ts`'s docblock); this module only starts an attempt and
- * submits the capture, it never invents a challenge of its own.
+ * Capture belongs to the Smile ID Web SDK; this module only opens an attempt
+ * and forwards what the component published. It decides nothing about the
+ * images — not whether there are enough of them, not whether a document is
+ * among them. Those are the server's questions, and a browser that answered
+ * them itself would turn a precise refusal ("the camera did not capture enough
+ * of the check") into a generic one.
  */
 
-export type LivenessChallenge = {
-  name: string;
-  prompt: string;
+/** How the SDK should be configured for this person — decided by the server. */
+export type CaptureConfig = {
+  /** Whether to photograph an identity document as well as a face. */
+  document: boolean;
+  /** Smile ID's name for the document type, for the capture frame. */
+  document_type: string | null;
+  partner_name: string;
+  policy_url: string;
 };
 
-export async function startVerificationAction(): Promise<
+export async function startVerificationAction(
+  documentType?: string | null,
+): Promise<
   | { status: "error"; message: string }
-  | { status: "success"; attemptId: string; challenges: LivenessChallenge[] }
+  | { status: "success"; attemptId: string; capture: CaptureConfig }
 > {
   const result = await api<{
-    data: { attempt_id: string; challenges: LivenessChallenge[] };
-  }>("/verification/start", { method: "POST" });
+    data: { attempt_id: string; capture: CaptureConfig };
+  }>("/verification/start", {
+    method: "POST",
+    body: documentType ? { document_type: documentType } : {},
+  });
 
   if (!result.ok) {
     return { status: "error", message: result.message };
@@ -29,59 +42,48 @@ export async function startVerificationAction(): Promise<
   return {
     status: "success",
     attemptId: result.data.data.attempt_id,
-    challenges: result.data.data.challenges,
+    capture: result.data.data.capture,
   };
 }
+
+/** One image as `smart-camera-web.publish` hands it over. */
+export type PublishedImage = {
+  image: string;
+  image_type_id: number;
+};
 
 /**
  * Completes an attempt.
  *
- * The capture is forwarded as multipart rather than re-encoded: base64 in a
- * JSON body would inflate a 2 MB frame by a third for no benefit, and the
- * backend validates the *detected* MIME type, which survives only on a real
- * file part.
+ * JSON rather than multipart, because that is the shape the images arrive in:
+ * the component publishes base64 strings tagged with Smile ID's own
+ * `image_type_id`, and re-encoding them into file parts would discard the tag
+ * that says which is the selfie and which the document.
  */
-export async function submitVerificationAction(
-  _previous: FormState,
-  formData: FormData,
-): Promise<FormState> {
-  const attemptId = String(formData.get("attemptId") ?? "");
-  const capture = formData.get("capture");
+export async function submitVerificationAction(input: {
+  attemptId: string;
+  images: PublishedImage[];
+  libraryVersion?: string | null;
+  documentType?: string | null;
+}): Promise<FormState> {
+  if (!input.attemptId) {
+    return errorState("That verification attempt was not valid.");
+  }
 
-  if (!attemptId) return errorState("That verification attempt was not valid.");
-
-  if (!(capture instanceof File) || capture.size === 0) {
+  if (input.images.length === 0) {
     return errorState(
-      "No image was captured. Please allow camera access and retry.",
+      "No image was captured. Please allow camera access and try again.",
     );
-  }
-
-  const body = new FormData();
-  body.set("attempt_id", attemptId);
-  body.set("capture", capture);
-
-  for (const completed of formData.getAll("completed")) {
-    body.append("completed[]", String(completed));
-  }
-
-  /*
-   * The liveness sequence, forwarded as-is.
-   *
-   * Nothing is decided here about whether there are enough of them: the
-   * active provider decides that server-side, and a deployment on manual
-   * review needs none at all. A browser that withheld a short sequence would
-   * turn a precise "the camera did not capture enough of the check" into a
-   * generic refusal.
-   */
-  for (const frame of formData.getAll("liveness[]")) {
-    if (frame instanceof File && frame.size > 0) {
-      body.append("liveness[]", frame);
-    }
   }
 
   const result = await api<{ message: string }>("/verification/submit", {
     method: "POST",
-    formData: body,
+    body: {
+      attempt_id: input.attemptId,
+      images: input.images,
+      library_version: input.libraryVersion ?? null,
+      document_type: input.documentType ?? null,
+    },
   });
 
   if (!result.ok) {

@@ -4,7 +4,6 @@ import { Clock } from "lucide-react";
 
 import { getProfile } from "@/lib/actions/guards";
 import { getVerificationStatus } from "@/lib/actions/verification";
-import { listUserDocuments } from "@/lib/actions/documents";
 import { KycOnboarding } from "@/components/kyc/KycOnboarding";
 
 export const metadata: Metadata = {
@@ -21,17 +20,7 @@ export default async function KycPage() {
     redirect("/dashboard");
   }
 
-  const [verification, documents] = await Promise.all([
-    getVerificationStatus(),
-    listUserDocuments(),
-  ]);
-
-  const hasIdDocument = documents.some(
-    (document) => document.kind === "identity_document",
-  );
-  const hasPassportPhoto = documents.some(
-    (document) => document.kind === "passport_photograph",
-  );
+  const verification = await getVerificationStatus();
 
   return (
     <div className="mx-auto max-w-2xl space-y-8">
@@ -46,9 +35,9 @@ export default async function KycPage() {
           Let&apos;s confirm it&apos;s you.
         </h1>
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
-          A one-time check before you can start your Will. We compare a photo
-          of your identity document against a short liveness check, and an
-          administrator reviews the result.
+          A one-time check before you can print your Will. You photograph your
+          identity document and your face, and our identity provider confirms
+          they match. We do not keep the photographs.
         </p>
       </header>
 
@@ -74,8 +63,6 @@ export default async function KycPage() {
         </div>
       ) : (
         <KycOnboarding
-          hasIdDocument={hasIdDocument}
-          hasPassportPhoto={hasPassportPhoto}
           rejectionReason={
             verification.latest?.status === "failed" &&
             verification.latest.purpose === "kyc"

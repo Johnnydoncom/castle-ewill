@@ -342,22 +342,13 @@ export type AdminVerificationRow = {
     provider: string;
     /** `kyc` gates starting a Will; `will_submission` is the lighter per-submission recheck. */
     purpose: "kyc" | "will_submission";
-    challenges: string[] | null;
-    completed_challenges: string[] | null;
+
     failure_reason: string | null;
     match_score: number | null;
     liveness_score: number | null;
     /** The captured frame lives in the vault; this is its document id. */
-    capture_document_id: string | null;
-    /**
-     * What this attempt was actually compared against, snapshotted at
-     * submit time — the client's identity document, or their enrolled
-     * selfie if they had no usable ID on file yet.
-     */
-    reference_document_id: string | null;
-    reference_kind: "id_document" | "enrolled_selfie" | null;
-    /** Which kind of ID the client said the reference is — null for an enrolled-selfie reference. */
-    reference_document_type: string | null;
+    /** Slot names still held for review; empty once decided. */
+    held_images?: string[] | null;
     created_at: string | null;
   };
   client: { id: string; name: string | null; email: string };

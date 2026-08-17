@@ -49,31 +49,36 @@ function Submit({
  * only through the vault's own authorised download, which records every read:
  * a reviewer looking at a client's face should leave a trace.
  */
-const REFERENCE_KIND_LABEL: Record<string, string> = {
-  id_document: "the identity document",
-  enrolled_selfie: "their enrolled selfie",
+
+/** Slot names, in the order a reviewer wants to see them. */
+const SLOT_LABEL: Record<string, string> = {
+  selfie: "Face",
+  id_front: "ID, front",
+  id_back: "ID, back",
 };
 
-const IDENTITY_DOCUMENT_TYPE_LABEL: Record<string, string> = {
-  passport: "Passport",
-  drivers_license: "Driver's licence",
-  national_id: "National ID",
-  voters_card: "Voter's card",
-  other: "Other ID",
-};
+function slotLabel(slot: string): string {
+  return (
+    SLOT_LABEL[slot] ??
+    (slot.startsWith("liveness-")
+      ? `Frame ${Number(slot.slice("liveness-".length)) + 1}`
+      : slot)
+  );
+}
 
 export function VerificationDecision({
   verificationId,
-  captureDocumentId,
-  referenceDocumentId,
-  referenceKind,
-  referenceDocumentType,
+  heldImages,
 }: {
   verificationId: string;
-  captureDocumentId: string | null;
-  referenceDocumentId?: string | null;
-  referenceKind?: "id_document" | "enrolled_selfie" | null;
-  referenceDocumentType?: string | null;
+  /**
+   * Which images are still held for this attempt.
+   *
+   * Empty is normal, not an error: images live outside the vault and are
+   * deleted the moment an attempt is decided, and an automated provider never
+   * writes them at all — it keeps its own copy and shows its own console.
+   */
+  heldImages?: string[] | null;
 }) {
   const [rejecting, setRejecting] = useState(false);
 
@@ -91,33 +96,26 @@ export function VerificationDecision({
 
   return (
     <div className="space-y-3">
-      <div className="flex flex-wrap gap-x-4 gap-y-1">
-        {captureDocumentId && (
-          <a
-            href={`${apiBase}/documents/${captureDocumentId}/download`}
-            className="inline-block text-xs text-navy underline underline-offset-4 hover:text-gold"
-          >
-            View the capture
-          </a>
-        )}
-        {referenceDocumentId ? (
-          <a
-            href={`${apiBase}/documents/${referenceDocumentId}/download`}
-            className="inline-flex items-center gap-1.5 text-xs text-navy underline underline-offset-4 hover:text-gold"
-          >
-            View {REFERENCE_KIND_LABEL[referenceKind ?? ""] ?? "the reference image"}
-            {referenceDocumentType && (
-              <span className="rounded-sm border border-gold/40 px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-gold no-underline">
-                {IDENTITY_DOCUMENT_TYPE_LABEL[referenceDocumentType] ?? referenceDocumentType}
-              </span>
-            )}
-          </a>
-        ) : (
-          <span className="text-xs italic text-muted-foreground">
-            No reference image on file to compare against.
-          </span>
-        )}
-      </div>
+      {(heldImages ?? []).length > 0 ? (
+        <div className="flex flex-wrap gap-2">
+          {(heldImages ?? []).map((slot) => (
+            <a
+              key={slot}
+              href={`${apiBase}/admin/verifications/${verificationId}/images/${slot}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-block border border-border px-2.5 py-1 text-xs text-navy transition-colors hover:border-gold hover:text-gold"
+            >
+              {slotLabel(slot)}
+            </a>
+          ))}
+        </div>
+      ) : (
+        <p className="text-xs italic text-muted-foreground">
+          No images are held for this check — either the provider is doing the
+          comparison, or it has already been decided.
+        </p>
+      )}
 
       <div className="flex flex-wrap items-center gap-2">
         <form action={approve}>

@@ -23,25 +23,25 @@ const STEPS = [
     numeral: "I",
     icon: FileCheck2,
     title: "A valid means of identification",
-    body: "Your international passport, driver's licence, National ID (NIN) or voter's card — a government-issued document, not a self-declaration.",
+    body: "Your international passport, driver's licence, National ID (NIN) or voter's card — a government-issued document, not a self-declaration. You photograph it on camera, guided, rather than uploading a file.",
   },
   {
     numeral: "II",
     icon: Camera,
-    title: "A passport photograph",
-    body: "A clear, recent photograph of your face. This becomes the reference we compare against every time you return to submit or amend your Will — so an account, once verified, cannot quietly change hands.",
+    title: "Your face, in the same session",
+    body: "A short guided capture immediately after the document, so the face being compared and the document being checked come from one continuous session rather than two uploads that could have been assembled separately.",
   },
   {
     numeral: "III",
     icon: ScanFace,
-    title: "A short, on-camera liveness check",
-    body: "A few guided movements in front of your camera, so the person in front of the screen is demonstrably a live person, not a photograph or a recording.",
+    title: "A liveness check we do not mark ourselves",
+    body: "Whether the person in front of the camera is live — rather than a photograph, a screen or a recording — is judged by our identity provider, not by code running in your browser. Client-side checks can be looked up and defeated; this one cannot be, from where an attacker sits.",
   },
   {
     numeral: "IV",
     icon: UserCheck,
     title: "Document authentication and a face match",
-    body: "Your identity document is authenticated — its security features, machine-readable zone and barcodes checked, and the details printed on it extracted — then compared against your photograph. Every outcome is available for one of our administrators to review.",
+    body: "Your identity document is authenticated — its security features, machine-readable zone and barcodes checked, and the details printed on it extracted — then compared against your face. Every outcome is available for one of our administrators to review.",
   },
 ] as const;
 
@@ -49,12 +49,12 @@ const ASSURANCES = [
   {
     icon: Lock,
     title: "Encrypted at rest",
-    body: "Every document and photograph is encrypted (AES-256-GCM) before it touches storage. Nobody — including our own engineers — can read a file directly off a disk or backup.",
+    body: "Your Will is encrypted (AES-256-GCM) before it touches storage. Verification photographs are not stored at all — they go to our identity provider and are never written to our disks.",
   },
   {
     icon: ShieldCheck,
     title: "Read on a need-to-know basis",
-    body: "Every access to an identity document is checked against your account and logged, granted or refused. There is no general-purpose way to browse client documents.",
+    body: "Every access to a stored document is checked against your account and logged, granted or refused. There is no general-purpose way to browse client documents.",
   },
   {
     icon: UserCheck,
@@ -111,15 +111,15 @@ export default function SecurityPage() {
             </p>
             <p>
               That is the entire purpose of the identity check every client
-              completes before their first Will can be started: a
+              completes before their Will can be printed: a
               government-issued document authenticated against its own
-              security features, a photograph of the person holding it,
-              and a live camera check tying the two together. Not one
-              signal — three, reviewed as a whole.
+              security features, the face of the person holding it, and a
+              live camera check tying the two together — all captured in
+              one session. Not one signal — three, judged as a whole.
             </p>
             <p className="text-navy">
               We take this seriously enough to build it as a gate, not a
-              suggestion: no Will is drafted, and none of your details are
+              suggestion: no Will is printed, and none of your details are
               committed to a document, until this check is complete.
             </p>
           </div>
@@ -200,8 +200,8 @@ export default function SecurityPage() {
             <span className="italic text-gold">Have your ID to hand.</span>
           </h2>
           <p className="mx-auto mt-5 max-w-xl text-sm leading-relaxed text-navy-foreground/70">
-            Verification takes a few minutes once you have your identity
-            document and a clear photograph of yourself ready.
+            Verification takes a few minutes. You will need your identity
+            document to hand and a device with a camera.
           </p>
           <div className="mt-10 flex flex-wrap justify-center gap-4">
             <Link

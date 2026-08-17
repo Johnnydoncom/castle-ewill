@@ -22,8 +22,6 @@ export type VerificationRecord = {
   provider: string;
   /** `kyc` gates starting a Will; `will_submission` is the lighter per-submission recheck. */
   purpose: "kyc" | "will_submission";
-  challenges: string[] | null;
-  completed_challenges: string[] | null;
   failure_reason: string | null;
   /**
    * Whether the client actually sent a capture.

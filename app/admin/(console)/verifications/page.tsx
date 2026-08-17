@@ -147,22 +147,6 @@ export default async function AdminVerificationsPage({
                   </p>
                   <p className="text-xs text-muted-foreground">{client.email}</p>
 
-                  <dl className="mt-3 grid gap-x-6 gap-y-1 text-xs text-muted-foreground sm:grid-cols-2">
-                    <div>
-                      <dt className="inline font-medium">Requested: </dt>
-                      <dd className="inline">
-                        {(verification.challenges ?? []).join(", ") || "—"}
-                      </dd>
-                    </div>
-                    <div>
-                      <dt className="inline font-medium">Reported: </dt>
-                      <dd className="inline">
-                        {(verification.completed_challenges ?? []).join(", ") ||
-                          "none"}
-                      </dd>
-                    </div>
-                  </dl>
-
                   {/*
                     Scores appear only when an automated provider supplied them.
                     Under manual review there is nothing to show, and inventing a
@@ -201,10 +185,7 @@ export default async function AdminVerificationsPage({
                 <div className="mt-5 border-t border-border pt-5">
                   <VerificationDecision
                     verificationId={verification.id}
-                    captureDocumentId={verification.capture_document_id}
-                    referenceDocumentId={verification.reference_document_id}
-                    referenceKind={verification.reference_kind}
-                    referenceDocumentType={verification.reference_document_type}
+                    heldImages={verification.held_images}
                   />
                 </div>
               )}
