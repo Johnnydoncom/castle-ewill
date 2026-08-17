@@ -162,7 +162,7 @@ export function SmileIdCapture({
     setMessage(
       result.status === "success"
         ? (result.message ??
-            "Your identity check has been submitted. We will email you as soon as it is confirmed.")
+          "Your identity check has been submitted. We will email you as soon as it is confirmed.")
         : "Your identity check was submitted. We will email you as soon as it is confirmed.",
     );
 
@@ -269,23 +269,22 @@ export function SmileIdCapture({
           {(phase === "loading" ||
             phase === "running" ||
             phase === "recording") && (
-            <p className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Loader2 className="h-4 w-4 animate-spin text-gold" />
-              {phase === "loading"
-                ? "Preparing your identity check…"
-                : phase === "running"
-                  ? "Follow the steps in the window that opened."
-                  : "Recording your submission…"}
-            </p>
-          )}
+              <p className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Loader2 className="h-4 w-4 animate-spin text-gold" />
+                {phase === "loading"
+                  ? "Preparing your identity check…"
+                  : phase === "running"
+                    ? "Follow the steps in the window that opened."
+                    : "Recording your submission…"}
+              </p>
+            )}
 
           {message && (
             <p
               role="status"
               aria-live="polite"
-              className={`mt-6 flex items-start justify-center gap-2 text-sm ${
-                phase === "done" ? "text-success" : "text-destructive"
-              }`}
+              className={`mt-6 flex items-start justify-center gap-2 text-sm ${phase === "done" ? "text-success" : "text-destructive"
+                }`}
             >
               {phase === "done" ? (
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
@@ -306,7 +305,6 @@ export function SmileIdCapture({
             </button>
           )}
         </div>
-
         <p className="border-t border-border bg-surface px-6 py-4 text-center text-xs leading-relaxed text-muted-foreground">
           {footerNote}
         </p>
