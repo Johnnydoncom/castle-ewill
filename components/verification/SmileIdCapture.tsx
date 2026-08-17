@@ -44,7 +44,9 @@ const SDK_SRC = "https://cdn.smileidentity.com/inline/v1/js/script.min.js";
 type SmileIdentityOptions = {
   token: string;
   product: string;
-  callback_url?: string;
+  /** Required. Their script throws before opening if it is absent. */
+  callback_url: string;
+  document_capture_modes?: string[];
   environment: "sandbox" | "production";
   partner_details: {
     partner_id: string;
@@ -190,6 +192,8 @@ export function SmileIdCapture({
       window.SmileIdentity({
         token: config.token,
         product: config.product,
+        callback_url: config.callback_url,
+        document_capture_modes: config.document_capture_modes,
         environment: config.environment,
         partner_details: config.partner_details,
         onSuccess: () => {
@@ -202,6 +206,16 @@ export function SmileIdCapture({
           setMessage(null);
         },
         onError: (error: unknown) => {
+          /*
+           * Logged raw, always.
+           *
+           * Their messages are precise and ours is not — "Please provide a
+           * callback URL via the `callback_url` attribute" is the whole
+           * diagnosis, and swallowing it behind "could not be completed" cost
+           * a round trip to find out what a client had actually hit.
+           */
+          console.error("[smile-id]", error);
+
           setPhase("error");
           setMessage(
             typeof error === "string" && error.includes("ConsentDenied")

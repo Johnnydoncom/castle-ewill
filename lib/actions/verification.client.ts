@@ -19,6 +19,16 @@ import { errorState, successState, type FormState } from "./state";
  */
 export type SmileIdConfig = {
   token: string;
+  /**
+   * Required on the config object, not merely inside the token.
+   *
+   * Their script validates it and throws before opening anything — which it
+   * did, because the minted token already carries one and that looked like
+   * enough.
+   */
+  callback_url: string;
+  /** `camera` and `upload`, so an unreadable photograph can be replaced with a file. */
+  document_capture_modes?: string[];
   product: string;
   environment: "sandbox" | "production";
   partner_details: {
