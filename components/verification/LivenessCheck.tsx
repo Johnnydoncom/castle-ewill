@@ -256,27 +256,6 @@ export function LivenessCheck({
     lastFrameAtRef.current = 0;
     blinkStateRef.current = { sawClosed: false, observed: false };
 
-    const started = await startVerificationAction();
-
-    if (started.status === "error") {
-      setPhase("error");
-      setMessage(started.message);
-      return;
-    }
-
-    /*
-     * Narrowed to consts here, not read off `started` later.
-     *
-     * `started` is a `let` holding a union, and TypeScript discards the
-     * narrowing above once it is referenced inside the animation-frame closure
-     * — a closure could in principle see a reassigned value. Capturing both
-     * fields now keeps the types honest and the intent obvious.
-     */
-    const attemptId = started.attemptId;
-    const issued = started.challenges.map((c) => c.name as ChallengeName);
-
-    setChallenges(issued);
-
     try {
       // Installed before the WASM module loads and restored in `cleanup()`
       // — covering delegate creation *and* every `detectForVideo` call in
@@ -317,6 +296,38 @@ export function LivenessCheck({
       video.srcObject = stream;
       await video.play();
 
+      /*
+       * The attempt is opened last, once there is a camera to answer it with.
+       *
+       * It used to be the first thing this function did, so a denied camera
+       * permission, an unsupported browser or a failed model download each
+       * opened an attempt that could never be completed — spending the
+       * client's rate limit on a check they were never able to start, and
+       * leaving an abandoned row behind.
+       */
+      const started = await startVerificationAction();
+
+      if (started.status === "error") {
+        cleanup();
+        setPhase("error");
+        setMessage(started.message);
+
+        return;
+      }
+
+      /*
+       * Narrowed to consts here, not read off `started` later.
+       *
+       * `started` is a `let` holding a union, and TypeScript discards the
+       * narrowing above once it is referenced inside the animation-frame
+       * closure — a closure could in principle see a reassigned value.
+       * Capturing both fields now keeps the types honest and the intent
+       * obvious.
+       */
+      const attemptId = started.attemptId;
+      const issued = started.challenges.map((c) => c.name as ChallengeName);
+
+      setChallenges(issued);
       setPhase("running");
 
       let index = 0;
