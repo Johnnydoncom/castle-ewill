@@ -447,22 +447,22 @@ export function LivenessCheck({
           </div>
 
           {/* The face frame. */}
-          <div className={`relative border-4 overflow-hidden mx-auto mt-7 aspect-[3/4] w-full max-w-[16rem] rounded-1/2 ${phase === "done"
-              ? "border-success"
-              : phase === "error"
-                ? "border-destructive"
-                : isLive
-                  ? "border-gold"
-                  : "border-border"
+          <div className={`relative border-4 overflow-hidden mx-auto mt-7 aspect-[3/4] w-full max-w-[16rem] rounded-[50%] ${phase === "done"
+            ? "border-success"
+            : phase === "error"
+              ? "border-destructive"
+              : isLive
+                ? "border-gold"
+                : "border-border"
             }`}>
             <div
               className={`absolute inset-0 overflow-hidden border-[3px] transition-colors duration-300 ${phase === "done"
-                  ? "border-success"
-                  : phase === "error"
-                    ? "border-destructive"
-                    : isLive
-                      ? "border-gold"
-                      : "border-border"
+                ? "border-success"
+                : phase === "error"
+                  ? "border-destructive"
+                  : isLive
+                    ? "border-gold"
+                    : "border-border"
                 }`}
               // An oval, not a circle: a head is taller than it is wide, and a
               // circle invites people to fill it by leaning in too close.
@@ -521,10 +521,10 @@ export function LivenessCheck({
                   key={challenge}
                   aria-hidden
                   className={`h-1.5 rounded-full transition-all duration-300 ${i < completed.length
-                      ? "w-8 bg-success"
-                      : i === completed.length
-                        ? "w-8 bg-gold"
-                        : "w-4 bg-border"
+                    ? "w-8 bg-success"
+                    : i === completed.length
+                      ? "w-8 bg-gold"
+                      : "w-4 bg-border"
                     }`}
                 />
               ))}
