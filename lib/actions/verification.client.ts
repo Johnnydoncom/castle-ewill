@@ -35,6 +35,18 @@ export type SmileIdConfig = {
    */
   partner_params: { attempt_id: string };
   consent: { notice_language: string; notice_privacy_policy_url: string };
+  /**
+   * Who this is, from our own records.
+   *
+   * Required on every V3 job — but the element that collects it is not, since
+   * we already hold all of it.
+   */
+  user_details: {
+    given_names?: string;
+    last_name?: string;
+    email?: string;
+    phone_number?: string;
+  };
   document_capture_modes: string;
   partner_details: {
     partner_id: string;

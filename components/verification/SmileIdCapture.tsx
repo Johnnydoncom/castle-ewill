@@ -18,7 +18,13 @@ import {
  * standalone custom elements. We own the order and the layout; they own the
  * screens. Per their documentation, for Document Verification that order is:
  *
- *     consent → user details → document capture → selfie/liveness → submit
+ *     consent → document capture → selfie/liveness → submit
+ *
+ * Their guide puts `<smileid-user-details>` between the first two. It is left
+ * out on purpose: `user_details` is required on the job, but we already hold
+ * this person's name, email and phone number, and a form to re-type them on
+ * the way to a camera is a step that can only lose people. The backend fills
+ * the field from the account instead.
  *
  * The last step is ours: the browser posts one `multipart/form-data` job to
  * Smile ID **directly**, with a short-lived v3 token minted by our backend.
@@ -52,13 +58,6 @@ type CapturedImage = { image: string; image_type_id: number };
 
 type ConsentDetail = { granted: boolean; granted_at: string };
 
-type UserDetails = {
-  given_names: string;
-  last_name: string;
-  email?: string;
-  phone_number?: string;
-};
-
 type CustomElementProps = React.DetailedHTMLProps<
   React.HTMLAttributes<HTMLElement>,
   HTMLElement
@@ -82,7 +81,6 @@ declare module "react" {
         "partner-logo"?: string;
         "policy-url"?: string;
       };
-      "smileid-user-details": CustomElementProps;
       "smart-camera-web": CustomElementProps;
       "document-capture-screens": CustomElementProps & {
         "document-capture-modes"?: string;
@@ -106,7 +104,6 @@ function loadElements(): Promise<void> {
 
   elementsPromise ??= (async () => {
     await import("@smileid/web-sdk/consent");
-    await import("@smileid/web-sdk/user-details");
     await import("@smileid/web-sdk/document-capture");
     await import("@smileid/web-sdk/smart-camera-web");
   })().catch((error: unknown) => {
@@ -128,7 +125,7 @@ function toJpegFile(base64: string, filename: string): File {
   return new File([buffer], filename, { type: "image/jpeg" });
 }
 
-type Step = "idle" | "loading" | "consent" | "details" | "capture";
+type Step = "idle" | "loading" | "consent" | "capture";
 type Outcome = null | { kind: "done" | "error"; message: string };
 
 export function SmileIdCapture({
@@ -156,7 +153,6 @@ export function SmileIdCapture({
   const attemptRef = useRef<string | null>(null);
   const configRef = useRef<SmileIdConfig | null>(null);
   const consentRef = useRef<ConsentDetail | null>(null);
-  const detailsRef = useRef<UserDetails | null>(null);
   const documentImagesRef = useRef<CapturedImage[]>([]);
 
   const fail = useCallback((message: string) => {
@@ -254,7 +250,8 @@ export function SmileIdCapture({
           notice_privacy_policy_url: current.consent.notice_privacy_policy_url,
         }),
       );
-      body.append("user_details", JSON.stringify(detailsRef.current ?? {}));
+      // From our own records, decided server-side — see the note at the top.
+      body.append("user_details", JSON.stringify(current.user_details));
       body.append("country", current.country);
       body.append("callback_url", current.callback_url);
 
@@ -291,8 +288,8 @@ export function SmileIdCapture({
 
           fail(
             payload.message ??
-              payload.error ??
-              "We could not send your identity check. Please try again.",
+            payload.error ??
+            "We could not send your identity check. Please try again.",
           );
 
           return;
@@ -317,7 +314,7 @@ export function SmileIdCapture({
       finish(
         recorded.status === "success"
           ? (recorded.message ??
-              "Your identity check has been submitted. We will email you as soon as it is confirmed.")
+            "Your identity check has been submitted. We will email you as soon as it is confirmed.")
           : "Your identity check has been submitted. We will email you as soon as it is confirmed.",
       );
     },
@@ -331,7 +328,7 @@ export function SmileIdCapture({
   useEffect(() => {
     const onConsentGranted = (event: Event) => {
       consentRef.current = (event as CustomEvent<ConsentDetail>).detail;
-      setStep("details");
+      setStep("capture");
     };
 
     const onConsentDenied = () => {
@@ -339,11 +336,6 @@ export function SmileIdCapture({
       fail(
         "The identity check cannot go ahead without your consent. You can start it again whenever you are ready.",
       );
-    };
-
-    const onDetails = (event: Event) => {
-      detailsRef.current = (event as CustomEvent<UserDetails>).detail;
-      setStep("capture");
     };
 
     const onDocuments = (event: Event) => {
@@ -359,14 +351,12 @@ export function SmileIdCapture({
 
     window.addEventListener("smileid-consent.granted", onConsentGranted);
     window.addEventListener("smileid-consent.denied", onConsentDenied);
-    window.addEventListener("smileid-user-details.submitted", onDetails);
     window.addEventListener("document-capture-screens.publish", onDocuments);
     window.addEventListener("smart-camera-web.publish", onCapture);
 
     return () => {
       window.removeEventListener("smileid-consent.granted", onConsentGranted);
       window.removeEventListener("smileid-consent.denied", onConsentDenied);
-      window.removeEventListener("smileid-user-details.submitted", onDetails);
       window.removeEventListener(
         "document-capture-screens.publish",
         onDocuments,
@@ -451,9 +441,8 @@ export function SmileIdCapture({
             <p
               role="status"
               aria-live="polite"
-              className={`mt-6 flex items-start justify-center gap-2 text-sm ${
-                outcome.kind === "done" ? "text-success" : "text-destructive"
-              }`}
+              className={`mt-6 flex items-start justify-center gap-2 text-sm ${outcome.kind === "done" ? "text-success" : "text-destructive"
+                }`}
             >
               {outcome.kind === "done" ? (
                 <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
@@ -487,10 +476,6 @@ export function SmileIdCapture({
               partner-logo={config.partner_details.logo_url}
               policy-url={config.partner_details.policy_url}
             />
-          )}
-
-          {config && step === "details" && (
-            <smileid-user-details theme-color={theme} />
           )}
 
           {config && step === "capture" && (
