@@ -186,6 +186,7 @@ export default async function AdminVerificationsPage({
                   <VerificationDecision
                     verificationId={verification.id}
                     heldImages={verification.held_images}
+                    witnessIdentities={client.witness_identities}
                   />
                 </div>
               )}

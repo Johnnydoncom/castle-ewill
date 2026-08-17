@@ -12,8 +12,10 @@ import { readWill } from "@/lib/actions/will";
 import { getPriceList } from "@/lib/pricing";
 import { getProfile } from "@/lib/actions/guards";
 import { WillCheckout } from "@/components/payments/WillCheckout";
-import { getVerificationStatus } from "@/lib/actions/verification";
-import { listUserDocuments } from "@/lib/actions/documents";
+import {
+  getVerificationStatus,
+  listWitnessIdentities,
+} from "@/lib/actions/verification";
 import { requireUser } from "@/lib/actions/guards";
 import { conflictingWitnesses } from "@/lib/will/conflicts";
 import { WILL_STATUS_LABELS } from "@/lib/will/reference";
@@ -95,8 +97,7 @@ export default async function WillDetailPage({
   ]);
   const needsWitnessId = !verification.is_automated;
   const witnessIdCount = needsWitnessId
-    ? (await listUserDocuments()).filter((d) => d.kind === "witness_identity")
-        .length
+    ? (await listWitnessIdentities()).length
     : 0;
 
   // Surfaced here as well as in the wizard: this is the rule people most often

@@ -351,7 +351,13 @@ export type AdminVerificationRow = {
     held_images?: string[] | null;
     created_at: string | null;
   };
-  client: { id: string; name: string | null; email: string };
+  client: {
+    id: string;
+    name: string | null;
+    email: string;
+    /** The two witnesses' ID, held only until this client's KYC completes. */
+    witness_identities?: { id: string; file_name: string }[] | null;
+  };
 };
 
 export async function listVerifications(options: {

@@ -92,3 +92,35 @@ export async function submitVerificationAction(input: {
 
   return successState(result.data.message);
 }
+
+/**
+ * Uploads one witness's identification.
+ *
+ * Its own endpoint rather than the vault's: these documents belong to people
+ * who are not our clients, are read once by a reviewer, and are deleted when
+ * the client's verification completes.
+ */
+export async function uploadWitnessIdentityAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const file = formData.get("file");
+
+  if (!(file instanceof File) || file.size === 0) {
+    return errorState("Choose a file to upload.");
+  }
+
+  const body = new FormData();
+  body.set("file", file);
+
+  const result = await api<{ message: string }>("/witness-identities", {
+    method: "POST",
+    formData: body,
+  });
+
+  if (!result.ok) {
+    return errorState(result.message);
+  }
+
+  return successState(result.data.message);
+}

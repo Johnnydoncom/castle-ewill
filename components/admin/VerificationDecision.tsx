@@ -69,6 +69,7 @@ function slotLabel(slot: string): string {
 export function VerificationDecision({
   verificationId,
   heldImages,
+  witnessIdentities,
 }: {
   verificationId: string;
   /**
@@ -79,6 +80,8 @@ export function VerificationDecision({
    * writes them at all — it keeps its own copy and shows its own console.
    */
   heldImages?: string[] | null;
+  /** The two witnesses' ID, on a kyc attempt — what the attestation is checked against. */
+  witnessIdentities?: { id: string; file_name: string }[] | null;
 }) {
   const [rejecting, setRejecting] = useState(false);
 
@@ -115,6 +118,25 @@ export function VerificationDecision({
           No images are held for this check — either the provider is doing the
           comparison, or it has already been decided.
         </p>
+      )}
+
+      {(witnessIdentities ?? []).length > 0 && (
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+            Witnesses
+          </span>
+          {(witnessIdentities ?? []).map((witness, index) => (
+            <a
+              key={witness.id}
+              href={`${apiBase}/admin/witness-identities/${witness.id}`}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-block border border-border px-2.5 py-1 text-xs text-navy transition-colors hover:border-gold hover:text-gold"
+            >
+              Witness {index + 1}
+            </a>
+          ))}
+        </div>
       )}
 
       <div className="flex flex-wrap items-center gap-2">

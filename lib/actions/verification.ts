@@ -1,19 +1,11 @@
 import { apiData } from "@/lib/api/client";
 
 /**
- * Face verification's server-side reads.
+ * Identity verification's server-side reads.
  *
- * The important property is unchanged by the move and worth restating: the
- * challenge sequence is issued and stored **server-side**. If the browser chose
- * its own challenges, an attacker would simply pick the one they had already
- * recorded. `verification.client.ts` never generates a challenge — it asks for
- * one, directly from the browser now rather than through this server-only
- * module.
- *
- * Client-side liveness detection (MediaPipe, in `lib/verification/landmarks.ts`)
- * remains a user-experience layer and a first filter. It is not anti-spoofing,
- * and the gate on Will submission is enforced in the backend regardless of what
- * this tier reports.
+ * Capture belongs to the Smile ID Web SDK and the verdict belongs to Smile ID;
+ * this tier renders where a client stands, and never decides it. The gate on
+ * printing a Will is enforced in the backend regardless of what is shown here.
  */
 
 export type VerificationRecord = {
@@ -51,4 +43,22 @@ export async function getVerificationStatus(): Promise<VerificationStatus> {
     is_automated: false,
     latest: null,
   });
+}
+
+/** One witness's identification, as the client's own screen sees it. */
+export type WitnessIdentityRecord = {
+  id: string;
+  file_name: string;
+  size_bytes: number;
+  created_at: string | null;
+};
+
+/**
+ * The caller's uploaded witness identification.
+ *
+ * Separate from the document vault: these belong to third parties, are read
+ * once by a reviewer, and are deleted when the client's verification completes.
+ */
+export async function listWitnessIdentities(): Promise<WitnessIdentityRecord[]> {
+  return apiData<WitnessIdentityRecord[]>("/witness-identities", []);
 }

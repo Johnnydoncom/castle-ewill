@@ -5,7 +5,7 @@ import { useFormStatus } from "react-dom";
 import { CheckCircle2, Upload } from "lucide-react";
 
 import { useFormAction } from "@/hooks/use-api-form";
-import { uploadDocumentAction } from "@/lib/actions/documents.client";
+import { uploadWitnessIdentityAction } from "@/lib/actions/verification.client";
 
 function Submit() {
   const { pending } = useFormStatus();
@@ -40,7 +40,7 @@ export function WitnessIdentityUpload({
   uploaded: number;
   required?: number;
 }) {
-  const [state, action] = useFormAction(uploadDocumentAction);
+  const [state, action] = useFormAction(uploadWitnessIdentityAction);
   const [fileName, setFileName] = useState("");
 
   const outstanding = Math.max(required - uploaded, 0);
@@ -54,8 +54,9 @@ export function WitnessIdentityUpload({
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
             Upload a government-issued ID for each of your two witnesses. A
             reviewer checks these by hand against the attestation before your
-            Will is approved. Ask each witness before uploading their document —
-            it is their identity record, not yours.
+            Will is approved, and they are deleted once your identity is
+            verified. Ask each witness first — it is their identity record, not
+            yours.
           </p>
         </div>
 
@@ -84,10 +85,6 @@ export function WitnessIdentityUpload({
 
       {!isComplete && (
         <form action={action} className="mt-6 flex flex-wrap items-end gap-4">
-          {/* Fixed. The kind is not the client's to choose here — this form
-              collects one thing. */}
-          <input type="hidden" name="kind" value="witness_identity" />
-
           <label className="flex-1 min-w-56">
             <span className="font-serif text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
               Witness {uploaded + 1} identification
