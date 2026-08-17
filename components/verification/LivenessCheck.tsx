@@ -474,7 +474,7 @@ export function LivenessCheck({
                 muted
                 // Mirrored so movements feel natural; the yaw thresholds
                 // account for this.
-                className="h-full w-full -scale-x-100 object-cover"
+                className="h-full w-full -sscale-x-100 object-cover"
               />
 
               {phase === "idle" && (
