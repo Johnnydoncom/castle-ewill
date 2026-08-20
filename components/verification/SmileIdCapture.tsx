@@ -38,9 +38,14 @@ import {
  *
  * ## Two things their documentation is emphatic about
  *
- *  - **Events dispatch on `window`,** not on the elements. Listening on the
- *    element is the first entry in their "common issues" table, and the
- *    symptom is that nothing ever fires.
+ *  - **Events dispatch on `window` — except the one that matters most.**
+ *    Their setup page says to listen on `window`, and that is right for
+ *    `smileid-consent.*`. But `<smart-camera-web>` publishes with
+ *    `this.dispatchEvent(new CustomEvent("smart-camera-web.publish", …))` on
+ *    *itself*, and a CustomEvent without `bubbles` does not reach `window`.
+ *    Listening there means the capture never arrives, the flow sits on their
+ *    "Submitting…" screen forever, and nothing in the console says why. Read
+ *    out of the package, not guessed. So that one is bound to the element.
  *  - **Never set `Content-Type`** on the submission. The browser writes the
  *    multipart boundary from the `FormData` itself, and setting the header by
  *    hand breaks the boundary and the parse with it.
@@ -81,7 +86,11 @@ declare module "react" {
         "partner-logo"?: string;
         "policy-url"?: string;
       };
-      "smart-camera-web": CustomElementProps;
+      "smart-camera-web": CustomElementProps & {
+        /* Presence, not value: `hasAttribute("capture-id")` turns on the document step. */
+        "capture-id"?: string;
+        ref?: React.Ref<HTMLElement>;
+      };
       "document-capture-screens": CustomElementProps & {
         "document-capture-modes"?: string;
       };
@@ -150,6 +159,8 @@ export function SmileIdCapture({
    * closure over state would still be looking at the render that bound it.
    * None of them drives the UI.
    */
+  /** The element itself — `smart-camera-web.publish` dispatches on it, not on `window`. */
+  const cameraRef = useRef<HTMLElement | null>(null);
   const attemptRef = useRef<string | null>(null);
   const configRef = useRef<SmileIdConfig | null>(null);
   const consentRef = useRef<ConsentDetail | null>(null);
@@ -193,8 +204,18 @@ export function SmileIdCapture({
 
       setStep("loading");
 
-      const selfie = images.find((i) => i.image_type_id === IMAGE_TYPE.selfie);
-      const front = documentImagesRef.current.find(
+      /*
+       * Both sources, merged.
+       *
+       * Nested inside `<smart-camera-web>`, the wrapper collects the document
+       * frames itself and publishes everything in one payload. Mounted
+       * separately it does not. Reading both means neither arrangement
+       * silently submits a job with no document in it.
+       */
+      const all = [...images, ...documentImagesRef.current];
+
+      const selfie = all.find((i) => i.image_type_id === IMAGE_TYPE.selfie);
+      const front = all.find(
         (i) => i.image_type_id === IMAGE_TYPE.documentFront,
       );
 
@@ -218,7 +239,7 @@ export function SmileIdCapture({
 
       // Repeated under one name. Indexed names — `liveness_images[0]` — are
       // their documented failure mode: only one frame arrives.
-      images
+      all
         .filter((i) => i.image_type_id === IMAGE_TYPE.liveness)
         .forEach((frame, i) => {
           body.append(
@@ -231,9 +252,7 @@ export function SmileIdCapture({
 
       // Only when one was actually published: plenty of IDs have no back, and
       // an empty part is its own error.
-      const back = documentImagesRef.current.find(
-        (i) => i.image_type_id === IMAGE_TYPE.documentBack,
-      );
+      const back = all.find((i) => i.image_type_id === IMAGE_TYPE.documentBack);
 
       if (back) {
         body.append(
@@ -349,10 +368,25 @@ export function SmileIdCapture({
       );
     };
 
+    const onCameraClosed = () => {
+      // Their back/close control. Not a failure — the attempt stays open.
+      setStep("idle");
+      setOutcome(null);
+    };
+
     window.addEventListener("smileid-consent.granted", onConsentGranted);
     window.addEventListener("smileid-consent.denied", onConsentDenied);
     window.addEventListener("document-capture-screens.publish", onDocuments);
-    window.addEventListener("smart-camera-web.publish", onCapture);
+
+    /*
+     * Bound to the element, and re-bound whenever it mounts — see the note at
+     * the top. `camera` is read at effect time because the element only exists
+     * on the capture step.
+     */
+    const camera = cameraRef.current;
+
+    camera?.addEventListener("smart-camera-web.publish", onCapture);
+    camera?.addEventListener("smart-camera-web.close", onCameraClosed);
 
     return () => {
       window.removeEventListener("smileid-consent.granted", onConsentGranted);
@@ -361,9 +395,10 @@ export function SmileIdCapture({
         "document-capture-screens.publish",
         onDocuments,
       );
-      window.removeEventListener("smart-camera-web.publish", onCapture);
+      camera?.removeEventListener("smart-camera-web.publish", onCapture);
+      camera?.removeEventListener("smart-camera-web.close", onCameraClosed);
     };
-  }, [fail, submit]);
+  }, [fail, submit, step]);
 
   const start = useCallback(async () => {
     setStep("loading");
@@ -479,11 +514,13 @@ export function SmileIdCapture({
           )}
 
           {config && step === "capture" && (
-            <smart-camera-web theme-color={theme}>
+            <smart-camera-web ref={cameraRef} theme-color={theme} capture-id="">
               {/*
-                Nested, as their setup page shows: the document step runs
-                first, then the selfie and liveness capture, and both sets of
-                images are required in the same submission.
+                Nested, as their setup page shows, and `capture-id` is what
+                turns the document step on: without the attribute the wrapper
+                publishes straight after the selfie and the job goes out with
+                no document in it — `this.captureId ? setActiveScreen(document)
+                : publish()`, read out of the package.
               */}
               <document-capture-screens
                 theme-color={theme}

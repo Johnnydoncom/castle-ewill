@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
-import { Clock } from "lucide-react";
+import Link from "next/link";
+import { ArrowLeft, Clock } from "lucide-react";
 
 import { getProfile } from "@/lib/actions/guards";
 import { getVerificationStatus } from "@/lib/actions/verification";
@@ -23,23 +24,23 @@ export default async function KycPage() {
   const verification = await getVerificationStatus();
 
   return (
-    <div className="mx-auto max-w-2xl space-y-8">
-      <header className="border-b border-border pb-8">
-        <div className="mb-4 flex items-center gap-3">
-          <span className="h-px w-10 bg-gold" />
-          <p className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">
-            Identity verification
-          </p>
-        </div>
-        <h1 className="font-serif text-3xl text-navy sm:text-4xl">
-          Let&apos;s confirm it&apos;s you.
-        </h1>
-        <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted-foreground">
-          A one-time check before you can print your Will. You photograph your
-          identity document and your face, and our identity provider confirms
-          they match. We do not keep the photographs.
-        </p>
-      </header>
+    /*
+      Deliberately bare.
+      
+      This page used to carry a full editorial header — eyebrow, headline,
+      standfirst — above the check. All of it said what the card underneath
+      already says, and it pushed a camera flow that people work through on a
+      phone below the fold. The card is the page; the only other thing anyone
+      needs here is a way out.
+    */
+    <div className="mx-auto max-w-md space-y-6">
+      <Link
+        href="/dashboard"
+        className="inline-flex items-center gap-2 text-xs uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:text-gold"
+      >
+        <ArrowLeft className="h-3.5 w-3.5" />
+        Back to dashboard
+      </Link>
 
       {/*
         "Awaiting review" needs a capture to review.
