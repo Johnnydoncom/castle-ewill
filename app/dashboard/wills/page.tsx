@@ -4,7 +4,7 @@ import { ArrowRight, FileText, Plus } from "lucide-react";
 
 import { PageHead } from "@/components/dashboard/PageHead";
 import { listWills } from "@/lib/actions/will";
-import { requireUser } from "@/lib/actions/guards";
+import { getProfile, requireUser } from "@/lib/actions/guards";
 import { WILL_STATUS_LABELS } from "@/lib/will/reference";
 import { JOURNEY_STAGES } from "@/lib/actions/will";
 
@@ -40,6 +40,10 @@ const NEXT_ACTION: Record<string, string> = {
 export default async function WillsPage() {
   await requireUser();
 
+  // The capability, not the role: the server answers "may they?" and this
+  // screen renders that answer rather than re-deriving the rule.
+  const profile = await getProfile();
+
   const wills = await listWills();
 
   return (
@@ -47,7 +51,11 @@ export default async function WillsPage() {
       <PageHead
         kicker="Your documents"
         title="My Wills"
-        blurb="Every Will you hold with us, and what each one is waiting on."
+        blurb={
+          profile?.may_hold_multiple_wills
+            ? "Every Will you hold with us, and what each one is waiting on."
+            : "Your Will, and what it is waiting on."
+        }
       />
 
       {wills.length === 0 ? (
@@ -128,12 +136,22 @@ export default async function WillsPage() {
             })}
           </ul>
 
+          {/*
+            Only a lawyer is offered another.
+            
+            Everybody else has one Will, and the server returns them to it
+            rather than creating a second — a button promising otherwise would
+            be offering something that cannot happen. Keeping one current is
+            the Update stage, not a new record.
+          */}
           <Link
             href="/dashboard/will"
             className="inline-flex items-center gap-2 border border-border px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy transition-colors hover:border-gold hover:text-gold"
           >
             <Plus className="h-4 w-4" />
-            Continue or start a Will
+            {profile?.may_hold_multiple_wills
+              ? "Continue or start a Will"
+              : "Continue my Will"}
           </Link>
         </>
       )}

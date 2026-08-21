@@ -43,6 +43,14 @@ export type Profile = {
   subscription_expires_at: string | null;
   /** Platinum: may attach a recording of themselves reading their Will. */
   can_attach_will_video: boolean;
+  /**
+   * Whether this account may hold more than one Will.
+   *
+   * True for a verified lawyer, who draws Wills for clients. False for
+   * everybody else: a person has one estate, and two Wills that both look
+   * valid is the worst thing this product could hand an executor.
+   */
+  may_hold_multiple_wills: boolean;
   two_factor_enabled: boolean;
   created_at: string | null;
   last_login_at?: string | null;
