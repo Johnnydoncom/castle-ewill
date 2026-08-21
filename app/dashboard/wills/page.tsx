@@ -20,7 +20,7 @@ const NEXT_ACTION: Record<string, string> = {
   incomplete: "Finish writing it",
   unpaid: "Payment is the next step",
   kyc_required: "Confirm your identity",
-  liveness_required: "Quick camera check",
+  liveness_required: "Confirm it is you",
 };
 
 /**

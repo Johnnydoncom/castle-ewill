@@ -63,10 +63,19 @@ const BLOCKERS: Record<
     body: "Because this is your first Will with us, we confirm your identity against a government-issued document before releasing it.",
     cta: { label: "Verify my identity", href: "/dashboard/kyc" },
   },
+  /*
+   * Reachable from editing, not from printing.
+   *
+   * The server no longer blocks printing on a camera check: a client who has
+   * proved their identity and paid should reach their own finished Will
+   * without being stopped to look at a webcam. This copy survives because the
+   * same code is returned when somebody reopens a Will that has already been
+   * printed — see `WillJourney::requiresLivenessToEdit()`.
+   */
   liveness_required: {
     icon: ScanFace,
-    title: "A quick camera check",
-    body: "We have already verified your documents. This is just a short liveness check to confirm it is you at the keyboard today.",
+    title: "Confirm it is you",
+    body: "This Will has already been produced once. Before changing it, we need a short camera check to confirm the change is being made by you.",
     cta: { label: "Start the check", href: "/dashboard/kyc" },
   },
 };
