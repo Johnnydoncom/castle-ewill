@@ -174,3 +174,34 @@ export async function uploadWitnessIdentityAction(
 
   return successState(result.data.message);
 }
+
+/**
+ * The caller's current verification standing.
+ *
+ * A read, in a file of mutations, for one reason: the verdict arrives on a
+ * webhook rather than in the response to anything the browser did, so a client
+ * watching a submitted check has no other way to learn it settled.
+ */
+export async function getVerificationStatusAction(): Promise<
+  | { status: "error"; message: string }
+  | {
+      status: "success";
+      data: {
+        is_verified: boolean;
+        latest: { status: string; provider: string } | null;
+      };
+    }
+> {
+  const result = await api<{
+    data: {
+      is_verified: boolean;
+      latest: { status: string; provider: string } | null;
+    };
+  }>("/verification", { method: "GET" });
+
+  if (!result.ok) {
+    return { status: "error", message: result.message };
+  }
+
+  return { status: "success", data: result.data.data };
+}

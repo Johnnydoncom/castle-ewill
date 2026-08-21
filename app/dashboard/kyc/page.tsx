@@ -1,11 +1,12 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Clock } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
 import { getProfile } from "@/lib/actions/guards";
 import { getVerificationStatus } from "@/lib/actions/verification";
 import { KycOnboarding } from "@/components/kyc/KycOnboarding";
+import { VerificationPending } from "@/components/kyc/VerificationPending";
 
 export const metadata: Metadata = {
   title: "Verify your identity",
@@ -43,25 +44,26 @@ export default async function KycPage() {
       </Link>
 
       {/*
-        "Awaiting review" needs a capture to review.
+        A submitted check with no verdict yet.
         
-        This tested `status === "pending"` alone, but an attempt is created
-        pending the moment a challenge is issued — so a client whose liveness
-        check failed, or who simply closed the tab, came back to "recorded and
-        awaiting review" with the retry hidden behind it. Nothing had been
-        recorded, and no review was coming.
+        Two things had to be separated here. "Awaiting review" needs a capture
+        to review — an attempt is `pending` from the moment it is opened, so an
+        abandoned one used to come back as "recorded and awaiting review" with
+        the retry hidden behind it.
+        
+        And "review" itself was wrong for the automated path: under Smile ID
+        nobody is waiting on a person, the verdict is already on its way to our
+        webhook, and telling a client to wait for an email describes a review
+        that will never happen. That component knows the difference, and polls
+        so the page moves on by itself.
       */}
       {verification.latest?.status === "pending" &&
       verification.latest.is_submitted &&
       verification.latest.purpose === "kyc" ? (
-        <div className="flex items-start gap-3 border-l-2 border-gold bg-gold/5 px-5 py-4 text-sm text-navy">
-          <Clock className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
-          <p className="leading-relaxed">
-            Your identity check has been recorded and is awaiting review.
-            We&apos;ll email you as soon as it&apos;s approved, and you can
-            start your Will then.
-          </p>
-        </div>
+        <VerificationPending
+          provider={verification.latest.provider}
+          next="/dashboard"
+        />
       ) : (
         <KycOnboarding
           rejectionReason={
