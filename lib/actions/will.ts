@@ -109,6 +109,11 @@ export type ApiWill = {
   current_step: number;
   completion_percent: number;
   is_editable: boolean;
+  /** Journey milestones — timestamps, not statuses; the stages are computed from these. */
+  printed_at: string | null;
+  executed_at: string | null;
+  lodged_at: string | null;
+  lodging_reference: string | null;
   personal: Record<string, string | null>;
   declaration: Record<string, boolean>;
   has_minor_children: boolean | null;

@@ -91,7 +91,12 @@ export default async function AdminWillDetailPage({
         </div>
 
         <div className="space-y-8">
-          <ReviewActions willId={will.id} status={will.status} />
+          <ReviewActions
+            willId={will.id}
+            status={will.status}
+            lodgedAt={will.lodged_at}
+            lodgingReference={will.lodging_reference}
+          />
 
           <div className="border border-border bg-background p-6">
             <p className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">

@@ -15,7 +15,12 @@ import { errorState, type FormState } from "./state";
 
 async function act(
   willId: string,
-  action: "start-review" | "approve" | "request-changes" | "mark-executed",
+  action:
+    | "start-review"
+    | "approve"
+    | "request-changes"
+    | "mark-executed"
+    | "mark-lodged",
   body?: Record<string, unknown>,
 ): Promise<FormState> {
   if (!willId) return errorState("That Will could not be found.");
@@ -80,6 +85,26 @@ export async function markExecutedAction(
   formData: FormData,
 ): Promise<FormState> {
   return act(String(formData.get("willId") ?? ""), "mark-executed");
+}
+
+/**
+ * Records that the Will was lodged with the Probate Registry.
+ *
+ * Manual by design: lodging is a person carrying a signed document to a
+ * counter, and what this captures is that it happened and under what receipt.
+ * The reference is optional because a registry may not issue one on the spot,
+ * and withholding the record until a number exists would leave the client's
+ * journey stalled on a step that is already done.
+ */
+export async function markLodgedAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const reference = String(formData.get("lodgingReference") ?? "").trim();
+
+  return act(String(formData.get("willId") ?? ""), "mark-lodged", {
+    lodging_reference: reference === "" ? null : reference,
+  });
 }
 
 /* -------------------------------------------------------------------------- */

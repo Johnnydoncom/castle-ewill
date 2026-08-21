@@ -9,6 +9,7 @@ import {
   approveWillAction,
   requestChangesAction,
   markExecutedAction,
+  markLodgedAction,
 } from "@/lib/actions/review";
 import { type FormState } from "@/lib/actions/state";
 
@@ -60,13 +61,19 @@ function Submit({
 export function ReviewActions({
   willId,
   status,
+  lodgedAt,
+  lodgingReference,
 }: {
   willId: string;
   status: string;
+  /** When this Will was lodged with the registry, if it has been. */
+  lodgedAt?: string | null;
+  lodgingReference?: string | null;
 }) {
   const [approveState, approve] = useFormAction(approveWillAction);
   const [changesState, requestChanges] = useFormAction(requestChangesAction);
   const [executedState, markExecuted] = useFormAction(markExecutedAction);
+  const [lodgedState, markLodged] = useFormAction(markLodgedAction);
   const [showChanges, setShowChanges] = useState(false);
 
   const inReview = status === "submitted" || status === "under_review";
@@ -84,7 +91,9 @@ export function ReviewActions({
               ? "This Will is approved. Mark it executed once the client confirms it has been signed and witnessed."
               : status === "draft"
                 ? "This Will is with the client and cannot be actioned until it is submitted."
-                : "No further action is available for this Will."}
+                : status === "executed" && lodgedAt === null
+                  ? "This Will is signed and witnessed. Record the lodging once it has been filed with the Probate Registry."
+                  : "No further action is available for this Will."}
         </p>
       </div>
 
@@ -160,6 +169,51 @@ export function ReviewActions({
           />
           <Result state={executedState} />
         </form>
+      )}
+
+      {/*
+        Lodging is a person at a registry counter, so this records that it
+        happened rather than doing it. Until it is recorded the client's
+        journey cannot leave the Lodge stage — there is no other way for the
+        product to learn that the filing took place.
+      */}
+      {status === "executed" && !lodgedAt && (
+        <form action={markLodged} className="space-y-3">
+          <input type="hidden" name="willId" value={willId} />
+
+          <label
+            htmlFor="lodging-reference"
+            className="block font-serif text-[10px] uppercase tracking-[0.28em] text-navy"
+          >
+            Registry reference
+          </label>
+          <input
+            id="lodging-reference"
+            name="lodgingReference"
+            type="text"
+            placeholder="PR/LAG/2026/0041"
+            className="w-full border border-border bg-background px-3 py-2.5 font-serif text-sm text-navy focus:border-gold focus:outline-none"
+          />
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            Optional — a registry may not issue one at the counter. Record the
+            lodging either way; the reference can be the only durable evidence
+            it happened, and it is what a family is asked for years later.
+          </p>
+
+          <Submit
+            label="Record as lodged"
+            busyLabel="Recording…"
+            variant="outline"
+          />
+          <Result state={lodgedState} />
+        </form>
+      )}
+
+      {lodgedAt && (
+        <p className="border-l-2 border-gold bg-gold/5 px-4 py-3 text-xs leading-relaxed text-navy">
+          Lodged with the Probate Registry
+          {lodgingReference ? ` under ${lodgingReference}` : ""}.
+        </p>
       )}
     </div>
   );
