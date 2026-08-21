@@ -51,6 +51,14 @@ export type WitnessIdentityRecord = {
   file_name: string;
   size_bytes: number;
   created_at: string | null;
+  /**
+   * Uploaded is not approved, and printing waits on approved.
+   *
+   * A screen that showed only "uploaded" would leave somebody staring at two
+   * documents they had provided, wondering why they still cannot print.
+   */
+  status: "pending" | "verified" | "rejected";
+  rejection_reason: string | null;
 };
 
 /**

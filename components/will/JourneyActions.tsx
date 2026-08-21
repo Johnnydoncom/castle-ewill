@@ -63,19 +63,24 @@ const BLOCKERS: Record<
     body: "Because this is your first Will with us, we confirm your identity against a government-issued document before releasing it.",
     cta: { label: "Verify my identity", href: "/dashboard/kyc" },
   },
+  witnesses_required: {
+    icon: ScanFace,
+    title: "We are checking your witnesses",
+    body: "Both witnesses' identification has to be approved before your Will can be released. Upload theirs if you have not yet — we will email you as soon as both are checked.",
+    cta: { label: "Witness identification", href: "/dashboard/documents" },
+  },
   /*
-   * Reachable from editing, not from printing.
+   * Reachable from printing again, and from editing.
    *
-   * The server no longer blocks printing on a camera check: a client who has
-   * proved their identity and paid should reach their own finished Will
-   * without being stopped to look at a webcam. This copy survives because the
-   * same code is returned when somebody reopens a Will that has already been
-   * printed — see `WillJourney::requiresLivenessToEdit()`.
+   * Two paths return this code, and the copy has to serve both: the last step
+   * before a Will is released, and reopening one that has already been
+   * produced. What they have in common is the question being asked — not
+   * "whose ID is on file", which was settled once, but "is this you, now".
    */
   liveness_required: {
     icon: ScanFace,
-    title: "Confirm it is you",
-    body: "This Will has already been produced once. Before changing it, we need a short camera check to confirm the change is being made by you.",
+    title: "One last check that it is you",
+    body: "A short camera check before we release your Will. It confirms the person collecting it is the person named in it, and takes about a minute.",
     cta: { label: "Start the check", href: "/dashboard/kyc" },
   },
 };

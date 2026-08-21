@@ -35,28 +35,59 @@ function Submit() {
  */
 export function WitnessIdentityUpload({
   uploaded,
+  approved = 0,
+  rejected = [],
   required = 2,
 }: {
   uploaded: number;
+  /** How many have been approved. Printing waits for two. */
+  approved?: number;
+  /** Any a reviewer sent back, with the reason, so it can be acted on. */
+  rejected?: { id: string; file_name: string; rejection_reason: string | null }[];
   required?: number;
 }) {
   const [state, action] = useFormAction(uploadWitnessIdentityAction);
   const [fileName, setFileName] = useState("");
 
-  const outstanding = Math.max(required - uploaded, 0);
-  const isComplete = outstanding === 0;
+  /*
+   * Complete means *approved*, not uploaded.
+   *
+   * This counted uploads, which told a client they were finished while their
+   * Will still would not print. Two documents sitting unreviewed are not
+   * evidence of anything yet.
+   */
+  const isComplete = approved >= required;
 
   return (
     <section className="border border-border bg-background p-6 sm:p-8">
+      {/*
+        A rejection is only useful if the client sees why. Shown above the
+        upload, where the replacement is going to be made.
+      */}
+      {rejected.length > 0 && (
+        <div className="mb-6 space-y-2">
+          {rejected.map((record) => (
+            <p
+              key={record.id}
+              className="border-l-2 border-destructive bg-destructive/5 px-4 py-3 text-sm leading-relaxed text-navy"
+            >
+              <strong className="font-medium">{record.file_name}</strong> could
+              not be accepted.{" "}
+              {record.rejection_reason ?? "Please upload a replacement."}
+            </p>
+          ))}
+        </div>
+      )}
+
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
           <h2 className="font-serif text-xl text-navy">Witness identification</h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
             Upload a government-issued ID for each of your two witnesses. A
-            reviewer checks these by hand against the attestation before your
-            Will is approved, and they are deleted once your identity is
-            verified. Ask each witness first — it is their identity record, not
-            yours.
+            reviewer checks these by hand against the attestation, and both
+            must be approved before your Will can be printed. They are deleted
+            once your identity is verified. Ask each witness first — it is
+            their identity record, not yours.
           </p>
         </div>
 
@@ -68,7 +99,7 @@ export function WitnessIdentityUpload({
           }`}
         >
           {isComplete && <CheckCircle2 className="h-3.5 w-3.5" />}
-          {uploaded} of {required}
+          {approved} of {required} approved
         </span>
       </div>
 
@@ -87,7 +118,7 @@ export function WitnessIdentityUpload({
         <form action={action} className="mt-6 flex flex-wrap items-end gap-4">
           <label className="flex-1 min-w-56">
             <span className="font-serif text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-              Witness {uploaded + 1} identification
+              Witness {Math.min(uploaded + 1, required)} identification
             </span>
             <input
               type="file"

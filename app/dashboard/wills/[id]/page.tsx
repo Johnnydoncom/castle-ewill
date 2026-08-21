@@ -13,7 +13,6 @@ import { getPriceList } from "@/lib/pricing";
 import { getProfile } from "@/lib/actions/guards";
 import { WillCheckout } from "@/components/payments/WillCheckout";
 import {
-  getVerificationStatus,
   listWitnessIdentities,
 } from "@/lib/actions/verification";
 import { requireUser } from "@/lib/actions/guards";
@@ -85,20 +84,18 @@ export default async function WillDetailPage({
 
   const will = read.will;
 
+  const [prices, profile] = await Promise.all([getPriceList(), getProfile()]);
   /*
-   * Witness identification is collected only when identity verification falls
-   * back to manual review — a human reviewer needs something to check the
-   * attestation against. The server enforces the same rule.
+   * Always, now — not only when a person is doing the checking.
+   *
+   * Witness identification used to be collected on the manual-review path
+   * alone. It gates printing whoever verifies the testator: the attestation is
+   * the part of a Will most likely to be challenged, and two approved
+   * documents are what the record rests on.
    */
-  const [verification, prices, profile] = await Promise.all([
-    getVerificationStatus(),
-    getPriceList(),
-    getProfile(),
-  ]);
-  const needsWitnessId = !verification.is_automated;
-  const witnessIdCount = needsWitnessId
-    ? (await listWitnessIdentities()).length
-    : 0;
+  const witnessIds = await listWitnessIdentities();
+  const witnessIdCount = witnessIds.filter((w) => w.status !== "rejected").length;
+  const witnessesApproved = witnessIds.filter((w) => w.status === "verified").length;
 
   // Surfaced here as well as in the wizard: this is the rule people most often
   // fall foul of, and it voids the gift rather than the Will.
@@ -190,7 +187,11 @@ export default async function WillDetailPage({
         </div>
       )}
 
-      {needsWitnessId && <WitnessIdentityUpload uploaded={witnessIdCount} />}
+      <WitnessIdentityUpload
+        uploaded={witnessIdCount}
+        approved={witnessesApproved}
+        rejected={witnessIds.filter((w) => w.status === "rejected")}
+      />
 
       <ReviewSummary will={will} editBasePath={`/dashboard/wills/${will.id}/edit`} />
     </div>

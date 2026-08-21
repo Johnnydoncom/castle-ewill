@@ -76,6 +76,7 @@ export type PrintBlocker =
   | "incomplete"
   | "unpaid"
   | "kyc_required"
+  | "witnesses_required"
   | "liveness_required";
 
 export type WillJourney = {
