@@ -47,7 +47,23 @@ export type SmileIdConfig = {
     email?: string;
     phone_number?: string;
   };
+  /** `camera,upload` — set on `<smart-camera-web>`, which is the only element that reads it. */
   document_capture_modes: string;
+  /** Which documents a client may present, from the vendor's NG catalogue. */
+  id_types: { value: string; label: string }[];
+  /**
+   * Sandbox test mode, or null.
+   *
+   * The sandbox matches name and email against a fixed table and ignores the
+   * photographs, so a real name is refused there. Non-null means the job is
+   * being submitted as somebody fictional, and the screen says so.
+   */
+  test_mode: {
+    key: string;
+    status: string;
+    describes: string;
+    user_details: Record<string, string>;
+  } | null;
   partner_details: {
     partner_id: string;
     name: string;

@@ -1,7 +1,14 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState } from "react";
-import { AlertCircle, CheckCircle2, Loader2, ShieldCheck } from "lucide-react";
+import {
+  AlertCircle,
+  CheckCircle2,
+  ChevronRight,
+  FlaskConical,
+  Loader2,
+  ShieldCheck,
+} from "lucide-react";
 
 import {
   startVerificationAction,
@@ -86,9 +93,21 @@ declare module "react" {
         "partner-logo"?: string;
         "policy-url"?: string;
       };
+      /*
+       * Every document attribute belongs **here**, not on the nested element.
+       *
+       * `<smart-camera-web>` renders its own `<document-capture-screens>` into
+       * its shadow root from its own attributes — the child written in our JSX
+       * is never slotted and never read. `document-capture-modes` sat there for
+       * a release, which is why "upload a file" never appeared and people were
+       * stuck photographing a passport with a laptop webcam.
+       */
       "smart-camera-web": CustomElementProps & {
         /* Presence, not value: `hasAttribute("capture-id")` turns on the document step. */
         "capture-id"?: string;
+        "document-type"?: string;
+        "document-capture-modes"?: string;
+        "hide-back-of-id"?: string;
         ref?: React.Ref<HTMLElement>;
       };
       "document-capture-screens": CustomElementProps & {
@@ -134,7 +153,50 @@ function toJpegFile(base64: string, filename: string): File {
   return new File([buffer], filename, { type: "image/jpeg" });
 }
 
-type Step = "idle" | "loading" | "consent" | "capture";
+/**
+ * Which document the client will present.
+ *
+ * `id_type` is optional for Document Verification — omit it and Smile ID
+ * classifies whatever it is given. Asking anyway buys two things: their
+ * capture screens frame a passport page differently from a card, and the
+ * answer is checked against the document the client said they held rather
+ * than inferred from the photograph.
+ */
+function DocumentChoice({
+  types,
+  onChosen,
+}: {
+  types: { value: string; label: string }[];
+  onChosen: (value: string) => void;
+}) {
+  return (
+    <div className="mt-2">
+      <p className="text-center text-sm text-muted-foreground">
+        Which document will you show?
+      </p>
+
+      <div className="mt-4 space-y-2">
+        {types.map((type) => (
+          <button
+            key={type.value}
+            type="button"
+            onClick={() => onChosen(type.value)}
+            className="flex w-full items-center justify-between gap-3 border border-border bg-surface px-5 py-4 text-left text-sm text-navy transition-colors hover:border-gold hover:bg-gold/5"
+          >
+            <span>{type.label}</span>
+            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
+          </button>
+        ))}
+      </div>
+
+      <p className="mt-4 text-center text-xs leading-relaxed text-muted-foreground">
+        You can photograph it or upload a clear scan.
+      </p>
+    </div>
+  );
+}
+
+type Step = "idle" | "loading" | "consent" | "document" | "capture";
 type Outcome = null | { kind: "done" | "error"; message: string };
 
 export function SmileIdCapture({
@@ -162,6 +224,14 @@ export function SmileIdCapture({
   /** The element itself — `smart-camera-web.publish` dispatches on it, not on `window`. */
   const cameraRef = useRef<HTMLElement | null>(null);
   const attemptRef = useRef<string | null>(null);
+
+  /*
+   * Which document the client said they would show. Sent as `id_type`.
+   *
+   * State, not a ref, because it decides what is rendered — the attributes
+   * that frame the capture are read off it.
+   */
+  const [idType, setIdType] = useState<string | null>(null);
   const configRef = useRef<SmileIdConfig | null>(null);
   const consentRef = useRef<ConsentDetail | null>(null);
   const documentImagesRef = useRef<CapturedImage[]>([]);
@@ -272,6 +342,16 @@ export function SmileIdCapture({
       // From our own records, decided server-side — see the note at the top.
       body.append("user_details", JSON.stringify(current.user_details));
       body.append("country", current.country);
+
+      /*
+       * Optional for this product — omit it and their server auto-classifies —
+       * but the client told us which document they were holding, and passing
+       * it through means the answer is checked against that rather than
+       * inferred from a photograph.
+       */
+      if (idType) {
+        body.append("id_type", idType);
+      }
       body.append("callback_url", current.callback_url);
 
       // How the verdict finds this person. Their job id is generated on their
@@ -337,7 +417,7 @@ export function SmileIdCapture({
           : "Your identity check has been submitted. We will email you as soon as it is confirmed.",
       );
     },
-    [fail, finish],
+    [fail, finish, idType],
   );
 
   /*
@@ -347,7 +427,7 @@ export function SmileIdCapture({
   useEffect(() => {
     const onConsentGranted = (event: Event) => {
       consentRef.current = (event as CustomEvent<ConsentDetail>).detail;
-      setStep("capture");
+      setStep("document");
     };
 
     const onConsentDenied = () => {
@@ -454,6 +534,25 @@ export function SmileIdCapture({
   return (
     <div className="mx-auto w-full max-w-md">
       <div className="overflow-hidden rounded-3xl border border-border bg-background shadow-elegant">
+        {/*
+          Said plainly, at the top, whenever it is on.
+          
+          The sandbox judges the name rather than the photographs, so a test
+          run submits as somebody fictional. A test run that looks exactly like
+          a real one is how a made-up name ends up in a support conversation.
+        */}
+        {config?.test_mode && (
+          <div className="flex items-start gap-3 border-b border-gold/40 bg-gold/10 px-6 py-4 text-xs leading-relaxed text-navy">
+            <FlaskConical className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
+            <p>
+              <strong className="font-medium">Test mode.</strong> Submitting as{" "}
+              {config.test_mode.user_details.given_names}{" "}
+              {config.test_mode.user_details.last_name} — not you.{" "}
+              {config.test_mode.describes}.
+            </p>
+          </div>
+        )}
+
         <div className="p-6 sm:p-8">
           {showsIntro && (
             <div className="text-center">
@@ -513,8 +612,32 @@ export function SmileIdCapture({
             />
           )}
 
+          {config && step === "document" && (
+            <DocumentChoice
+              types={config.id_types}
+              onChosen={(value) => {
+                setIdType(value);
+                setStep("capture");
+              }}
+            />
+          )}
+
           {config && step === "capture" && (
-            <smart-camera-web ref={cameraRef} theme-color={theme} capture-id="">
+            <smart-camera-web
+              ref={cameraRef}
+              theme-color={theme}
+              capture-id=""
+              document-type={idType ?? undefined}
+              /*
+                On the wrapper, which is the only place it is read — see the
+                note on its attribute typing above. This is what puts "upload a
+                file" beside "take a photograph", so a passport can be sent as
+                a scan rather than fought with on a laptop webcam.
+              */
+              document-capture-modes={config.document_capture_modes}
+              /* A passport is one page; asking for its back is a dead end. */
+              hide-back-of-id={idType === "PASSPORT" ? "" : undefined}
+            >
               {/*
                 Nested, as their setup page shows, and `capture-id` is what
                 turns the document step on: without the attribute the wrapper
