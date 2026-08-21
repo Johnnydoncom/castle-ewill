@@ -237,6 +237,33 @@ function DocumentRow({ record }: { record: VaultDocument }) {
             year: "numeric",
           })}
         </p>
+        {/*
+          The deadline, on the screen where the document is.
+          
+          Not left to email. This one ends in bytes being destroyed and an
+          email is not a delivery guarantee — somebody who never saw a warning
+          still has to be able to find the date.
+        */}
+        {record.is_expired ? (
+          <p className="mt-1.5 text-[11px] leading-relaxed text-muted-foreground">
+            Removed from your vault when your storage access ended. The copy you
+            downloaded is still valid, and your signed Will is unaffected.
+          </p>
+        ) : (
+          record.retention_deadline && (
+            <p className="mt-1.5 text-[11px] leading-relaxed text-destructive">
+              Kept until{" "}
+              {new Date(record.retention_deadline).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}
+              . Download it to keep your own copy, or subscribe to carry on
+              storing it here.
+            </p>
+          )
+        )}
+
         {record.document_number && (
           <p className="mt-1 font-mono text-[11px] tracking-wider text-muted-foreground">
             {record.document_number}

@@ -23,6 +23,10 @@ export type VaultDocument = {
   document_number?: string | null;
   version?: number;
   kind: string;
+  /** When this copy is removed unless the client subscribes; null means never. */
+  retention_deadline: string | null;
+  /** True once the bytes have been destroyed — the record outlives them. */
+  is_expired: boolean;
   identity_document_type?: string | null;
   file_name: string;
   mime_type: string;
