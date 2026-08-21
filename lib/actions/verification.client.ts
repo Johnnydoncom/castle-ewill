@@ -168,6 +168,7 @@ export async function submitWitnessIdentitiesAction(
 ): Promise<FormState> {
   const witnesses = [0, 1].map((index) => ({
     first_name: String(formData.get(`witnesses.${index}.first_name`) ?? "").trim(),
+    middle_name: String(formData.get(`witnesses.${index}.middle_name`) ?? "").trim(),
     last_name: String(formData.get(`witnesses.${index}.last_name`) ?? "").trim(),
     id_type: String(formData.get(`witnesses.${index}.id_type`) ?? "").trim(),
     id_number: String(formData.get(`witnesses.${index}.id_number`) ?? "").trim(),

@@ -4,7 +4,10 @@ import { CheckCircle2, Clock, ShieldCheck, XCircle } from "lucide-react";
 
 import { submitWitnessIdentitiesAction } from "@/lib/actions/verification.client";
 import { useFormAction } from "@/hooks/use-api-form";
-import type { WitnessIdentityRecord } from "@/lib/actions/verification";
+import type {
+  SuggestedWitness,
+  WitnessIdentityRecord,
+} from "@/lib/actions/verification";
 
 /**
  * Both witnesses, on one form.
@@ -56,16 +59,33 @@ function StatusChip({ status }: { status: WitnessIdentityRecord["status"] }) {
 function WitnessFields({
   index,
   record,
+  suggested,
   values,
 }: {
   index: number;
   record?: WitnessIdentityRecord;
+  /** As the Will already names this witness. */
+  suggested?: SuggestedWitness;
   values?: Record<string, string>;
 }) {
   const field = (name: string) => `witnesses.${index}.${name}`;
   const value = (name: string) => values?.[field(name)] ?? "";
 
+  /*
+   * What was last submitted, then what the Will already says, then nothing.
+   *
+   * The middle one is the point: these witnesses were named in the wizard, so
+   * asking for the names again is asking somebody to type what they have
+   * already typed — and to type it differently, which is how a check that
+   * should have matched comes back "No Match".
+   */
   const names = (record?.full_name ?? "").split(" ");
+  const prefill = (part: "first" | "middle" | "last") =>
+    part === "first"
+      ? (suggested?.first_name ?? names[0] ?? "")
+      : part === "middle"
+        ? (suggested?.middle_name ?? "")
+        : (suggested?.last_name ?? names.slice(1).join(" "));
 
   return (
     <fieldset className="border border-border bg-surface p-5">
@@ -87,7 +107,7 @@ function WitnessFields({
           </span>
           <input
             name={field("first_name")}
-            defaultValue={value("first_name") || names[0] || ""}
+            defaultValue={value("first_name") || prefill("first")}
             required
             className="mt-1.5 w-full border border-border bg-background px-3 py-2.5 font-serif text-sm text-navy focus:border-gold focus:outline-none"
           />
@@ -99,8 +119,20 @@ function WitnessFields({
           </span>
           <input
             name={field("last_name")}
-            defaultValue={value("last_name") || names.slice(1).join(" ")}
+            defaultValue={value("last_name") || prefill("last")}
             required
+            className="mt-1.5 w-full border border-border bg-background px-3 py-2.5 font-serif text-sm text-navy focus:border-gold focus:outline-none"
+          />
+        </label>
+
+        <label className="block">
+          <span className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+            Middle name
+          </span>
+          <input
+            name={field("middle_name")}
+            defaultValue={value("middle_name") || prefill("middle")}
+            placeholder="Optional"
             className="mt-1.5 w-full border border-border bg-background px-3 py-2.5 font-serif text-sm text-navy focus:border-gold focus:outline-none"
           />
         </label>
@@ -148,8 +180,11 @@ function WitnessFields({
 
 export function WitnessVerification({
   records = [],
+  suggested = [],
 }: {
   records?: WitnessIdentityRecord[];
+  /** The witnesses named in the Will, used to pre-fill the form. */
+  suggested?: SuggestedWitness[];
 }) {
   const [state, action] = useFormAction(submitWitnessIdentitiesAction);
 
@@ -186,8 +221,18 @@ export function WitnessVerification({
 
       <form action={action} className="mt-6 space-y-5">
         {/* Both, together — see the note at the top of this file. */}
-        <WitnessFields index={0} record={records[0]} values={state.values} />
-        <WitnessFields index={1} record={records[1]} values={state.values} />
+        <WitnessFields
+          index={0}
+          record={records[0]}
+          suggested={suggested[0]}
+          values={state.values}
+        />
+        <WitnessFields
+          index={1}
+          record={records[1]}
+          suggested={suggested[1]}
+          values={state.values}
+        />
 
         <div className="flex flex-wrap items-center gap-4">
           <button

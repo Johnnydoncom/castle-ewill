@@ -20,6 +20,16 @@ import { api, apiData } from "@/lib/api/client";
 export type WillPerson = {
   id: string;
   sort_order: number;
+  /**
+   * The three parts, and the whole composed from them.
+   *
+   * The parts are what a form repopulates and what a verification is built
+   * from; the whole is what a summary line prints. They are reconciled on save
+   * server-side, so they cannot disagree.
+   */
+  first_name?: string | null;
+  middle_name?: string | null;
+  last_name?: string | null;
   full_name?: string;
   relationship?: string | null;
   email?: string | null;

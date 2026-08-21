@@ -1,4 +1,4 @@
-import { apiData } from "@/lib/api/client";
+import { api, apiData } from "@/lib/api/client";
 
 /**
  * Identity verification's server-side reads.
@@ -74,4 +74,29 @@ export type WitnessIdentityRecord = {
  */
 export async function listWitnessIdentities(): Promise<WitnessIdentityRecord[]> {
   return apiData<WitnessIdentityRecord[]>("/witness-identities", []);
+}
+
+/** A witness as the Will already names them, for pre-filling the check. */
+export type SuggestedWitness = {
+  first_name: string | null;
+  middle_name: string | null;
+  last_name: string | null;
+  full_name: string | null;
+};
+
+/**
+ * The witnesses the client already named in their Will.
+ *
+ * Asking for a name that has already been given is asking somebody to type it
+ * a second time — and to type it slightly differently, which is exactly how a
+ * verification that should have matched comes back "No Match".
+ */
+export async function suggestedWitnesses(): Promise<SuggestedWitness[]> {
+  const result = await api<{ meta?: { suggested?: SuggestedWitness[] } }>(
+    "/witness-identities",
+  );
+
+  // The suggestion is a convenience; a read that fails should cost an empty
+  // form, not an error screen in front of a check somebody can still complete.
+  return result.ok ? (result.data.meta?.suggested ?? []) : [];
 }

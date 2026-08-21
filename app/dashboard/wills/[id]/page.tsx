@@ -13,6 +13,7 @@ import { getPriceList } from "@/lib/pricing";
 import { WillCheckout } from "@/components/payments/WillCheckout";
 import {
   listWitnessIdentities,
+  suggestedWitnesses,
 } from "@/lib/actions/verification";
 import { requireUser } from "@/lib/actions/guards";
 import { conflictingWitnesses } from "@/lib/will/conflicts";
@@ -92,7 +93,11 @@ export default async function WillDetailPage({
    * the part of a Will most likely to be challenged, and two approved
    * documents are what the record rests on.
    */
-  const witnessIds = await listWitnessIdentities();
+  const [witnessIds, suggestedWitnessNames] = await Promise.all([
+    listWitnessIdentities(),
+    // The names already given in the wizard, so nobody types them twice.
+    suggestedWitnesses(),
+  ]);
 
   // Surfaced here as well as in the wizard: this is the rule people most often
   // fall foul of, and it voids the gift rather than the Will.
@@ -187,7 +192,10 @@ export default async function WillDetailPage({
         </div>
       )}
 
-      <WitnessVerification records={witnessIds} />
+      <WitnessVerification
+        records={witnessIds}
+        suggested={suggestedWitnessNames}
+      />
 
       <ReviewSummary will={will} editBasePath={`/dashboard/wills/${will.id}/edit`} />
     </div>

@@ -51,6 +51,61 @@ function fieldChecked(state: FormState, name: string, fallback: boolean): boolea
   return state.values ? state.values[name] === "on" : fallback;
 }
 
+/**
+ * A person's name, in the three parts a verification needs.
+ *
+ * One "full name" box is fine for printing and useless for checking: an ID
+ * authority is asked about a surname and a given name, so a name typed as one
+ * string has to be guessed apart before it can be sent — and that guess is
+ * what turns a valid ID into a "No Match".
+ *
+ * The middle name is optional because plenty of people have none, and asking
+ * for one as though it were required is how somebody invents one.
+ */
+function NameFields({
+  name,
+  row,
+  state,
+  placeholder,
+}: {
+  name: (field: string) => string;
+  row?: {
+    first_name?: string | null;
+    middle_name?: string | null;
+    last_name?: string | null;
+  };
+  state: FormState;
+  /** An example whole name, split across the three boxes. */
+  placeholder?: string;
+}) {
+  const example = (placeholder ?? "").split(" ");
+
+  return (
+    <>
+      <TextField
+        label="First name"
+        name={name("firstName")}
+        required
+        placeholder={example[0] ?? ""}
+        defaultValue={fieldValue(state, name("firstName"), row?.first_name ?? "")}
+      />
+      <TextField
+        label="Middle name"
+        name={name("middleName")}
+        placeholder="Optional"
+        defaultValue={fieldValue(state, name("middleName"), row?.middle_name ?? "")}
+      />
+      <TextField
+        label="Surname"
+        name={name("lastName")}
+        required
+        placeholder={example.at(-1) ?? ""}
+        defaultValue={fieldValue(state, name("lastName"), row?.last_name ?? "")}
+      />
+    </>
+  );
+}
+
 /* ------------------------------- Step 1 ---------------------------------- */
 
 export function PersonalStep({ will, help, backHref }: StepProps) {
@@ -64,14 +119,38 @@ export function PersonalStep({ will, help, backHref }: StepProps) {
       <HelpPanel>{help}</HelpPanel>
 
       <div className="grid gap-6 sm:grid-cols-2">
+        {/*
+          Three parts, as on the ID.
+          
+          The testator's name is the one this platform verifies against a
+          government record, so a surname it has to guess at is a surname it
+          can guess wrong — and a wrong guess is a failed identity check on a
+          perfectly good document.
+        */}
         <TextField
-          label="Full legal name"
-          name="fullLegalName"
-          placeholder="Ada Chinelo Okafor"
+          label="First name"
+          name="firstName"
+          placeholder="Ada"
           hint="As on your ID"
           required
-          defaultValue={fieldValue(state, "fullLegalName", will.personal.full_legal_name ?? "")}
-          errors={e?.fullLegalName}
+          defaultValue={fieldValue(state, "firstName", will.personal.first_name ?? "")}
+          errors={e?.firstName}
+        />
+        <TextField
+          label="Middle name"
+          name="middleName"
+          placeholder="Optional"
+          defaultValue={fieldValue(state, "middleName", will.personal.middle_name ?? "")}
+          errors={e?.middleName}
+        />
+        <TextField
+          label="Surname"
+          name="lastName"
+          placeholder="Okafor"
+          hint="As on your ID"
+          required
+          defaultValue={fieldValue(state, "lastName", will.personal.last_name ?? "")}
+          errors={e?.lastName}
           className="sm:col-span-2"
         />
         <TextField
@@ -221,12 +300,11 @@ export function ExecutorsStep({ will, help, backHref }: StepProps) {
           const row = will.executors[index];
           return (
             <div className="grid gap-5 sm:grid-cols-2">
-              <TextField
-                label="Full name"
-                name={name("fullName")}
-                required
+              <NameFields
+                name={name}
+                row={row}
+                state={state}
                 placeholder="Emeka Okafor"
-                defaultValue={fieldValue(state, name("fullName"), row?.full_name ?? "")}
               />
               <TextField
                 label="Relationship"
@@ -296,12 +374,11 @@ export function BeneficiariesStep({ will, help, backHref }: StepProps) {
           const row = will.beneficiaries[index];
           return (
             <div className="grid gap-5 sm:grid-cols-2">
-              <TextField
-                label="Full name"
-                name={name("fullName")}
-                required
+              <NameFields
+                name={name}
+                row={row}
+                state={state}
                 placeholder="Zara Okafor"
-                defaultValue={fieldValue(state, name("fullName"), row?.full_name ?? "")}
               />
               <TextField
                 label="Relationship"
@@ -419,12 +496,11 @@ export function GuardianshipStep({ will, help, backHref }: StepProps) {
             const row = will.guardians[index];
             return (
               <div className="grid gap-5 sm:grid-cols-2">
-                <TextField
-                  label="Full name"
-                  name={name("fullName")}
-                  required
+                <NameFields
+                  name={name}
+                  row={row}
+                  state={state}
                   placeholder="Chidi Nwosu"
-                  defaultValue={fieldValue(state, name("fullName"), row?.full_name ?? "")}
                 />
                 <TextField
                   label="Relationship"
@@ -621,12 +697,11 @@ export function WitnessesStep({ will, help, backHref }: StepProps) {
           const row = will.witnesses[index];
           return (
             <div className="grid gap-5 sm:grid-cols-2">
-              <TextField
-                label="Full name"
-                name={name("fullName")}
-                required
+              <NameFields
+                name={name}
+                row={row}
+                state={state}
                 placeholder="Tunde Bello"
-                defaultValue={fieldValue(state, name("fullName"), row?.full_name ?? "")}
               />
               <TextField
                 label="Occupation"

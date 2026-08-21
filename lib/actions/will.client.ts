@@ -130,7 +130,10 @@ export async function savePersonalAction(
   formData: FormData,
 ): Promise<FormState> {
   return saveStep(String(formData.get("willId") ?? ""), "personal", {
-    full_legal_name: formData.get("fullLegalName"),
+    // The parts; `full_legal_name` is composed from them server-side.
+    first_name: formData.get("firstName"),
+    middle_name: formData.get("middleName"),
+    last_name: formData.get("lastName"),
     date_of_birth: formData.get("dateOfBirth"),
     nationality: formData.get("nationality"),
     marital_status: formData.get("maritalStatus"),
