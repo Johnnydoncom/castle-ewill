@@ -150,26 +150,46 @@ export async function submittedVerificationAction(
  * who are not our clients, are read once by a reviewer, and are deleted when
  * the client's verification completes.
  */
-export async function uploadWitnessIdentityAction(
+/**
+ * Submits both witnesses' identity details for checking.
+ *
+ * Both at once, because the attestation has two signatories and a client is
+ * looking at both IDs on the table in front of them. Asking for one and then
+ * the other turns a single sitting into two, and is how the second witness
+ * never gets entered at all.
+ *
+ * No file. Smile ID's Basic KYC asks the issuing authority whether the ID
+ * number belongs to the name, so no third party's identity document is
+ * uploaded, transmitted or held anywhere.
+ */
+export async function submitWitnessIdentitiesAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const file = formData.get("file");
-
-  if (!(file instanceof File) || file.size === 0) {
-    return errorState("Choose a file to upload.");
-  }
-
-  const body = new FormData();
-  body.set("file", file);
+  const witnesses = [0, 1].map((index) => ({
+    first_name: String(formData.get(`witnesses.${index}.first_name`) ?? "").trim(),
+    last_name: String(formData.get(`witnesses.${index}.last_name`) ?? "").trim(),
+    id_type: String(formData.get(`witnesses.${index}.id_type`) ?? "").trim(),
+    id_number: String(formData.get(`witnesses.${index}.id_number`) ?? "").trim(),
+  }));
 
   const result = await api<{ message: string }>("/witness-identities", {
     method: "POST",
-    formData: body,
+    body: { witnesses },
   });
 
   if (!result.ok) {
-    return errorState(result.message);
+    /*
+     * Echoed back so the form can repopulate. React resets an uncontrolled
+     * `<form action>` on any settled promise, and re-typing four fields
+     * because one ID number was mistyped is how somebody gives up.
+     */
+    return {
+      ...errorState(result.message, result.fieldErrors),
+      values: Object.fromEntries(
+        [...formData.entries()].map(([key, value]) => [key, String(value)]),
+      ),
+    };
   }
 
   return successState(result.data.message);

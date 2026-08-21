@@ -59,6 +59,11 @@ export type WitnessIdentityRecord = {
    */
   status: "pending" | "verified" | "rejected";
   rejection_reason: string | null;
+  /** As submitted, so the form can show it back. */
+  full_name: string | null;
+  id_type: string | null;
+  /** Masked — the last four characters only. Never a value to submit. */
+  id_number: string | null;
 };
 
 /**

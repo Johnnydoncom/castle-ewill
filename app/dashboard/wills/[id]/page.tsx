@@ -7,7 +7,7 @@ import { PageHead } from "@/components/dashboard/PageHead";
 import { JourneyActions } from "@/components/will/JourneyActions";
 import { JourneyBar } from "@/components/will/JourneyBar";
 import { ReviewSummary } from "@/components/will/ReviewSummary";
-import { WitnessIdentityUpload } from "@/components/will/WitnessIdentityUpload";
+import { WitnessVerification } from "@/components/will/WitnessVerification";
 import { readWill } from "@/lib/actions/will";
 import { getPriceList } from "@/lib/pricing";
 import { getProfile } from "@/lib/actions/guards";
@@ -94,8 +94,6 @@ export default async function WillDetailPage({
    * documents are what the record rests on.
    */
   const witnessIds = await listWitnessIdentities();
-  const witnessIdCount = witnessIds.filter((w) => w.status !== "rejected").length;
-  const witnessesApproved = witnessIds.filter((w) => w.status === "verified").length;
 
   // Surfaced here as well as in the wizard: this is the rule people most often
   // fall foul of, and it voids the gift rather than the Will.
@@ -187,11 +185,7 @@ export default async function WillDetailPage({
         </div>
       )}
 
-      <WitnessIdentityUpload
-        uploaded={witnessIdCount}
-        approved={witnessesApproved}
-        rejected={witnessIds.filter((w) => w.status === "rejected")}
-      />
+      <WitnessVerification records={witnessIds} />
 
       <ReviewSummary will={will} editBasePath={`/dashboard/wills/${will.id}/edit`} />
     </div>
