@@ -49,13 +49,19 @@ export default async function DashboardPaymentsPage() {
         blurb="Your subscription, and every payment you have made. Paying for a Will happens on that Will."
       />
 
+      {/*
+        Coarse on purpose: this page is about the account's billing history,
+        and "at least one of your Wills is covered" is the honest summary.
+        Which Will is covered, and until when, belongs on that Will.
+      */}
       {profile?.has_active_subscription && expiresOn && (
         <div className="flex items-start gap-3 border-l-2 border-success bg-success/5 px-5 py-4 text-sm text-navy">
           <CalendarCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" />
           <p className="leading-relaxed">
-            Your subscription is active until {expiresOn}. Amendments to your
-            Will on this platform are free until then. Lodging a revised Will
-            with the registry is optional and charged separately.
+            You have an active subscription until {expiresOn}. A subscription
+            covers one Will — its storage here and its amendments — so check
+            each Will for its own cover. Lodging a revised Will with the
+            registry is optional and charged separately.
           </p>
         </div>
       )}

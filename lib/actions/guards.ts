@@ -38,7 +38,13 @@ export type Profile = {
   /** Whether the platform is currently asking for each — admin-controlled. */
   requires_email_verification: boolean;
   requires_phone_verification: boolean;
-  /** Whether amendments are currently free — see `User::hasActiveSubscription()`. */
+  /**
+   * Whether **any** of this account's Wills is currently subscribed.
+   *
+   * Coarse, and only useful as a coarse answer. A subscription belongs to a
+   * Will, so anything deciding storage or amendments must read that Will's own
+   * `has_active_subscription`.
+   */
   has_active_subscription: boolean;
   subscription_expires_at: string | null;
   /** Platinum: may attach a recording of themselves reading their Will. */

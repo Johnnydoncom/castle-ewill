@@ -115,6 +115,15 @@ export type ApiWill = {
   executed_at: string | null;
   lodged_at: string | null;
   lodging_reference: string | null;
+  /**
+   * This Will's storage-and-amendments subscription.
+   *
+   * Per Will, not per account: a lawyer subscribes for each client's document
+   * separately, so an account-level answer would tell one client's Will it was
+   * covered by another's.
+   */
+  subscription_expires_at: string | null;
+  has_active_subscription: boolean;
   personal: Record<string, string | null>;
   declaration: Record<string, boolean>;
   has_minor_children: boolean | null;

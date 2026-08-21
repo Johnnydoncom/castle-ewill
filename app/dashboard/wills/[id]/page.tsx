@@ -10,7 +10,6 @@ import { ReviewSummary } from "@/components/will/ReviewSummary";
 import { WitnessVerification } from "@/components/will/WitnessVerification";
 import { readWill } from "@/lib/actions/will";
 import { getPriceList } from "@/lib/pricing";
-import { getProfile } from "@/lib/actions/guards";
 import { WillCheckout } from "@/components/payments/WillCheckout";
 import {
   listWitnessIdentities,
@@ -84,7 +83,7 @@ export default async function WillDetailPage({
 
   const will = read.will;
 
-  const [prices, profile] = await Promise.all([getPriceList(), getProfile()]);
+  const prices = await getPriceList();
   /*
    * Always, now — not only when a person is doing the checking.
    *
@@ -155,7 +154,10 @@ export default async function WillDetailPage({
               initialQuotes={prices.quotes}
               flutterwaveEnabled={prices.providers.flutterwave}
               paystackEnabled={prices.providers.paystack}
-              hasActiveSubscription={Boolean(profile?.has_active_subscription)}
+              // This Will's own, not the account's: reading the account would
+              // tell a lawyer's second client their document was covered by
+              // the first client's payment.
+              hasActiveSubscription={will.has_active_subscription}
             />
           </div>
         </section>
