@@ -71,10 +71,14 @@ export function CheckoutButton({
   paystackEnabled?: boolean;
 }) {
   /*
-   * The main button goes to Nomba, the primary gateway. The others are
-   * offered underneath only when they are actually configured — a button that
-   * can only answer "that payment method is not enabled yet" is worse than no
-   * button.
+   * The main button names no gateway, so the server charges through whichever
+   * one is active in Settings. It used to send "nomba" outright, which meant
+   * changing the active gateway in the console changed the setting and nothing
+   * else.
+   *
+   * The others are offered underneath only when they are actually configured —
+   * a button that can only answer "that payment method is not enabled yet" is
+   * worse than no button.
    */
   const [primaryState, primary] = useFormAction(startCheckoutAction);
   const [paystackState, paystack] = useFormAction(startPaystackCheckoutAction);

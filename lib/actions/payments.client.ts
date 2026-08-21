@@ -67,7 +67,16 @@ function selectionFrom(formData: FormData) {
 }
 
 async function startCheckout(
-  provider: "nomba" | "paystack" | "flutterwave",
+  /**
+   * Which gateway to use, or null to let the server decide.
+   *
+   * Null is the normal case. The server names an active gateway in Settings,
+   * and sending a provider here overrides it — which is exactly what went
+   * wrong: this hard-coded "nomba" from the release that made Nomba primary,
+   * so switching the active gateway in the console changed the setting, the
+   * screen and nothing else. Every payment still went to Nomba.
+   */
+  provider: "nomba" | "paystack" | "flutterwave" | null,
   formData: FormData,
 ): Promise<FormState> {
   const selection = selectionFrom(formData);
@@ -76,7 +85,10 @@ async function startCheckout(
 
   const result = await api<{ data: { checkout_url: string } }>(
     "/payments/checkout",
-    { method: "POST", body: { ...selection, provider } },
+    {
+      method: "POST",
+      body: { ...selection, ...(provider ? { provider } : {}) },
+    },
   );
 
   if (!result.ok) {
@@ -113,11 +125,16 @@ export async function fetchQuoteAction(
  * its role rather than its vendor — swapping the primary later should be a
  * change here, not a rename at every call site.
  */
+/**
+ * The main checkout button.
+ *
+ * Names no gateway, so the one chosen in Settings is the one that charges.
+ */
 export async function startCheckoutAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  return startCheckout("nomba", formData);
+  return startCheckout(null, formData);
 }
 
 export async function startPaystackCheckoutAction(

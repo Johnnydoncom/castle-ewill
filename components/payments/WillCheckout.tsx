@@ -362,9 +362,10 @@ export function WillCheckout({
       )}
 
       <div className="space-y-4">
-        {/* Nomba, the primary gateway. It offers card, transfer, USSD and QR
-            on its own hosted page, so the label names the act rather than the
-            instrument. */}
+        {/* Whichever gateway Settings makes active — the button names no
+            provider, so switching it in the console switches what charges.
+            Each of them offers card, transfer and more on its own hosted page,
+            so the label names the act rather than the instrument. */}
         <form action={card}>
           <SelectionFields willId={willId} planSlug={selected} options={options} />
           <Submit label="Pay now" featured />
