@@ -100,8 +100,8 @@ function WitnessFields({
         </p>
       )}
 
-      <div className="flex flex-col sm:flex-row gap-4">
-        <label className="block w-full sm:w-1/3">
+      <div className="grid gap-4 sm:grid-cols-3">
+        <label className="block">
           <span className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
             First name
           </span>
@@ -113,7 +113,7 @@ function WitnessFields({
           />
         </label>
 
-        <label className="block w-full sm:w-1/3">
+        <label className="block">
           <span className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
             Surname
           </span>
@@ -125,7 +125,7 @@ function WitnessFields({
           />
         </label>
 
-        <label className="block w-full sm:w-1/3">
+        <label className="block">
           <span className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
             Middle name
           </span>
@@ -137,7 +137,7 @@ function WitnessFields({
           />
         </label>
 
-        <label className="block w-full sm:w-1/2">
+        <label className="block sm:col-span-1/2">
           <span className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
             Which ID
           </span>
@@ -155,7 +155,7 @@ function WitnessFields({
           </select>
         </label>
 
-        <label className="block w-full sm:w-1/2">
+        <label className="block sm:col-span-1/2">
           <span className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
             ID number
           </span>
