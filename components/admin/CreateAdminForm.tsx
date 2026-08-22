@@ -55,19 +55,36 @@ export function CreateAdminForm() {
 
       <div className="grid gap-5 sm:grid-cols-2">
         <div className="space-y-2">
-          <label htmlFor="new-admin-name" className={labelClass}>
-            Name
+          <label htmlFor="new-admin-first-name" className={labelClass}>
+            First name
           </label>
           <input
-            id="new-admin-name"
-            name="name"
+            id="new-admin-first-name"
+            name="firstName"
             required
-            maxLength={191}
-            placeholder="Chidi Okonkwo"
+            maxLength={96}
+            placeholder="Chidi"
             className={field}
           />
-          {state.fieldErrors?.name && (
-            <p className="text-xs text-destructive">{state.fieldErrors.name[0]}</p>
+          {state.fieldErrors?.firstName && (
+            <p className="text-xs text-destructive">{state.fieldErrors.firstName[0]}</p>
+          )}
+        </div>
+
+        <div className="space-y-2">
+          <label htmlFor="new-admin-last-name" className={labelClass}>
+            Surname
+          </label>
+          <input
+            id="new-admin-last-name"
+            name="lastName"
+            required
+            maxLength={96}
+            placeholder="Okonkwo"
+            className={field}
+          />
+          {state.fieldErrors?.lastName && (
+            <p className="text-xs text-destructive">{state.fieldErrors.lastName[0]}</p>
           )}
         </div>
 

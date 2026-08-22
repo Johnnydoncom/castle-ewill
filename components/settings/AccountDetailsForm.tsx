@@ -24,7 +24,13 @@ import { StatefulForm } from "@/components/forms/StatefulForm";
 export function AccountDetailsForm({ profile }: { profile: Profile }) {
   const [state, action] = useFormAction(updateAccountAction);
 
-  const { name, email, phone } = profile;
+  const {
+    first_name: firstName,
+    middle_name: middleName,
+    last_name: lastName,
+    email,
+    phone,
+  } = profile;
 
   /*
    * The current-password box appears only once the address is actually being
@@ -38,13 +44,35 @@ export function AccountDetailsForm({ profile }: { profile: Profile }) {
     <StatefulForm state={state} action={action} className="space-y-6" noValidate>
       <FormBanner state={state} />
 
+      {/*
+        Three parts, as on the ID — the same name the identity check is built
+        from, so a surname the software has to guess at is a surname it can
+        guess wrong.
+      */}
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field
+          label="First name"
+          name="firstName"
+          autoComplete="given-name"
+          defaultValue={firstName ?? ""}
+          required
+          errors={state.fieldErrors?.firstName}
+        />
+        <Field
+          label="Surname"
+          name="lastName"
+          autoComplete="family-name"
+          defaultValue={lastName ?? ""}
+          required
+          errors={state.fieldErrors?.lastName}
+        />
+      </div>
       <Field
-        label="Full name"
-        name="name"
-        autoComplete="name"
-        defaultValue={name ?? ""}
-        required
-        errors={state.fieldErrors?.name}
+        label="Middle name"
+        name="middleName"
+        autoComplete="additional-name"
+        defaultValue={middleName ?? ""}
+        errors={state.fieldErrors?.middleName}
       />
 
       <div>

@@ -381,19 +381,29 @@ export async function createAdminAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const name = String(formData.get("name") ?? "").trim();
+  // Three parts, as everywhere else a person is named.
+  const firstName = String(formData.get("firstName") ?? "").trim();
+  const middleName = String(formData.get("middleName") ?? "").trim();
+  const lastName = String(formData.get("lastName") ?? "").trim();
   const email = String(formData.get("email") ?? "").trim();
   const permissions = formData.getAll("permissions").map(String);
 
-  if (!name || !email) {
+  if (!firstName || !lastName || !email) {
     return errorState("Enter a name and email address.", {
-      ...(name ? {} : { name: ["Required"] }),
+      ...(firstName ? {} : { firstName: ["Required"] }),
+      ...(lastName ? {} : { lastName: ["Required"] }),
       ...(email ? {} : { email: ["Required"] }),
     });
   }
 
   return apiMutation("/admin/admins", {
-    body: { name, email, permissions },
+    body: {
+      first_name: firstName,
+      middle_name: middleName || null,
+      last_name: lastName,
+      email,
+      permissions,
+    },
   });
 }
 

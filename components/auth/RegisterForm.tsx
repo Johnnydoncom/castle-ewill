@@ -140,13 +140,38 @@ export function RegisterForm({
         </div>
       )}
 
+      {/*
+        Three parts, as on the ID.
+        
+        This is the name the identity check is built from later, and a surname
+        the software has to guess at is a surname it can guess wrong — a failed
+        check on a perfectly good document. `autoComplete` is split to match, so
+        a browser still fills all three.
+      */}
+      <div className="grid gap-5 sm:grid-cols-2">
+        <Field
+          label="First name"
+          name="firstName"
+          autoComplete="given-name"
+          placeholder="Ada"
+          required
+          errors={state.fieldErrors?.firstName}
+        />
+        <Field
+          label="Surname"
+          name="lastName"
+          autoComplete="family-name"
+          placeholder="Okafor"
+          required
+          errors={state.fieldErrors?.lastName}
+        />
+      </div>
       <Field
-        label="Full name"
-        name="name"
-        autoComplete="name"
-        placeholder="Ada Chinelo Okafor"
-        required
-        errors={state.fieldErrors?.name}
+        label="Middle name"
+        name="middleName"
+        autoComplete="additional-name"
+        placeholder="Optional"
+        errors={state.fieldErrors?.middleName}
       />
       <Field
         label="Email"
@@ -165,13 +190,6 @@ export function RegisterForm({
         withMeter
         errors={state.fieldErrors?.password}
       />
-      <PasswordField
-        label="Confirm password"
-        name="confirmPassword"
-        autoComplete="new-password"
-        errors={state.fieldErrors?.confirmPassword}
-      />
-
       <label className="flex items-start gap-3 pt-1 text-sm text-muted-foreground">
         <input
           type="checkbox"

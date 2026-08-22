@@ -21,16 +21,16 @@ export async function registerAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
+  /*
+   * No confirmation field on sign-up.
+   *
+   * A second password box is a second thing to type on a form somebody fills
+   * once, and its only job is catching a typo — which the password reset
+   * already catches, at the cost of one email rather than of never signing up
+   * at all. Changing a password later still asks twice, because there the cost
+   * of a typo is being locked out of an account you already have.
+   */
   const password = String(formData.get("password") ?? "");
-  const confirm = String(formData.get("confirmPassword") ?? "");
-
-  // Checked here purely for a faster inline message. The backend checks it
-  // again — this one is a convenience, that one is the guarantee.
-  if (password !== confirm) {
-    return errorState("Please correct the highlighted fields.", {
-      confirmPassword: ["Passwords do not match"],
-    });
-  }
 
   const accountType =
     String(formData.get("accountType") ?? "individual") === "lawyer"
@@ -39,10 +39,12 @@ export async function registerAction(
 
   return apiMutation("/auth/register", {
     body: {
-      name: String(formData.get("name") ?? ""),
+      // The parts; `name` is composed from them server-side.
+      first_name: String(formData.get("firstName") ?? ""),
+      middle_name: String(formData.get("middleName") ?? ""),
+      last_name: String(formData.get("lastName") ?? ""),
       email: String(formData.get("email") ?? ""),
       password,
-      password_confirmation: confirm,
       accepted_terms: formData.get("acceptedTerms") === "on",
       account_type: accountType,
       /*
@@ -335,7 +337,9 @@ function mapFieldErrors(
   if (!errors) return undefined;
 
   const aliases: Record<string, string> = {
-    password_confirmation: "confirmPassword",
+    first_name: "firstName",
+    middle_name: "middleName",
+    last_name: "lastName",
     accepted_terms: "acceptedTerms",
     account_type: "accountType",
     enrolment_number: "enrolmentNumber",

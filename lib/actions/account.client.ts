@@ -22,7 +22,10 @@ export async function updateAccountAction(
   return apiMutation("/me", {
     method: "PUT",
     body: {
-      name: String(formData.get("name") ?? "").trim(),
+      // The parts; `name` is composed from them server-side.
+      first_name: String(formData.get("firstName") ?? "").trim(),
+      middle_name: String(formData.get("middleName") ?? "").trim() || null,
+      last_name: String(formData.get("lastName") ?? "").trim(),
       email: String(formData.get("email") ?? "").trim(),
       // An empty box means "remove it", which is a different instruction from
       // "leave it alone" — sent as null rather than as "".

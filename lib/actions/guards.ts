@@ -27,6 +27,15 @@ export type SessionUser = {
 export type Profile = {
   id: string;
   name: string | null;
+  /**
+   * The three parts the whole name is composed from.
+   *
+   * The identity check is built from these, so a surname the software has to
+   * guess at is a surname it can guess wrong.
+   */
+  first_name: string | null;
+  middle_name: string | null;
+  last_name: string | null;
   email: string;
   phone: string | null;
   image: string | null;
