@@ -131,6 +131,12 @@ export default async function WillDetailPage({
             willId={will.id}
             journey={will.journey}
             pdfUrl={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${will.id}/pdf`}
+            /*
+              Both of these have their own panel further down this page, so the
+              card and its button would only be pointing at what is already in
+              view.
+            */
+            resolvedHere={["unpaid", "witnesses_required"]}
           />
         </div>
       )}

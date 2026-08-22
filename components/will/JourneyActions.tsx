@@ -63,11 +63,19 @@ const BLOCKERS: Record<
     body: "Because this is your first Will with us, we confirm your identity against a government-issued document before releasing it.",
     cta: { label: "Verify my identity", href: "/dashboard/kyc" },
   },
+  /*
+   * Shown only where the witness panel is not.
+   *
+   * On the Will's own page that panel is a few inches below, so this card is
+   * suppressed entirely — see `resolvedHere`. It survives on the editor's
+   * review step, which has no witness panel of its own, and where the button
+   * genuinely goes somewhere: the Will's page.
+   */
   witnesses_required: {
     icon: ScanFace,
     title: "We are checking your witnesses",
-    body: "Both witnesses' identification has to be approved before your Will can be released. Upload theirs if you have not yet — we will email you as soon as both are checked.",
-    cta: { label: "Witness identification", href: "/dashboard/documents" },
+    body: "Both witnesses' identification has to be confirmed before your Will can be released. We will email you as soon as both are checked.",
+    cta: { label: "Open this Will", href: null },
   },
   /*
    * Reachable from printing again, and from editing.
@@ -96,16 +104,27 @@ export function JourneyActions({
   willId,
   journey,
   pdfUrl,
+  resolvedHere = [],
 }: {
   willId: string;
   journey: WillJourney;
   pdfUrl: string;
+  /**
+   * Blockers whose own panel is already on this page.
+   *
+   * A card explaining what to do next, above a button that navigates to the
+   * page you are already on, above the panel that actually does it, is three
+   * things where one is wanted. Where the work is right here, the panel is the
+   * call to action and this card is furniture.
+   */
+  resolvedHere?: string[];
 }) {
   const [state, action] = useFormAction(chooseReviewAction);
 
-  const blocker = journey.print_blocked_by
-    ? BLOCKERS[journey.print_blocked_by]
-    : null;
+  const blocked = journey.print_blocked_by;
+
+  const blocker =
+    blocked && !resolvedHere.includes(blocked) ? BLOCKERS[blocked] : null;
 
   return (
     <div className="space-y-6">
