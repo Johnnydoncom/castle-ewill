@@ -100,8 +100,8 @@ function WitnessFields({
         </p>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-2">
-        <label className="block">
+      <div className="flex flex-col sm:flex-row gap-4">
+        <label className="block w-full sm:w-1/3">
           <span className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
             First name
           </span>
@@ -113,7 +113,7 @@ function WitnessFields({
           />
         </label>
 
-        <label className="block">
+        <label className="block w-full sm:w-1/3">
           <span className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
             Surname
           </span>
@@ -125,7 +125,7 @@ function WitnessFields({
           />
         </label>
 
-        <label className="block">
+        <label className="block w-full sm:w-1/3">
           <span className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
             Middle name
           </span>
@@ -137,7 +137,7 @@ function WitnessFields({
           />
         </label>
 
-        <label className="block">
+        <label className="block w-full sm:w-1/2">
           <span className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
             Which ID
           </span>
@@ -155,7 +155,7 @@ function WitnessFields({
           </select>
         </label>
 
-        <label className="block">
+        <label className="block w-full sm:w-1/2">
           <span className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
             ID number
           </span>
@@ -208,11 +208,10 @@ export function WitnessVerification({
         </div>
 
         <span
-          className={`inline-flex shrink-0 items-center gap-2 border px-3 py-1 text-[10px] uppercase tracking-[0.18em] ${
-            isComplete
+          className={`inline-flex shrink-0 items-center gap-2 border px-3 py-1 text-[10px] uppercase tracking-[0.18em] ${isComplete
               ? "border-success/50 text-success"
               : "border-gold/60 text-gold"
-          }`}
+            }`}
         >
           <ShieldCheck className="h-3.5 w-3.5" />
           {verified} of 2 verified
@@ -246,9 +245,8 @@ export function WitnessVerification({
             <p
               role="status"
               aria-live="polite"
-              className={`text-sm ${
-                state.status === "error" ? "text-destructive" : "text-success"
-              }`}
+              className={`text-sm ${state.status === "error" ? "text-destructive" : "text-success"
+                }`}
             >
               {state.message}
             </p>
