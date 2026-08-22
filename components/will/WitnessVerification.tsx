@@ -137,7 +137,7 @@ function WitnessFields({
           />
         </label>
 
-        <label className="block sm:col-span-[50%]">
+        <label className="block sm:col-span-1.5">
           <span className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
             Which ID
           </span>
@@ -155,7 +155,7 @@ function WitnessFields({
           </select>
         </label>
 
-        <label className="block sm:col-span-[50%]">
+        <label className="block sm:col-span-1.5">
           <span className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
             ID number
           </span>
