@@ -293,9 +293,15 @@ export function ExecutorsStep({ will, help, backHref }: StepProps) {
       <RepeatableList
         legend="Executor"
         addLabel="Add another executor"
-        min={1}
+        /*
+          Two, not one. A Will with a single executor has a single point of
+          failure: if that person dies first, cannot act or declines, the
+          estate goes to the court for an administrator nobody chose. The
+          server enforces the same minimum.
+        */
+        min={2}
         max={6}
-        initialCount={will.executors.length || 2}
+        initialCount={Math.max(will.executors.length, 2)}
         renderRow={({ index, name }) => {
           const row = will.executors[index];
           return (
@@ -334,15 +340,6 @@ export function ExecutorsStep({ will, help, backHref }: StepProps) {
                 placeholder="08111115547"
                 defaultValue={fieldValue(state, name("phone"), row?.phone ?? "")}
               />
-              <div className="sm:col-span-2">
-                <CheckboxField
-                  name={name("isAlternate")}
-                  defaultChecked={fieldChecked(state, name("isAlternate"), row?.is_alternate ?? false)}
-                >
-                  This is an <strong>alternate</strong> executor, who acts only
-                  if a primary executor cannot.
-                </CheckboxField>
-              </div>
             </div>
           );
         }}

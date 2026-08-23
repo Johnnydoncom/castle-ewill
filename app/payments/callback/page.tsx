@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 
-import { requireUser } from "@/lib/actions/guards";
+import { getProfile, requireUser } from "@/lib/actions/guards";
 import { settlePayment } from "@/lib/actions/payments";
 
 export const metadata: Metadata = {
@@ -70,6 +70,29 @@ export default async function PaymentCallbackPage({
       : state.message?.toLowerCase().includes("confirming")
         ? "pending"
         : "failed";
+
+  /*
+   * Straight on to the next thing, rather than back to the dashboard.
+   *
+   * Paying is not the end of anything — it is what unlocks the identity check,
+   * and a client who has just paid expects to be taken there rather than
+   * returned to a summary page to find the next step themselves. Reported as
+   * "I am unable to verify my identity; I expected to be automatically taken
+   * to identity verification upon payment."
+   *
+   * Only on success: a failed or still-confirming payment has unlocked
+   * nothing, and sending somebody to a check they cannot complete yet would
+   * be worse than saying so plainly.
+   */
+  if (outcome === "success") {
+    const profile = await getProfile();
+
+    redirect(
+      profile?.is_kyc_verified
+        ? "/dashboard/wills?payment=success"
+        : "/dashboard/kyc?payment=success",
+    );
+  }
 
   redirect(`/dashboard?payment=${outcome}`);
 }

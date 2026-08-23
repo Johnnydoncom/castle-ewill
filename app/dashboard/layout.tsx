@@ -1,10 +1,10 @@
 import { DashboardShell } from "@/components/dashboard/DashboardShell";
-import { requireCustomer } from "@/lib/actions/guards";
+import { getProfile, requireCustomer } from "@/lib/actions/guards";
 
 /** Per-user data throughout — never prerendered, never cached across requests. */
 export const dynamic = "force-dynamic";
 
-const nav = [
+const BASE_NAV = [
   /*
    * Organised around the Will, because that is the object clients think in and
    * they may hold several.
@@ -21,11 +21,27 @@ const nav = [
    * Paying for a Will happens on that Will.
    */
   { href: "/dashboard", label: "Overview", icon: "overview" },
-  { href: "/dashboard/wills", label: "My Wills", icon: "will" },
   { href: "/dashboard/documents", label: "Documents", icon: "documents" },
   { href: "/dashboard/payments", label: "Billing", icon: "payments" },
   { href: "/dashboard/settings", label: "Settings", icon: "settings" },
 ] as const;
+
+/**
+ * The Wills entry, for the accounts that have more than one.
+ *
+ * A client has exactly one Will, so "My Wills" is a list of one — a page whose
+ * whole job is choosing between things there is no choice between, and a
+ * second click on the way to the only Will they own. They go straight to it
+ * from Overview instead.
+ *
+ * A verified lawyer holds Wills for many clients, so for them the list *is*
+ * the workspace and it sits at the top of the sidebar.
+ */
+const WILLS_NAV = {
+  href: "/dashboard/wills",
+  label: "My Wills",
+  icon: "will",
+} as const;
 
 export default async function DashboardLayout({
   children,
@@ -33,6 +49,11 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const user = await requireCustomer();
+  const profile = await getProfile();
+
+  const nav = profile?.may_hold_multiple_wills
+    ? [BASE_NAV[0], WILLS_NAV, ...BASE_NAV.slice(1)]
+    : BASE_NAV;
 
   /*
    * The sidebar footer once read "Book a 20-minute review with a Nigerian
