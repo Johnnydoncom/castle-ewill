@@ -86,6 +86,7 @@ export type PrintBlocker =
   | "incomplete"
   | "unpaid"
   | "kyc_required"
+  | "passport_photograph_required"
   | "witnesses_required"
   | "liveness_required";
 

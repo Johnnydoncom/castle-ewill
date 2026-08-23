@@ -63,6 +63,12 @@ const BLOCKERS: Record<
     body: "Because this is your first Will with us, we confirm your identity against a government-issued document before releasing it.",
     cta: { label: "Verify my identity", href: "/dashboard/kyc" },
   },
+  passport_photograph_required: {
+    icon: ScanFace,
+    title: "We need your photograph",
+    body: "A passport photograph is printed on the face of your Will. Add one on this Will's page and you can carry on.",
+    cta: { label: "Open this Will", href: null },
+  },
   /*
    * Shown only where the witness panel is not.
    *

@@ -7,7 +7,9 @@ import { PageHead } from "@/components/dashboard/PageHead";
 import { JourneyActions } from "@/components/will/JourneyActions";
 import { JourneyBar } from "@/components/will/JourneyBar";
 import { ReviewSummary } from "@/components/will/ReviewSummary";
+import { PassportPhotograph } from "@/components/will/PassportPhotograph";
 import { WitnessVerification } from "@/components/will/WitnessVerification";
+import { listUserDocuments } from "@/lib/actions/documents";
 import { readWill } from "@/lib/actions/will";
 import { getPriceList } from "@/lib/pricing";
 import { WillCheckout } from "@/components/payments/WillCheckout";
@@ -93,11 +95,16 @@ export default async function WillDetailPage({
    * the part of a Will most likely to be challenged, and two approved
    * documents are what the record rests on.
    */
-  const [witnessIds, suggestedWitnessNames] = await Promise.all([
+  const [witnessIds, suggestedWitnessNames, documents] = await Promise.all([
     listWitnessIdentities(),
     // The names already given in the wizard, so nobody types them twice.
     suggestedWitnesses(),
+    listUserDocuments(),
   ]);
+
+  const hasPassportPhoto = documents.some(
+    (record) => record.kind === "passport_photograph",
+  );
 
   // Surfaced here as well as in the wizard: this is the rule people most often
   // fall foul of, and it voids the gift rather than the Will.
@@ -136,7 +143,11 @@ export default async function WillDetailPage({
               card and its button would only be pointing at what is already in
               view.
             */
-            resolvedHere={["unpaid", "witnesses_required"]}
+            resolvedHere={[
+              "unpaid",
+              "passport_photograph_required",
+              "witnesses_required",
+            ]}
           />
         </div>
       )}
@@ -197,6 +208,12 @@ export default async function WillDetailPage({
           </p>
         </div>
       )}
+
+      {/*
+        Printed on the face of the Will, so it is asked for beside the Will
+        rather than during the identity check.
+      */}
+      <PassportPhotograph present={hasPassportPhoto} />
 
       <WitnessVerification
         records={witnessIds}
