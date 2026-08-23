@@ -20,6 +20,7 @@ import {
 } from "@/components/will/WizardChrome";
 import { ReviewSummary } from "@/components/will/ReviewSummary";
 import {
+  AssetsStep,
   BeneficiariesStep,
   BequestsStep,
   DeclarationStep,
@@ -28,6 +29,7 @@ import {
   GuardianshipStep,
   PersonalStep,
   ReviewStep,
+  TrusteesStep,
   WitnessesStep,
 } from "@/components/will/StepForms";
 
@@ -203,17 +205,24 @@ export default async function WillEditorPage({
         <StepHeading step={definition} />
 
         <div className="mt-10">
-          {current === 1 && <PersonalStep {...stepProps} />}
-          {current === 2 && <DeclarationStep {...stepProps} />}
-          {current === 3 && <ExecutorsStep {...stepProps} />}
-          {/* 4 is specific bequests and 6 the residuary shares — gifts are
-              made before what remains is divided. See lib/will/steps.ts. */}
-          {current === 4 && <BequestsStep {...stepProps} />}
-          {current === 5 && <GuardianshipStep {...stepProps} />}
-          {current === 6 && <BeneficiariesStep {...stepProps} />}
-          {current === 7 && <FuneralStep {...stepProps} />}
-          {current === 8 && <WitnessesStep {...stepProps} />}
-          {current === 9 && (
+          {/*
+            Matched on the step's slug, not its number.
+            
+            The numbers moved twice and this list was updated late both times,
+            which put the wrong form under the right heading. `definition`
+            comes from the same table the backend mirrors.
+          */}
+          {definition.slug === "personal" && <PersonalStep {...stepProps} />}
+          {definition.slug === "declaration" && <DeclarationStep {...stepProps} />}
+          {definition.slug === "executors" && <ExecutorsStep {...stepProps} />}
+          {definition.slug === "beneficiaries" && <BeneficiariesStep {...stepProps} />}
+          {definition.slug === "assets" && <AssetsStep {...stepProps} />}
+          {definition.slug === "bequests" && <BequestsStep {...stepProps} />}
+          {definition.slug === "trustees" && <TrusteesStep {...stepProps} />}
+          {definition.slug === "guardianship" && <GuardianshipStep {...stepProps} />}
+          {definition.slug === "funeral" && <FuneralStep {...stepProps} />}
+          {definition.slug === "witnesses" && <WitnessesStep {...stepProps} />}
+          {definition.slug === "review" && (
             <ReviewStep {...stepProps}>
               <ReviewSummary will={will} editBasePath={basePath} />
 

@@ -190,25 +190,51 @@ export async function saveBequestsAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const body: Record<string, unknown> = {
-    bequests: collectRows(formData, "bequests"),
-    // "I have no specific gifts to make" — how a required step is finished
-    // honestly by an estate that genuinely has none.
-    bequests_declared_none: formData.get("bequestsDeclaredNone") === "on",
-  };
-
   /*
-   * `assets` is sent only when the form actually carries the asset register.
-   * An omitted key leaves the register alone server-side; an empty array clears
-   * it. A step that posted `assets: []` unconditionally would wipe the register
-   * every time somebody edited a bequest.
+   * The other answer to "who gets what", not the absence of one.
+   *
+   * Naming gifts item by item is one instruction; leaving the whole estate to
+   * the trustees to hold for the beneficiaries on their existing shares is
+   * another. The server clears this the moment a gift is listed, so the two
+   * can never both be recorded.
    */
-  const assets = collectRows(formData, "assets");
-  if (assets.length > 0 || formData.has("assets.present")) {
-    body.assets = assets;
-  }
+  return saveStep(String(formData.get("willId") ?? ""), "bequests", {
+    bequests: collectRows(formData, "bequests"),
+    estate_in_trust: formData.get("estateInTrust") === "on",
+  });
+}
 
-  return saveStep(String(formData.get("willId") ?? ""), "bequests", body);
+/** Everything the testator owns, listed before any of it is given away. */
+export async function saveAssetsAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  return saveStep(String(formData.get("willId") ?? ""), "assets", {
+    assets: collectRows(formData, "assets"),
+    assets_declared_none: formData.get("assetsDeclaredNone") === "on",
+  });
+}
+
+/**
+ * Who holds the estate in trust, and on what terms.
+ *
+ * The trustee list is sent only when the executors are *not* acting, because
+ * the server clears it otherwise — a Will naming two sets of trustees is a
+ * Will nobody can act on.
+ */
+export async function saveTrusteesAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const executorsAreTrustees = formData.get("executorsAreTrustees") === "on";
+
+  return saveStep(String(formData.get("willId") ?? ""), "trustees", {
+    executors_are_trustees: executorsAreTrustees,
+    trustees: executorsAreTrustees ? [] : collectRows(formData, "trustees"),
+    trust_bank_account: formData.get("trustBankAccount") === "on",
+    distribution_frequency:
+      String(formData.get("distributionFrequency") ?? "") || null,
+  });
 }
 
 export async function saveFuneralAction(

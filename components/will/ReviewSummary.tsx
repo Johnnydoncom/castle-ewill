@@ -2,7 +2,7 @@ import Link from "next/link";
 
 import type { ApiWill } from "@/lib/actions/will";
 import { WILL_STATUS_LABELS } from "@/lib/will/reference";
-import { WILL_STEPS } from "@/lib/will/steps";
+import { GUARDIANSHIP_STEP, WILL_STEPS } from "@/lib/will/steps";
 
 /**
  * Read-only summary rendered on step 9, with edit links back to each step.
@@ -122,7 +122,7 @@ export function ReviewSummary({
       {sections
         .filter(
           (section) =>
-            !(section.step === 5 && will.has_minor_children === false && false),
+            !(section.step === GUARDIANSHIP_STEP && will.has_minor_children === false && false),
         )
         .map((section) => {
           const status = completions.get(section.step);

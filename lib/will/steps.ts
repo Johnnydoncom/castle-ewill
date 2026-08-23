@@ -5,6 +5,21 @@
  * is conditional: it is skipped when the testator declares no minor children.
  */
 
+/**
+ * The guided questionnaire, in the order an estate is actually settled.
+ *
+ * Appoint the people, name who benefits, establish what there is, then say who
+ * gets what. Beneficiaries before assets because a gift needs a recipient;
+ * assets before bequests because a gift needs a thing.
+ *
+ * **These numbers mirror `App\Support\WillSteps` and nothing else may restate
+ * them.** The order lived in several places on both tiers and drifted twice,
+ * each time showing up as "Save & Continue does nothing" — the cursor advanced
+ * past a step the client had not reached and sent them back to it.
+ *
+ * Guardianship is conditional: skipped when the testator declares no minor
+ * children.
+ */
 export const WILL_STEPS = [
   {
     step: 1,
@@ -13,7 +28,7 @@ export const WILL_STEPS = [
     title: "Personal details",
     eyebrow: "Start here",
     intro: "Begin with the person whose wishes we are recording — you.",
-    help: "Use your full name exactly as it appears on your identity documents. A mismatch is the most common cause of probate delay.",
+    help: "Use your names exactly as they appear on your identity documents. A mismatch is the most common cause of probate delay, and it is what an identity check is compared against.",
   },
   {
     step: 2,
@@ -30,79 +45,102 @@ export const WILL_STEPS = [
     numeral: "III",
     title: "Executors",
     eyebrow: "Who will administer your estate",
-    intro:
-      "Choose who will carry out your wishes. We recommend at least two executors.",
-    help: "An executor gathers your assets, settles debts and distributes what remains. A beneficiary may also serve as an executor.",
+    intro: "Choose who will carry out your wishes. At least two are required.",
+    help: "An executor gathers your assets, settles debts and distributes what remains. Two are required: if a sole executor dies first or cannot act, the estate goes to the court for an administrator you did not choose. A beneficiary may also serve as an executor.",
   },
   {
-    /*
-     * Specific gifts come before the residue, because that is the order the
-     * estate is actually distributed in. Dividing "what is left" before
-     * anything has been given away asks the testator to think backwards — it
-     * was step 6 and is now step 4 for exactly that reason.
-     */
     step: 4,
-    slug: "bequests",
+    slug: "beneficiaries",
     numeral: "IV",
-    title: "Specific bequests",
-    eyebrow: "Particular gifts",
+    title: "Beneficiaries",
+    eyebrow: "Who inherits",
     intro:
-      "List individual gifts of property or items, and who should receive them.",
-    help: "Describe each item precisely enough that a stranger could identify it. These are given out first; whatever remains is the residuary estate, which you divide in the next step.",
+      "Name everyone who should inherit, how you are related, and the share of your residuary estate each takes.",
+    help: "The residuary estate is everything left once specific gifts, debts and expenses are settled. Shares must total 100%. A witness must never be a beneficiary — the gift fails, though the Will stands.",
   },
   {
     step: 5,
-    slug: "guardianship",
+    slug: "assets",
     numeral: "V",
-    title: "Guardianship",
-    eyebrow: "For minor children",
-    intro: "Appoint a guardian for any children under eighteen.",
-    help: "Without an appointed guardian, the court decides who raises your children. Always name an alternate.",
-    conditional: true,
+    title: "Your assets",
+    eyebrow: "What you own",
+    intro:
+      "List what you own — land and buildings, vehicles, accounts, personal effects, jewellery and anything else of value.",
+    help: "An estate nobody has written down is an estate your executor has to go looking for. Listing it here does not give it away; it tells the people acting for you what there is.",
   },
   {
     step: 6,
-    slug: "beneficiaries",
+    slug: "bequests",
     numeral: "VI",
-    title: "Share of residuary estate",
-    eyebrow: "Who inherits what remains",
+    title: "Specific gifts",
+    eyebrow: "Who gets what",
     intro:
-      "The residuary estate is everything left after the specific gifts above. Say who receives it, and in what proportion.",
-    help: "Shares must total exactly 100%. If you would rather leave the division to your executors' judgement, say so in the directions box instead of splitting it here.",
+      "Give particular items to particular people — or leave the whole estate to your trustees to hold and manage.",
+    help: "This is the point of a Will, so it has to be answered. If you would rather not name gifts item by item, choose to leave everything to your trustees: they hold the estate and manage it for your beneficiaries on the shares you have already set.",
   },
   {
     step: 7,
-    slug: "funeral",
+    slug: "trustees",
     numeral: "VII",
-    title: "Funeral wishes",
-    eyebrow: "Final arrangements",
-    intro: "Record your preferences for your final arrangements.",
-    help: "Funeral wishes are a guide to your family rather than a binding direction, but recording them removes painful guesswork.",
+    title: "Trustees",
+    eyebrow: "Who holds the estate",
+    intro:
+      "Trustees hold your estate and manage it for your beneficiaries. Most people appoint their executors.",
+    help: "An executor winds your estate up and hands it over; a trustee keeps holding it, which is what a young beneficiary or a share paid out over time requires. You can also direct that a trust bank account be opened — that is where a guardian's money for your children comes from.",
   },
   {
     step: 8,
-    slug: "witnesses",
+    slug: "guardianship",
     numeral: "VIII",
-    title: "Witnesses",
-    eyebrow: "Attestation",
-    intro: "Provide details of the two witnesses who will attest your Will.",
-    help: "A witness — or the spouse of a witness — cannot inherit under the Will. A gift to a witness is void, even though the Will itself stays valid.",
+    title: "Guardianship",
+    eyebrow: "For children under 18",
+    intro: "Appoint someone to care for your children if they are still minors.",
+    help: "Only applies if you have children under 18. Name a guardian you have actually asked — an appointment nobody agreed to is the first thing a court sets aside.",
   },
   {
     step: 9,
-    slug: "review",
+    slug: "funeral",
     numeral: "IX",
+    title: "Funeral wishes",
+    eyebrow: "Your instructions",
+    intro: "Say how you would like to be laid to rest.",
+    help: "Funeral wishes are a request rather than a binding direction, but a family with something in writing is a family with less to argue about.",
+  },
+  {
+    step: 10,
+    slug: "witnesses",
+    numeral: "X",
+    title: "Witnesses",
+    eyebrow: "Two are required",
+    intro: "Name the two people who will watch you sign.",
+    help: "Two witnesses must watch you sign and then sign in front of you. Neither may be a beneficiary, or that person's gift fails.",
+  },
+  {
+    step: 11,
+    slug: "review",
+    numeral: "XI",
     title: "Review & confirm",
-    eyebrow: "Final step",
-    intro: "Check every entry, then generate your Will document.",
-    help: "Read the summary carefully. Once generated, print the Will and sign it in the simultaneous presence of both witnesses.",
+    eyebrow: "Last look",
+    intro: "Read it through before you confirm it is accurate.",
+    help: "Nothing is final until you print and sign it in front of your witnesses.",
   },
 ] as const;
 
 export type WillStepDefinition = (typeof WILL_STEPS)[number];
 export type WillStepSlug = WillStepDefinition["slug"];
 
+/** Eleven, counted rather than written down. */
 export const TOTAL_STEPS = WILL_STEPS.length;
+
+/**
+ * The conditional step, named rather than numbered.
+ *
+ * It was written as a literal `5` in four places here. When the order moved it
+ * would have skipped whichever step happened to be fifth — which, after this
+ * reorder, is the asset register.
+ */
+export const GUARDIANSHIP_STEP =
+  WILL_STEPS.find((s) => s.slug === "guardianship")!.step;
 
 export function stepBySlug(slug: string): WillStepDefinition | undefined {
   return WILL_STEPS.find((s) => s.slug === slug);
@@ -118,7 +156,9 @@ export function stepByNumber(step: number): WillStepDefinition | undefined {
  */
 export function nextStep(current: number, hasMinorChildren: boolean | null): number {
   const candidate = current + 1;
-  if (candidate === 5 && hasMinorChildren === false) return 6;
+  if (candidate === GUARDIANSHIP_STEP && hasMinorChildren === false) {
+    return GUARDIANSHIP_STEP + 1;
+  }
   return Math.min(candidate, TOTAL_STEPS);
 }
 
@@ -127,7 +167,9 @@ export function previousStep(
   hasMinorChildren: boolean | null,
 ): number {
   const candidate = current - 1;
-  if (candidate === 5 && hasMinorChildren === false) return 4;
+  if (candidate === GUARDIANSHIP_STEP && hasMinorChildren === false) {
+    return GUARDIANSHIP_STEP - 1;
+  }
   return Math.max(candidate, 1);
 }
 
@@ -136,7 +178,7 @@ export function applicableSteps(
   hasMinorChildren: boolean | null,
 ): WillStepDefinition[] {
   return WILL_STEPS.filter(
-    (s) => !(s.step === 5 && hasMinorChildren === false),
+    (s) => !(s.step === GUARDIANSHIP_STEP && hasMinorChildren === false),
   );
 }
 
@@ -160,7 +202,7 @@ export function clampToReachable(
 
   // Guardianship doesn't exist for this Will — land somewhere applicable
   // rather than rendering a step that was never meant to be reached.
-  if (step === 5 && hasMinorChildren === false) {
+  if (step === GUARDIANSHIP_STEP && hasMinorChildren === false) {
     step = currentStep >= 6 ? 6 : 4;
   }
 

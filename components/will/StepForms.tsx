@@ -11,8 +11,10 @@ import {
   saveExecutorsAction,
   saveBeneficiariesAction,
   saveGuardianshipAction,
+  saveAssetsAction,
   saveBequestsAction,
   saveFuneralAction,
+  saveTrusteesAction,
   saveWitnessesAction,
   submitWillAction,
 } from "@/lib/actions/will.client";
@@ -62,6 +64,18 @@ function fieldChecked(state: FormState, name: string, fallback: boolean): boolea
  * The middle name is optional because plenty of people have none, and asking
  * for one as though it were required is how somebody invents one.
  */
+/** Mirrors `App\Models\Asset::TYPES`. */
+const ASSET_TYPES = [
+  { value: "real_estate", label: "Land or building" },
+  { value: "vehicle", label: "Vehicle" },
+  { value: "bank_account", label: "Bank account" },
+  { value: "shares", label: "Shares or investments" },
+  { value: "business", label: "Business interest" },
+  { value: "insurance", label: "Insurance policy" },
+  { value: "digital", label: "Digital asset" },
+  { value: "other", label: "Personal effects, jewellery, other" },
+] as const;
+
 function NameFields({
   name,
   row,
@@ -401,7 +415,7 @@ export function BeneficiariesStep({ will, help, backHref }: StepProps) {
               <TextField
                 label="Address"
                 name={name("address")}
-                hint="Optional"
+                required
                 defaultValue={fieldValue(state, name("address"), row?.address ?? "")}
                 className="sm:col-span-2"
               />
@@ -558,7 +572,7 @@ export function BequestsStep({ will, help, backHref }: StepProps) {
       <RepeatableList
         legend="Bequest"
         addLabel="Add a specific gift"
-        emptyLabel="No specific gifts recorded. This section is optional — everything not listed here passes with the residuary estate."
+        emptyLabel="No specific gifts listed yet. Add one, or choose below to leave everything to your trustees."
         min={0}
         max={50}
         initialCount={will.bequests.length}
@@ -600,20 +614,225 @@ export function BequestsStep({ will, help, backHref }: StepProps) {
       />
 
       {/*
-        Specific bequests are a required step now, but an estate may genuinely
-        have no specific gifts. Without this, "required" would push people into
-        inventing a bequest to get past the screen — which is worse than the
-        optional step it replaced, because then the Will says something untrue.
+        The other answer, not the absence of one.
+
+        Distributing the estate is the point of a Will, so this step cannot be
+        clicked past — but not every testator wants to say who gets which item.
+        The alternative is a real instruction: the trustees hold everything and
+        manage it for the beneficiaries on the shares already recorded against
+        them. Ticking this while a gift is listed is contradictory, and the
+        server clears it rather than storing both.
       */}
       <div className="border border-border bg-background p-6">
         <CheckboxField
-          name="bequestsDeclaredNone"
-          defaultChecked={fieldChecked(state, "bequestsDeclaredNone", will.bequests_declared_none ?? false)}
+          name="estateInTrust"
+          defaultChecked={fieldChecked(state, "estateInTrust", will.estate_in_trust ?? false)}
         >
-          I have no specific gifts to make — everything I own forms the
-          residuary estate.
+          I would rather not name gifts individually — leave my whole estate,
+          including everything listed as an asset, to my trustees to hold and
+          manage for my beneficiaries on the shares I have set.
         </CheckboxField>
       </div>
+
+      <WizardFooter backHref={backHref} />
+    </form>
+  );
+}
+
+/* -------------------------------- Assets --------------------------------- */
+
+/**
+ * Everything the testator owns, listed before any of it is given away.
+ *
+ * Its own step. It used to be a corner of the bequests page, which asked
+ * somebody to decide who gets what before they had written down what there is
+ * — and an estate nobody has enumerated is an estate the executor has to go
+ * looking for.
+ */
+export function AssetsStep({ will, help, backHref }: StepProps) {
+  const [state, action] = useFormAction(saveAssetsAction, { refresh: false });
+
+  return (
+    <form action={action} className="space-y-8" noValidate>
+      <WillId id={will.id} />
+      <StepBanner state={state} />
+      <HelpPanel>{help}</HelpPanel>
+
+      <RepeatableList
+        legend="Asset"
+        addLabel="Add another asset"
+        emptyLabel="Nothing listed yet. Add what you own — land, buildings, vehicles, accounts, jewellery, personal effects."
+        min={0}
+        max={100}
+        initialCount={will.assets.length || 1}
+        renderRow={({ index, name }) => {
+          const row = will.assets[index];
+          return (
+            <div className="grid gap-5 sm:grid-cols-2">
+              <SelectField
+                label="Kind"
+                name={name("type")}
+                required
+                defaultValue={fieldValue(state, name("type"), row?.type ?? "real_estate")}
+                options={ASSET_TYPES}
+              />
+              <TextField
+                label="Description"
+                name={name("description")}
+                required
+                placeholder="Three-bedroom bungalow at 12 Awolowo Road, Ikoyi"
+                defaultValue={fieldValue(state, name("description"), row?.description ?? "")}
+              />
+              <TextField
+                label="Where it is held"
+                name={name("institution")}
+                hint="Optional — bank, registrar, agency"
+                defaultValue={fieldValue(state, name("institution"), row?.institution ?? "")}
+              />
+              <TextField
+                label="Reference"
+                name={name("identifier")}
+                hint="Optional — account, plate or title number"
+                defaultValue={fieldValue(state, name("identifier"), row?.identifier ?? "")}
+              />
+            </div>
+          );
+        }}
+      />
+
+      {/*
+        Rare and legitimate — somebody whose whole estate is a residue they
+        have already described. It exists so the step can be finished honestly
+        without inventing an asset, and it is ignored the moment one is listed.
+      */}
+      <div className="border border-border bg-background p-6">
+        <CheckboxField
+          name="assetsDeclaredNone"
+          defaultChecked={fieldChecked(state, "assetsDeclaredNone", will.assets_declared_none ?? false)}
+        >
+          I have nothing to list separately.
+        </CheckboxField>
+      </div>
+
+      <WizardFooter backHref={backHref} />
+    </form>
+  );
+}
+
+/* ------------------------------- Trustees -------------------------------- */
+
+/**
+ * Who holds the estate in trust, and on what terms.
+ *
+ * An executor winds the estate up and hands it over; a trustee keeps holding
+ * it, which is what a young beneficiary or a share paid out over time
+ * requires. Most Wills give both roles to the same people, so that is the
+ * default — and naming others clears it, because a Will naming two sets of
+ * trustees is a Will nobody can act on.
+ */
+export function TrusteesStep({ will, help, backHref }: StepProps) {
+  const [state, action] = useFormAction(saveTrusteesAction, { refresh: false });
+
+  const [executorsActing, setExecutorsActing] = useState(
+    will.executors_are_trustees ?? true,
+  );
+
+  return (
+    <form action={action} className="space-y-8" noValidate>
+      <WillId id={will.id} />
+      <StepBanner state={state} />
+      <HelpPanel>{help}</HelpPanel>
+
+      <div className="border border-border bg-background p-6">
+        {/*
+          Controlled here rather than by `CheckboxField`, because the trustee
+          list below appears and disappears with it — and a list that is
+          rendered while it is not wanted posts names the client has said
+          should not be there.
+        */}
+        <label className="flex items-start gap-3 text-sm text-navy">
+          <input
+            type="checkbox"
+            name="executorsAreTrustees"
+            checked={executorsActing}
+            onChange={(event) => setExecutorsActing(event.target.checked)}
+            className="mt-0.5 h-4 w-4 shrink-0 accent-navy"
+          />
+          <span>My executors should also act as my trustees.</span>
+        </label>
+      </div>
+
+      {/*
+        Only asked for when the executors are not acting. Two, for the same
+        reason there are two executors: a trust with one trustee fails the
+        moment that person cannot act, and a trust is held for far longer than
+        an estate takes to wind up.
+      */}
+      {!executorsActing && (
+        <RepeatableList
+          legend="Trustee"
+          addLabel="Add another trustee"
+          min={2}
+          max={6}
+          initialCount={Math.max(will.trustees?.length ?? 0, 2)}
+          renderRow={({ index, name }) => {
+            const row = will.trustees?.[index];
+            return (
+              <div className="grid gap-5 sm:grid-cols-2">
+                <NameFields
+                  name={name}
+                  row={row}
+                  state={state}
+                  placeholder="Amaka Nwosu"
+                />
+                <TextField
+                  label="Relationship"
+                  name={name("relationship")}
+                  placeholder="Sister"
+                  defaultValue={fieldValue(state, name("relationship"), row?.relationship ?? "")}
+                />
+                <TextField
+                  label="Address"
+                  name={name("address")}
+                  required
+                  placeholder="9 Bourdillon Road, Ikoyi, Lagos"
+                  defaultValue={fieldValue(state, name("address"), row?.address ?? "")}
+                  className="sm:col-span-2"
+                />
+              </div>
+            );
+          }}
+        />
+      )}
+
+      {/*
+        Without this direction a guardian looking after young children has to
+        ask the executors for money as they need it — which is exactly the
+        arrangement that goes wrong when the two do not get on.
+      */}
+      <div className="border border-border bg-background p-6">
+        <CheckboxField
+          name="trustBankAccount"
+          defaultChecked={fieldChecked(state, "trustBankAccount", will.trust_bank_account ?? false)}
+        >
+          Direct my executors to open a trust bank account, from which any
+          guardian is provided with what my children need.
+        </CheckboxField>
+      </div>
+
+      <SelectField
+        label="How often should beneficiaries be paid?"
+        name="distributionFrequency"
+        hint="Against the shares you have already set. Optional."
+        defaultValue={fieldValue(state, "distributionFrequency", will.distribution_frequency ?? "")}
+        options={[
+          { value: "", label: "No fixed schedule" },
+          { value: "monthly", label: "Monthly" },
+          { value: "quarterly", label: "Quarterly" },
+          { value: "half_yearly", label: "Half-yearly" },
+          { value: "yearly", label: "Yearly" },
+        ]}
+      />
 
       <WizardFooter backHref={backHref} />
     </form>

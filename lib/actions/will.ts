@@ -142,13 +142,35 @@ export type ApiWill = {
   funeral_instructions: string | null;
   residuary_estate: string | null;
   bequests_declared_none: boolean;
+
+  /**
+   * The trust arrangement.
+   *
+   * `estate_in_trust` is the answer to "who gets what" when the testator does
+   * not want to name gifts item by item: the trustees hold everything and
+   * manage it for the beneficiaries on the shares already recorded.
+   */
+  estate_in_trust: boolean;
+  executors_are_trustees: boolean | null;
+  trust_bank_account: boolean;
+  distribution_frequency: string | null;
+  assets_declared_none: boolean;
+  trustees: WillPerson[];
   special_instructions: string | null;
   confirmed_accurate: boolean;
   executors: WillPerson[];
   beneficiaries: WillPerson[];
   guardians: WillPerson[];
   bequests: WillPerson[];
-  assets: Array<Record<string, unknown>>;
+  /** The register, listed before anything is given away. */
+  assets: Array<{
+    id: string;
+    sort_order: number;
+    type?: string;
+    description?: string;
+    institution?: string | null;
+    identifier?: string | null;
+  }>;
   witnesses: WillPerson[];
   progress?: WillProgress;
   /**
