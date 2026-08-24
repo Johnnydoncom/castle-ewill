@@ -31,6 +31,14 @@ export type SmileIdConfig = {
   product: string;
   /** Required by the authentication endpoint, which matches against this id. */
   user_id: string;
+  /**
+   * The enrolment to submit alongside a first verification, or null.
+   *
+   * Null on a recheck and once the client is already enrolled. Enrolment is
+   * what makes every later SmartSelfie check possible — without it,
+   * `/v3/authentication` can only answer "no enrolled user found".
+   */
+  enrolment: { endpoint: string; token: string } | null;
   /** Where the browser posts the job — follows the configured environment. */
   endpoint: string;
   environment: "sandbox" | "production";
@@ -125,6 +133,21 @@ export async function startVerificationAction(
     attemptId: payload.attempt_id,
     smileId: payload.smile_id ?? null,
   };
+}
+
+/**
+ * Records that this account's face has been enrolled with Smile ID.
+ *
+ * Reported from their `202`, like a job id. It says the enrolment was
+ * accepted, not that it passed — the verdict comes on the webhook — and that
+ * is enough, because an accepted enrolment is one `/v3/authentication` can be
+ * asked about.
+ */
+export async function enrolledAction(jobId: string | null): Promise<void> {
+  await api("/verification/enrolled", {
+    method: "POST",
+    body: { job_id: jobId },
+  });
 }
 
 /**

@@ -12,6 +12,7 @@ import {
 
 import {
   startVerificationAction,
+  enrolledAction,
   submittedVerificationAction,
   type SmileIdConfig,
 } from "@/lib/actions/verification.client";
@@ -423,6 +424,83 @@ export function SmileIdCapture({
         fail("We could not reach the identity service. Please try again.");
 
         return;
+      }
+
+      /*
+       * The enrolment, from the same capture.
+       *
+       * `/v3/authentication` — every future check that this is still the same
+       * person — matches a face against an identity registered under this user
+       * id. Nothing registers one unless we ask, so the frames the client has
+       * just provided are submitted a second time to `/v3/registration`. One
+       * capture, two jobs, and no second appointment with the camera.
+       *
+       * Deliberately after the verification and deliberately swallowed: the
+       * identity check has already succeeded, and failing it now because an
+       * enrolment did not take would refuse somebody for a convenience they
+       * did not ask for. A client who ends up unenrolled is asked for a
+       * document check again later, which is recoverable; a client refused
+       * here is stuck.
+       */
+      if (current.enrolment) {
+        try {
+          const enrolBody = new FormData();
+
+          enrolBody.append("selfie_image", toJpegFile(selfie.image, "selfie.jpg"));
+
+          all
+            .filter((i) => i.image_type_id === IMAGE_TYPE.liveness)
+            .forEach((frame, i) => {
+              enrolBody.append(
+                "liveness_images",
+                toJpegFile(frame.image, `liveness-${i}.jpg`),
+              );
+            });
+
+          enrolBody.append(
+            "consent",
+            JSON.stringify({
+              ...(consentRef.current ?? { granted: true }),
+              notice_language: current.consent.notice_language,
+              notice_privacy_policy_url: current.consent.notice_privacy_policy_url,
+            }),
+          );
+          enrolBody.append("user_details", JSON.stringify(current.user_details));
+          enrolBody.append("callback_url", current.callback_url);
+          enrolBody.append(
+            "partner_params",
+            JSON.stringify(current.partner_params),
+          );
+
+          const enrolResponse = await fetch(current.enrolment.endpoint, {
+            method: "POST",
+            headers: {
+              "smileid-token": current.enrolment.token,
+              // How Smile ID learns which id to enrol this face under. Omit it
+              // and they mint one of their own, which is an identity we could
+              // never ask about again.
+              "User-ID": current.user_id,
+              Accept: "application/json",
+            },
+            body: enrolBody,
+          });
+
+          if (enrolResponse.status === 202) {
+            const enrolled = (await enrolResponse.json().catch(() => ({}))) as {
+              job_id?: string;
+            };
+
+            await enrolledAction(enrolled.job_id ?? null);
+          } else {
+            console.error(
+              "[smile-id] enrolment refused",
+              enrolResponse.status,
+              await enrolResponse.text().catch(() => ""),
+            );
+          }
+        } catch (error) {
+          console.error("[smile-id] enrolment failed", error);
+        }
       }
 
       /*
