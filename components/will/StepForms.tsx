@@ -26,7 +26,7 @@ import {
   TextArea,
   TextField,
 } from "./Fields";
-import { PassportPhotograph } from "./PassportPhotograph";
+import { PassportPhotoField } from "./PassportPhotoField";
 import { RepeatableList } from "./RepeatableList";
 import { HelpPanel, StepBanner, WizardFooter } from "./WizardChrome";
 
@@ -35,14 +35,13 @@ type StepProps = {
   help: string;
   backHref?: string;
   /**
-   * Whether the testator's photograph is already on file.
+   * The photograph already on file, if there is one.
    *
    * Only the first step uses it. The photograph is printed on the face of the
-   * Will, so it belongs with the rest of "who you are" — asked for while
-   * somebody is still gathering their details rather than discovered at the
-   * moment they expected to print.
+   * Will, so it belongs among the personal details — a field beside the name
+   * and the address rather than a panel of its own.
    */
-  hasPassportPhoto?: boolean;
+  passportPhotoId?: string | null;
 };
 
 const stateOptions = NIGERIAN_STATES.map((s) => ({ value: s, label: s }));
@@ -140,26 +139,24 @@ export function PersonalStep({
   will,
   help,
   backHref,
-  hasPassportPhoto = false,
+  passportPhotoId = null,
 }: StepProps) {
   const [state, action] = useFormAction(savePersonalAction, { refresh: false });
   const e = state.fieldErrors;
 
   return (
-    /*
-      Two forms, deliberately siblings rather than nested — HTML has no nested
-      forms, and the photograph is an upload while the rest of the step is
-      JSON. They are one step to the client and two requests underneath.
-    */
-    <div className="space-y-8">
-      <PassportPhotograph present={hasPassportPhoto} />
-
-      <form action={action} className="space-y-8" noValidate>
+    <form action={action} className="space-y-8" noValidate>
       <WillId id={will.id} />
       <StepBanner state={state} />
       <HelpPanel>{help}</HelpPanel>
 
       <div className="grid gap-6 sm:grid-cols-2">
+        {/*
+          A field, not a panel. It saves on selection, so there is nothing to
+          press and nothing to forget to press before moving on.
+        */}
+        <PassportPhotoField documentId={passportPhotoId} />
+
         {/*
           Three parts, as on the ID.
           
@@ -273,9 +270,8 @@ export function PersonalStep({
         />
       </div>
 
-        <WizardFooter backHref={backHref} />
-      </form>
-    </div>
+      <WizardFooter backHref={backHref} />
+    </form>
   );
 }
 

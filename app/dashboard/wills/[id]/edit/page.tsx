@@ -141,9 +141,9 @@ export default async function WillEditorPage({
     will,
     help: definition.help,
     backHref,
-    hasPassportPhoto: documents.some(
-      (record) => record.kind === "passport_photograph",
-    ),
+    passportPhotoId:
+      documents.find((record) => record.kind === "passport_photograph")?.id ??
+      null,
   };
 
   /*
