@@ -1,7 +1,14 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, Clock, ShieldCheck, XCircle } from "lucide-react";
+import { useFormStatus } from "react-dom";
+import {
+  CheckCircle2,
+  Clock,
+  Loader2,
+  ShieldCheck,
+  XCircle,
+} from "lucide-react";
 
 import { submitWitnessIdentitiesAction } from "@/lib/actions/verification.client";
 import { useFormAction } from "@/hooks/use-api-form";
@@ -232,6 +239,36 @@ function WitnessFields({
   );
 }
 
+/**
+ * The submit button, which knows when it is working.
+ *
+ * This check is a round trip to an ID authority, and it is not instant. With
+ * no sign that anything was happening, the honest reading of the screen was
+ * "nothing happened" — so people click again, and a second click resubmits
+ * both witnesses.
+ *
+ * `useFormStatus` rather than the action's own state: it reports the pending
+ * form from inside it, which is exactly the window the client is staring at.
+ */
+function Submit({ hasRecords }: { hasRecords: boolean }) {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="flex h-12 items-center justify-center gap-2 rounded-full bg-navy px-7 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-foreground transition-colors hover:bg-navy/90 disabled:cursor-not-allowed disabled:opacity-70"
+    >
+      {pending && <Loader2 className="h-4 w-4 animate-spin" />}
+      {pending
+        ? "Checking with the ID authority…"
+        : hasRecords
+          ? "Check again"
+          : "Check both witnesses"}
+    </button>
+  );
+}
+
 export function WitnessVerification({
   records = [],
   suggested = [],
@@ -288,12 +325,7 @@ export function WitnessVerification({
         />
 
         <div className="flex flex-wrap items-center gap-4">
-          <button
-            type="submit"
-            className="flex h-12 items-center justify-center rounded-full bg-navy px-7 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-foreground transition-colors hover:bg-navy/90"
-          >
-            {records.length > 0 ? "Check again" : "Check both witnesses"}
-          </button>
+          <Submit hasRecords={records.length > 0} />
 
           {state.status !== "idle" && state.message && (
             <p

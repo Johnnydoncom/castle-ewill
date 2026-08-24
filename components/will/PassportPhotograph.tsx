@@ -1,10 +1,32 @@
 "use client";
 
 import { useState } from "react";
-import { CheckCircle2, ImageUp } from "lucide-react";
+import { useFormStatus } from "react-dom";
+import { CheckCircle2, ImageUp, Loader2 } from "lucide-react";
 
 import { uploadDocumentAction } from "@/lib/actions/documents.client";
 import { useFormAction } from "@/hooks/use-api-form";
+
+/**
+ * The upload button, which knows when it is working.
+ *
+ * An image goes over the wire and into the vault, which is not instant. A
+ * button that does not change is a button people press again.
+ */
+function Submit({ present }: { present: boolean }) {
+  const { pending } = useFormStatus();
+
+  return (
+    <button
+      type="submit"
+      disabled={pending}
+      className="flex h-11 items-center justify-center gap-2 bg-navy px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-foreground transition-colors hover:bg-navy/90 disabled:cursor-not-allowed disabled:opacity-70"
+    >
+      {pending && <Loader2 className="h-4 w-4 animate-spin" />}
+      {pending ? "Uploading…" : present ? "Replace it" : "Upload"}
+    </button>
+  );
+}
 
 /**
  * The testator's passport photograph, which is printed on the Will.
@@ -73,12 +95,7 @@ export function PassportPhotograph({ present }: { present: boolean }) {
         </label>
 
         <div className="flex flex-wrap items-center gap-4">
-          <button
-            type="submit"
-            className="flex h-11 items-center justify-center bg-navy px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-foreground transition-colors hover:bg-navy/90"
-          >
-            {present ? "Replace it" : "Upload"}
-          </button>
+          <Submit present={present} />
 
           {state.status !== "idle" && state.message && (
             <p
