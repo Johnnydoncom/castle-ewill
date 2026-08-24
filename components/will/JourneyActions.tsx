@@ -63,10 +63,15 @@ const BLOCKERS: Record<
     body: "Because this is your first Will with us, we confirm your identity against a government-issued document before releasing it.",
     cta: { label: "Verify my identity", href: "/dashboard/kyc" },
   },
+  /*
+   * Rarely seen now: the photograph is asked for at the first step, so a Will
+   * without one is reported as incomplete long before it reaches this gate.
+   * It survives as the backstop for a document removed after the fact.
+   */
   passport_photograph_required: {
     icon: ScanFace,
     title: "We need your photograph",
-    body: "A passport photograph is printed on the face of your Will. Add one on this Will's page and you can carry on.",
+    body: "A passport photograph is printed on the face of your Will. Add one on the first step and you can carry on.",
     cta: { label: "Open this Will", href: null },
   },
   /*

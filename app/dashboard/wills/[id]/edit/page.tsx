@@ -5,6 +5,7 @@ import { FileText } from "lucide-react";
 import { JourneyActions } from "@/components/will/JourneyActions";
 import { JourneyBar } from "@/components/will/JourneyBar";
 import { notFound } from "next/navigation";
+import { listUserDocuments } from "@/lib/actions/documents";
 import { readWill } from "@/lib/actions/will";
 import {
   applicableSteps,
@@ -130,10 +131,19 @@ export default async function WillEditorPage({
   const backHref =
     current > 1 ? `${basePath}?step=${backStep}` : undefined;
 
+  /*
+   * The photograph belongs to the account, not the Will, so it is read here
+   * rather than off the Will. Only the first step uses it.
+   */
+  const documents = await listUserDocuments();
+
   const stepProps = {
     will,
     help: definition.help,
     backHref,
+    hasPassportPhoto: documents.some(
+      (record) => record.kind === "passport_photograph",
+    ),
   };
 
   /*

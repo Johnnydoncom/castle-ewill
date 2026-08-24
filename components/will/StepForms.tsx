@@ -26,10 +26,24 @@ import {
   TextArea,
   TextField,
 } from "./Fields";
+import { PassportPhotograph } from "./PassportPhotograph";
 import { RepeatableList } from "./RepeatableList";
 import { HelpPanel, StepBanner, WizardFooter } from "./WizardChrome";
 
-type StepProps = { will: ApiWill; help: string; backHref?: string };
+type StepProps = {
+  will: ApiWill;
+  help: string;
+  backHref?: string;
+  /**
+   * Whether the testator's photograph is already on file.
+   *
+   * Only the first step uses it. The photograph is printed on the face of the
+   * Will, so it belongs with the rest of "who you are" — asked for while
+   * somebody is still gathering their details rather than discovered at the
+   * moment they expected to print.
+   */
+  hasPassportPhoto?: boolean;
+};
 
 const stateOptions = NIGERIAN_STATES.map((s) => ({ value: s, label: s }));
 
@@ -122,12 +136,25 @@ function NameFields({
 
 /* ------------------------------- Step 1 ---------------------------------- */
 
-export function PersonalStep({ will, help, backHref }: StepProps) {
+export function PersonalStep({
+  will,
+  help,
+  backHref,
+  hasPassportPhoto = false,
+}: StepProps) {
   const [state, action] = useFormAction(savePersonalAction, { refresh: false });
   const e = state.fieldErrors;
 
   return (
-    <form action={action} className="space-y-8" noValidate>
+    /*
+      Two forms, deliberately siblings rather than nested — HTML has no nested
+      forms, and the photograph is an upload while the rest of the step is
+      JSON. They are one step to the client and two requests underneath.
+    */
+    <div className="space-y-8">
+      <PassportPhotograph present={hasPassportPhoto} />
+
+      <form action={action} className="space-y-8" noValidate>
       <WillId id={will.id} />
       <StepBanner state={state} />
       <HelpPanel>{help}</HelpPanel>
@@ -246,8 +273,9 @@ export function PersonalStep({ will, help, backHref }: StepProps) {
         />
       </div>
 
-      <WizardFooter backHref={backHref} />
-    </form>
+        <WizardFooter backHref={backHref} />
+      </form>
+    </div>
   );
 }
 
