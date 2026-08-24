@@ -23,6 +23,7 @@ const nextKey = () => `row-${counter++}`;
 
 export function RepeatableList({
   legend,
+  prefix,
   addLabel,
   emptyLabel,
   min = 0,
@@ -31,6 +32,19 @@ export function RepeatableList({
   renderRow,
 }: {
   legend: string;
+  /**
+   * The field-name prefix these rows post under — `executors`, `assets`.
+   *
+   * Required, and deliberately not derived from `legend`. It used to be
+   * inferred from the display text through a fixed map, so a legend nobody had
+   * added to that map fell back to a singular guess: an "Asset" row posted
+   * `asset.0.description` while the action collected `assets.…`, and the whole
+   * step saved nothing at all. Silently — the request succeeded, it just
+   * carried an empty list.
+   *
+   * A prop cannot be forgotten the way a map entry can.
+   */
+  prefix: string;
   addLabel: string;
   emptyLabel?: string;
   min?: number;
@@ -79,7 +93,7 @@ export function RepeatableList({
 
           {renderRow({
             index,
-            name: (field) => `${legendToPrefix(legend)}.${index}.${field}`,
+            name: (field) => `${prefix}.${index}.${field}`,
           })}
         </div>
       ))}
@@ -96,16 +110,4 @@ export function RepeatableList({
       )}
     </fieldset>
   );
-}
-
-/** `Executor` → `executors`, matching the server action's field prefix. */
-function legendToPrefix(legend: string): string {
-  const map: Record<string, string> = {
-    Executor: "executors",
-    Beneficiary: "beneficiaries",
-    Guardian: "guardians",
-    Bequest: "bequests",
-    Witness: "witnesses",
-  };
-  return map[legend] ?? legend.toLowerCase();
 }

@@ -27,9 +27,20 @@ export function ReviewSummary({
     (will.progress?.steps ?? []).map((c) => [c.step, c]),
   );
 
+  /**
+   * Each section, and the step its "edit" link goes to.
+   *
+   * The numbers are looked up by slug rather than written down. They were
+   * literals here and were not updated when the wizard was reordered, so
+   * "Guardianship" linked to step five — which had become the asset register.
+   * Clicking edit on an incomplete section opened the wrong form entirely.
+   */
+  const stepFor = (slug: string) =>
+    WILL_STEPS.find((s) => s.slug === slug)?.step ?? 1;
+
   const sections: Array<{ step: number; title: string; rows: string[] }> = [
     {
-      step: 1,
+      step: stepFor('personal'),
       title: "Personal details",
       rows: [
         will.personal.full_legal_name ?? "—",
@@ -39,7 +50,7 @@ export function ReviewSummary({
       ],
     },
     {
-      step: 2,
+      step: stepFor('declaration'),
       title: "Declaration",
       rows: [
         will.declaration.declared_last_will
@@ -54,7 +65,7 @@ export function ReviewSummary({
       ],
     },
     {
-      step: 3,
+      step: stepFor('executors'),
       title: "Executors",
       rows: will.executors.length
         ? will.executors.map(
@@ -64,18 +75,60 @@ export function ReviewSummary({
         : ["No executors appointed"],
     },
     {
-      step: 4,
-      title: "Specific bequests",
+      step: stepFor('beneficiaries'),
+      title: "Beneficiaries and their shares",
+      rows: will.beneficiaries.length
+        ? will.beneficiaries.map(
+            (b) =>
+              `${b.full_name} (${b.relationship}) — ${Number(b.share_percent)}%${b.address ? ` — ${b.address}` : ""}`,
+          )
+        : ["No beneficiaries named"],
+    },
+    {
+      step: stepFor('assets'),
+      title: "Your assets",
+      rows: will.assets.length
+        ? will.assets.map(
+            (a) =>
+              `${a.description ?? "Unnamed asset"}${a.institution ? ` — ${a.institution}` : ""}`,
+          )
+        : will.assets_declared_none
+          ? ["Nothing listed separately"]
+          : ["Not yet answered"],
+    },
+    {
+      step: stepFor('bequests'),
+      title: "Specific gifts",
       rows: will.bequests.length
         ? will.bequests.map(
             (b) => `${b.item_description} → ${b.recipient_name}`,
           )
-        : will.bequests_declared_none
-          ? ["No specific gifts — everything forms the residuary estate"]
+        : will.estate_in_trust
+          ? ["The whole estate is left to the trustees to hold and manage"]
           : ["Not yet answered"],
     },
     {
-      step: 5,
+      step: stepFor('trustees'),
+      title: "Trustees",
+      rows:
+        will.executors_are_trustees === null
+          ? ["Not yet answered"]
+          : [
+              will.executors_are_trustees
+                ? "My executors act as my trustees"
+                : (will.trustees ?? [])
+                    .map((t) => `${t.full_name} — ${t.address}`)
+                    .join("; ") || "No trustees named",
+              ...(will.trust_bank_account
+                ? ["A trust bank account is to be opened"]
+                : []),
+              ...(will.distribution_frequency
+                ? [`Beneficiaries paid ${will.distribution_frequency.replace("_", "-")}`]
+                : []),
+            ],
+    },
+    {
+      step: stepFor('guardianship'),
       title: "Guardianship",
       rows:
         will.has_minor_children === false
@@ -88,17 +141,7 @@ export function ReviewSummary({
             : ["No guardian appointed"],
     },
     {
-      step: 6,
-      title: "Share of residuary estate",
-      rows: will.beneficiaries.length
-        ? will.beneficiaries.map(
-            (b) =>
-              `${b.full_name} (${b.relationship}) — ${Number(b.share_percent)}%`,
-          )
-        : ["No beneficiaries named"],
-    },
-    {
-      step: 7,
+      step: stepFor('funeral'),
       title: "Funeral wishes",
       rows: [
         will.funeral_preference
@@ -109,7 +152,7 @@ export function ReviewSummary({
       ].filter(Boolean),
     },
     {
-      step: 8,
+      step: stepFor('witnesses'),
       title: "Witnesses",
       rows: will.witnesses.length
         ? will.witnesses.map((w) => `${w.full_name} — ${w.address}`)

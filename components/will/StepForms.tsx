@@ -306,6 +306,7 @@ export function ExecutorsStep({ will, help, backHref }: StepProps) {
 
       <RepeatableList
         legend="Executor"
+        prefix="executors"
         addLabel="Add another executor"
         /*
           Two, not one. A Will with a single executor has a single point of
@@ -377,6 +378,7 @@ export function BeneficiariesStep({ will, help, backHref }: StepProps) {
 
       <RepeatableList
         legend="Beneficiary"
+        prefix="beneficiaries"
         addLabel="Add another beneficiary"
         min={1}
         max={24}
@@ -499,6 +501,7 @@ export function GuardianshipStep({ will, help, backHref }: StepProps) {
       {hasChildren && (
         <RepeatableList
           legend="Guardian"
+        prefix="guardians"
           addLabel="Add an alternate guardian"
           min={1}
           max={6}
@@ -571,6 +574,7 @@ export function BequestsStep({ will, help, backHref }: StepProps) {
 
       <RepeatableList
         legend="Bequest"
+        prefix="bequests"
         addLabel="Add a specific gift"
         emptyLabel="No specific gifts listed yet. Add one, or choose below to leave everything to your trustees."
         min={0}
@@ -660,6 +664,7 @@ export function AssetsStep({ will, help, backHref }: StepProps) {
 
       <RepeatableList
         legend="Asset"
+        prefix="assets"
         addLabel="Add another asset"
         emptyLabel="Nothing listed yet. Add what you own — land, buildings, vehicles, accounts, jewellery, personal effects."
         min={0}
@@ -771,6 +776,7 @@ export function TrusteesStep({ will, help, backHref }: StepProps) {
       {!executorsActing && (
         <RepeatableList
           legend="Trustee"
+        prefix="trustees"
           addLabel="Add another trustee"
           min={2}
           max={6}
@@ -905,6 +911,7 @@ export function WitnessesStep({ will, help, backHref }: StepProps) {
 
       <RepeatableList
         legend="Witness"
+        prefix="witnesses"
         addLabel="Add witness"
         min={2}
         max={2}
