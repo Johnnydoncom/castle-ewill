@@ -14,15 +14,30 @@ export const metadata: Metadata = {
 };
 
 export default async function KycPage() {
-  const profile = await getProfile();
+  const [profile, verification] = await Promise.all([
+    getProfile(),
+    getVerificationStatus(),
+  ]);
 
-  // Nothing left to do here — sent back to the dashboard rather than shown a
-  // page whose only purpose has already been served.
-  if (profile?.is_kyc_verified) {
+  /*
+   * Identity is proved once. A camera check is not that.
+   *
+   * `is_kyc_verified` means the document check has been passed — it never
+   * expires and is never asked for twice. `verification.is_verified` is the
+   * narrower, hour-long fact that this session is that person, which the print
+   * gate wants fresh.
+   *
+   * This page used to redirect anybody KYC-verified straight back to the
+   * dashboard, which made the live check unreachable: the journey card sends
+   * them here, and here sent them away again. Reported as being asked to do
+   * KYC twice — what the second visit actually needed was the short check,
+   * shown with the same words and the same document flow as the first.
+   */
+  const kycDone = Boolean(profile?.is_kyc_verified);
+
+  if (kycDone && verification.is_verified) {
     redirect("/dashboard");
   }
-
-  const verification = await getVerificationStatus();
 
   return (
     /*
@@ -58,17 +73,21 @@ export default async function KycPage() {
         so the page moves on by itself.
       */}
       {verification.latest?.status === "pending" &&
-      verification.latest.is_submitted &&
-      verification.latest.purpose === "kyc" ? (
+      verification.latest.is_submitted ? (
         <VerificationPending
           provider={verification.latest.provider}
           next="/dashboard"
         />
       ) : (
         <KycOnboarding
+          /*
+           * Which of the two checks this visit is for. A client who has
+           * already proved who they are is asked for a face and nothing else —
+           * no document, no second identity check.
+           */
+          recheckOnly={kycDone}
           rejectionReason={
-            verification.latest?.status === "failed" &&
-            verification.latest.purpose === "kyc"
+            verification.latest?.status === "failed"
               ? verification.latest.failure_reason
               : null
           }

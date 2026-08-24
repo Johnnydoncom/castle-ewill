@@ -274,6 +274,10 @@ export function SmileIdCapture({
 
       setStep("loading");
 
+      // Decided by the server: a client who has already proved who they are is
+      // checked against that identity rather than against a document.
+      const isRecheck = current.product === "smart_selfie_authentication";
+
       /*
        * Both sources, merged.
        *
@@ -297,7 +301,7 @@ export function SmileIdCapture({
         return;
       }
 
-      if (!front) {
+      if (!isRecheck && !front) {
         fail("We did not receive a photograph of your ID. Please try again.");
 
         return;
@@ -318,11 +322,22 @@ export function SmileIdCapture({
           );
         });
 
-      body.append("document", toJpegFile(front.image, "document-front.jpg"));
+      /*
+       * Only the document check carries a document.
+       *
+       * A returning client is asked for a face and nothing else — their
+       * identity was proved once and does not need proving again — and the
+       * authentication endpoint refuses a document part it never asked for.
+       */
+      if (!isRecheck) {
+        body.append("document", toJpegFile(front!.image, "document-front.jpg"));
+      }
 
       // Only when one was actually published: plenty of IDs have no back, and
       // an empty part is its own error.
-      const back = all.find((i) => i.image_type_id === IMAGE_TYPE.documentBack);
+      const back = isRecheck
+        ? undefined
+        : all.find((i) => i.image_type_id === IMAGE_TYPE.documentBack);
 
       if (back) {
         body.append(
@@ -342,6 +357,13 @@ export function SmileIdCapture({
       // From our own records, decided server-side — see the note at the top.
       body.append("user_details", JSON.stringify(current.user_details));
       body.append("country", current.country);
+
+      /*
+       * Identifies the enrolled person the face is matched against. Required
+       * by the authentication endpoint and harmless on the document one, so it
+       * is sent either way rather than branched on.
+       */
+      body.append("user_id", current.user_id);
 
       /*
        * Optional for this product — omit it and their server auto-classifies —
@@ -427,7 +449,15 @@ export function SmileIdCapture({
   useEffect(() => {
     const onConsentGranted = (event: Event) => {
       consentRef.current = (event as CustomEvent<ConsentDetail>).detail;
-      setStep("document");
+
+      /*
+       * A recheck skips the document question entirely — there is no document
+       * in it, so asking which one somebody will show is asking about
+       * something that is not going to happen.
+       */
+      setStep(configRef.current?.product === "smart_selfie_authentication"
+        ? "capture"
+        : "document");
     };
 
     const onConsentDenied = () => {
@@ -529,6 +559,15 @@ export function SmileIdCapture({
   }, [fail, finish]);
 
   const theme = config?.partner_details.theme_color ?? "#0f1e3d";
+
+  /*
+   * Whether this is a face-only recheck, decided by the server.
+   *
+   * Identity is proved once. A returning client is matched against the
+   * identity they already proved, so nothing here mounts a document step or
+   * asks which ID they will show.
+   */
+  const isRecheck = config?.product === "smart_selfie_authentication";
   const showsIntro = step === "idle" || step === "loading";
 
   return (
@@ -626,17 +665,28 @@ export function SmileIdCapture({
             <smart-camera-web
               ref={cameraRef}
               theme-color={theme}
-              capture-id=""
-              document-type={idType ?? undefined}
+              /*
+                `capture-id` is what turns the document step on, so a recheck
+                leaves it off entirely: a client who has already proved who
+                they are is asked for a face and nothing else. With it set,
+                they would be walked through photographing their ID again —
+                which is what "I was asked to do KYC twice" was.
+              */
+              capture-id={isRecheck ? undefined : ""}
+              document-type={isRecheck ? undefined : (idType ?? undefined)}
               /*
                 On the wrapper, which is the only place it is read — see the
                 note on its attribute typing above. This is what puts "upload a
                 file" beside "take a photograph", so a passport can be sent as
                 a scan rather than fought with on a laptop webcam.
               */
-              document-capture-modes={config.document_capture_modes}
+              document-capture-modes={
+                isRecheck ? undefined : config.document_capture_modes
+              }
               /* A passport is one page; asking for its back is a dead end. */
-              hide-back-of-id={idType === "PASSPORT" ? "" : undefined}
+              hide-back-of-id={
+                !isRecheck && idType === "PASSPORT" ? "" : undefined
+              }
             >
               {/*
                 Nested, as their setup page shows, and `capture-id` is what
@@ -647,7 +697,9 @@ export function SmileIdCapture({
               */}
               <document-capture-screens
                 theme-color={theme}
-                document-capture-modes={config.document_capture_modes}
+                document-capture-modes={
+                isRecheck ? undefined : config.document_capture_modes
+              }
               />
             </smart-camera-web>
           )}

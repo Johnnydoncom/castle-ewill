@@ -21,6 +21,16 @@ import { errorState, successState, type FormState } from "./state";
 export type SmileIdConfig = {
   /** Short-lived v3 token, minted by our backend. The API key never leaves it. */
   token: string;
+  /**
+   * Which check this is, decided server-side.
+   *
+   * `document_verification` proves who somebody is, once.
+   * `smart_selfie_authentication` asks only whether the face in front of the
+   * camera is the identity already proved — no document, no second ID check.
+   */
+  product: string;
+  /** Required by the authentication endpoint, which matches against this id. */
+  user_id: string;
   /** Where the browser posts the job — follows the configured environment. */
   endpoint: string;
   environment: "sandbox" | "production";

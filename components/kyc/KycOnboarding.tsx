@@ -33,9 +33,18 @@ function RejectionNotice({ reason }: { reason: string }) {
 }
 
 export function KycOnboarding({
+  recheckOnly = false,
   rejectionReason,
 }: {
-  /** Set when the most recent kyc-purpose attempt was rejected — surfaced so the client knows what to fix. */
+  /**
+   * Whether this client has already proved who they are.
+   *
+   * Identity is proved once. A returning client is asked for a face and
+   * nothing else — no document, and none of the wording that makes a short
+   * camera check read as a second identity check.
+   */
+  recheckOnly?: boolean;
+  /** Set when the most recent attempt was rejected — surfaced so the client knows what to fix. */
   rejectionReason?: string | null;
 }) {
   return (
@@ -43,9 +52,17 @@ export function KycOnboarding({
       {rejectionReason && <RejectionNotice reason={rejectionReason} />}
 
       <SmileIdCapture
-        title="Verify your identity"
-        description="You'll be asked to photograph your identity document and then your face. It takes about a minute."
-        footerNote="Your photographs go straight to our identity provider for checking. We never hold them."
+        title={recheckOnly ? "One last check that it is you" : "Verify your identity"}
+        description={
+          recheckOnly
+            ? "You are already verified — this is a short camera check to confirm it is you collecting the Will. No documents, and it takes a few seconds."
+            : "You'll be asked to photograph your identity document and then your face. It takes about a minute."
+        }
+        footerNote={
+          recheckOnly
+            ? "We compare this against the identity you have already proved. Nothing is kept."
+            : "Your photographs go straight to our identity provider for checking. We never hold them."
+        }
         onVerified={() => {
           // A full reload rather than a client-side refresh: this is the
           // moment `is_kyc_verified` flips, and every server component down
