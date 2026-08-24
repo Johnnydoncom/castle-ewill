@@ -59,8 +59,17 @@ export type WitnessIdentityRecord = {
    */
   status: "pending" | "verified" | "rejected";
   rejection_reason: string | null;
-  /** As submitted, so the form can show it back. */
+  /**
+   * As submitted, so the form can show it back.
+   *
+   * The parts as well as the whole: splitting the whole name apart in the
+   * browser would re-introduce the guess this product spent a release
+   * removing, and would lose a middle name on every reload.
+   */
   full_name: string | null;
+  first_name: string | null;
+  middle_name: string | null;
+  last_name: string | null;
   id_type: string | null;
   /** Masked — the last four characters only. Never a value to submit. */
   id_number: string | null;
