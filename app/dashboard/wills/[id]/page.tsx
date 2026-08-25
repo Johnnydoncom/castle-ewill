@@ -14,6 +14,7 @@ import { WillCheckout } from "@/components/payments/WillCheckout";
 import {
   listWitnessIdentities,
   suggestedWitnesses,
+  witnessIdTypes,
 } from "@/lib/actions/verification";
 import { requireUser } from "@/lib/actions/guards";
 import { conflictingWitnesses } from "@/lib/will/conflicts";
@@ -93,11 +94,19 @@ export default async function WillDetailPage({
    * the part of a Will most likely to be challenged, and two approved
    * documents are what the record rests on.
    */
-  const [witnessIds, suggestedWitnessNames] = await Promise.all([
-    listWitnessIdentities(),
-    // The names already given in the wizard, so nobody types them twice.
-    suggestedWitnesses(),
-  ]);
+  const [witnessIds, suggestedWitnessNames, witnessIdTypeOptions] =
+    await Promise.all([
+      listWitnessIdentities(),
+      // The names already given in the wizard, so nobody types them twice.
+      suggestedWitnesses(),
+      /*
+       * And what may be asked about today. Which ID types this Smile ID
+       * account has enabled, and which authorities are answering, both move
+       * without a deploy — so the form is rendered from the server's answer
+       * rather than from a list compiled into the browser.
+       */
+      witnessIdTypes(),
+    ]);
 
   // Surfaced here as well as in the wizard: this is the rule people most often
   // fall foul of, and it voids the gift rather than the Will.
@@ -205,6 +214,7 @@ export default async function WillDetailPage({
       <WitnessVerification
         records={witnessIds}
         suggested={suggestedWitnessNames}
+        idTypes={witnessIdTypeOptions}
       />
 
       <ReviewSummary will={will} editBasePath={`/dashboard/wills/${will.id}/edit`} />

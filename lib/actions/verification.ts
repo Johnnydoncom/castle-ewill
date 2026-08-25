@@ -48,8 +48,6 @@ export async function getVerificationStatus(): Promise<VerificationStatus> {
 /** One witness's identification, as the client's own screen sees it. */
 export type WitnessIdentityRecord = {
   id: string;
-  file_name: string;
-  size_bytes: number;
   created_at: string | null;
   /**
    * Uploaded is not approved, and printing waits on approved.
@@ -59,6 +57,15 @@ export type WitnessIdentityRecord = {
    */
   status: "pending" | "verified" | "rejected";
   rejection_reason: string | null;
+  /**
+   * Why a record has no verdict, in the client's terms.
+   *
+   * Null unless it is waiting. An authority that did not answer is worth
+   * retrying; an ID type this account cannot be asked about never will be, and
+   * saying "try again in a moment" to the second is how somebody submits the
+   * same NIN slip five times.
+   */
+  note: string | null;
   /**
    * As submitted, so the form can show it back.
    *
@@ -83,6 +90,33 @@ export type WitnessIdentityRecord = {
  */
 export async function listWitnessIdentities(): Promise<WitnessIdentityRecord[]> {
   return apiData<WitnessIdentityRecord[]>("/witness-identities", []);
+}
+
+/**
+ * One ID a witness may be checked with, as Smile ID currently offers it.
+ *
+ * The regex is theirs, and travels with the type so the browser checks the
+ * shape of a number with the same pattern the server will. It is feedback
+ * either way — the server's check is the guarantee.
+ */
+export type WitnessIdType = {
+  type: string;
+  label: string;
+  /** Undelimited, as `/v3/services/supported_id_types` publishes it. */
+  regex: string;
+};
+
+/**
+ * What the witness form may offer today.
+ *
+ * Deliberately not a constant in the browser. Which ID types this Smile ID
+ * account can be asked about, and which issuing authorities are answering,
+ * both move without a deploy — and a form that offers a type nobody can query
+ * sends the client round a retry loop that cannot end. See the backend's
+ * `IdTypeCatalog`.
+ */
+export async function witnessIdTypes(): Promise<WitnessIdType[]> {
+  return apiData<WitnessIdType[]>("/witness-identities/id-types", []);
 }
 
 /** A witness as the Will already names them, for pre-filling the check. */

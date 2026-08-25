@@ -15,6 +15,7 @@ import { useFormAction } from "@/hooks/use-api-form";
 import type {
   SuggestedWitness,
   WitnessIdentityRecord,
+  WitnessIdType,
 } from "@/lib/actions/verification";
 
 /**
@@ -39,52 +40,27 @@ import type {
  * and is how the second witness never gets entered at all.
  */
 /**
- * What Nigeria's Basic KYC can actually be asked about, with the shape each
- * number must be in.
+ * What a number of each type should look like, in words.
  *
- * Narrower than it looks. Basic KYC asks an authority about a *number*, so
- * there is no passport or driving licence here — those are document products.
- * Nor is there a plain "NIN": it comes as the card number or the slip. We
- * offered NIN, a licence and a passport, and that is why witness checks came
- * back with nothing verified.
- *
- * The patterns are Smile ID's own, from their ID-number regex table. Checked
- * here so a client gets "that is not eleven digits" while they are looking at
- * the field, rather than a vendor error a minute later — the server checks the
- * same thing, and that check is the guarantee.
+ * Derived from Smile ID's own regex rather than written out beside it, so a
+ * hint can never say one thing while the pattern enforces another.
  */
-const ID_TYPES = [
-  {
-    value: "NIN_V2",
-    label: "National Identity Number (NIN)",
-    pattern: /^[0-9]{11}$/,
-    hint: "11 digits",
-  },
-  {
-    value: "NIN_SLIP",
-    label: "NIN slip",
-    pattern: /^[0-9]{11}$/,
-    hint: "11 digits",
-  },
-  {
-    value: "BVN",
-    label: "Bank Verification Number (BVN)",
-    pattern: /^[0-9]{11}$/,
-    hint: "11 digits",
-  },
-  {
-    value: "VOTER_ID",
-    label: "Voter card",
-    pattern: /^[a-zA-Z0-9 ]{9,29}$/,
-    hint: "9–29 letters or digits",
-  },
-  {
-    value: "PHONE_NUMBER",
-    label: "Phone number",
-    pattern: /^[0-9]{11}$/,
-    hint: "11 digits",
-  },
-] as const;
+function hintFor(regex: string): string {
+  const digits = /^\^\[0-9\]\{(\d+)\}\$$/.exec(regex);
+
+  if (digits) return `${digits[1]} digits`;
+
+  const range = /\{(\d+),(\d+)\}/.exec(regex);
+
+  if (range) return `${range[1]}–${range[2]} letters or digits`;
+
+  return "as printed on the ID";
+}
+
+/** Whether the field should bring up a number pad. */
+function isNumeric(regex: string): boolean {
+  return /^\^\[0-9\]/.test(regex);
+}
 
 function StatusChip({ status }: { status: WitnessIdentityRecord["status"] }) {
   const [Icon, label, tone] =
@@ -109,12 +85,15 @@ function WitnessFields({
   record,
   suggested,
   values,
+  idTypes,
 }: {
   index: number;
   record?: WitnessIdentityRecord;
   /** As the Will already names this witness. */
   suggested?: SuggestedWitness;
   values?: Record<string, string>;
+  /** What may be asked today. Server-supplied — see `witnessIdTypes()`. */
+  idTypes: WitnessIdType[];
 }) {
   const field = (name: string) => `witnesses.${index}.${name}`;
   const value = (name: string) => values?.[field(name)] ?? "";
@@ -129,10 +108,20 @@ function WitnessFields({
    * submission that had plainly worked.
    */
   const [idType, setIdType] = useState<string>(
-    values?.[field("id_type")] ?? record?.id_type ?? "NIN_V2",
+    values?.[field("id_type")] ??
+      record?.id_type ??
+      idTypes[0]?.type ??
+      "NIN_V2",
   );
 
-  const chosen = ID_TYPES.find((type) => type.value === idType);
+  /*
+   * The stored type may no longer be on offer — an authority went down, or a
+   * `1016` took it off the list — in which case the select falls back to the
+   * first thing that is, rather than to a blank option that silently submits
+   * nothing.
+   */
+  const chosen =
+    idTypes.find((type) => type.type === idType) ?? idTypes[0] ?? null;
 
   const prefill = (part: "first" | "middle" | "last") =>
     part === "first"
@@ -151,6 +140,18 @@ function WitnessFields({
       {record?.status === "rejected" && record.rejection_reason && (
         <p className="mb-4 border-l-2 border-destructive bg-destructive/5 px-4 py-3 text-sm leading-relaxed text-navy">
           {record.rejection_reason}
+        </p>
+      )}
+
+      {/*
+        A check that produced no verdict, and why. Two different situations
+        wearing one message is what sent people round a retry loop: an
+        authority that did not answer is worth asking again, an ID type this
+        account cannot ask about is not.
+      */}
+      {record?.status === "pending" && record.note && (
+        <p className="mb-4 border-l-2 border-gold bg-gold/5 px-4 py-3 text-sm leading-relaxed text-navy">
+          {record.note}
         </p>
       )}
 
@@ -197,13 +198,13 @@ function WitnessFields({
           </span>
           <select
             name={field("id_type")}
-            value={idType}
+            value={chosen?.type ?? idType}
             onChange={(event) => setIdType(event.target.value)}
             required
             className="mt-1.5 w-full border border-border bg-background px-3 py-2.5 font-serif text-sm text-navy focus:border-gold focus:outline-none"
           >
-            {ID_TYPES.map((type) => (
-              <option key={type.value} value={type.value}>
+            {idTypes.map((type) => (
+              <option key={type.type} value={type.type}>
                 {type.label}
               </option>
             ))}
@@ -212,19 +213,19 @@ function WitnessFields({
 
         <label className="block">
           <span className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
-            ID number{chosen ? ` · ${chosen.hint}` : ""}
+            ID number{chosen ? ` · ${hintFor(chosen.regex)}` : ""}
           </span>
           <input
             name={field("id_number")}
             defaultValue={value("id_number")}
             required
-            inputMode={chosen?.value === "VOTER_ID" ? "text" : "numeric"}
+            inputMode={chosen && isNumeric(chosen.regex) ? "numeric" : "text"}
             /*
               Their regex, applied by the browser. The server applies the same
               one — this is the courtesy, that is the guarantee.
             */
-            pattern={chosen?.pattern.source}
-            title={chosen ? `Expected: ${chosen.hint}` : undefined}
+            pattern={chosen?.regex}
+            title={chosen ? `Expected: ${hintFor(chosen.regex)}` : undefined}
             /*
               Shown as a placeholder, never as a value: what comes back from
               the API is masked, and putting the mask into an input the client
@@ -272,10 +273,20 @@ function Submit({ hasRecords }: { hasRecords: boolean }) {
 export function WitnessVerification({
   records = [],
   suggested = [],
+  idTypes = [],
 }: {
   records?: WitnessIdentityRecord[];
   /** The witnesses named in the Will, used to pre-fill the form. */
   suggested?: SuggestedWitness[];
+  /**
+   * The IDs Smile ID can actually be asked about today.
+   *
+   * Read on the server and passed in rather than compiled into this file: a
+   * type this account has not enabled, or an authority that is offline, would
+   * otherwise be offered and then fail — which is how a client was told to
+   * "try again in a moment" about something that could never succeed.
+   */
+  idTypes?: WitnessIdType[];
 }) {
   const [state, action] = useFormAction(submitWitnessIdentitiesAction);
 
@@ -316,12 +327,14 @@ export function WitnessVerification({
           record={records[0]}
           suggested={suggested[0]}
           values={state.values}
+          idTypes={idTypes}
         />
         <WitnessFields
           index={1}
           record={records[1]}
           suggested={suggested[1]}
           values={state.values}
+          idTypes={idTypes}
         />
 
         <div className="flex flex-wrap items-center gap-4">
