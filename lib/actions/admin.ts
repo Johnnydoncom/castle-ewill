@@ -192,16 +192,22 @@ export type AdminWillRow = {
 };
 
 /**
- * The review queue: submitted and in-review Wills, oldest first.
+ * The review queue: Wills whose owner asked for a solicitor's read.
  *
  * FIFO because somebody is waiting. Sorting the newest to the top would let an
  * old submission sink out of sight.
+ *
+ * `review=requested`, because a review is an optional product with its own
+ * price and most submitted Wills have not bought one. Those are not work
+ * waiting on a reviewer — they are in the Wills section, where they belong —
+ * and queueing them made this list look permanently behind while burying the
+ * Wills somebody is actually owed a read of.
  */
 export async function getReviewQueue(limit = 10): Promise<AdminWillRow[]> {
   const page = await apiData<Paginated<AdminWillRow>>(
     "/admin/wills",
     emptyPage<AdminWillRow>(),
-    { query: { per_page: limit } },
+    { query: { per_page: limit, review: "requested" } },
   );
 
   return page.data;

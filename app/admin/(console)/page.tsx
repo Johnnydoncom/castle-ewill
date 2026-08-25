@@ -115,7 +115,7 @@ export default async function AdminOverviewPage() {
         <Table
           headers={["Client", "Reference", "Status", "Submitted", ""]}
           isEmpty={queue.length === 0}
-          empty="Nothing is awaiting review. The queue is clear."
+          empty="No client has asked for a solicitor's read. The queue is clear."
         >
           {queue.map(({ will, client }) => (
             <tr key={will.id}>
