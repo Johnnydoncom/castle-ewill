@@ -62,6 +62,51 @@ function isNumeric(regex: string): boolean {
   return /^\^\[0-9\]/.test(regex);
 }
 
+/**
+ * A witness the authority has already confirmed.
+ *
+ * Shown, not editable. The check is a paid lookup against a third party that
+ * can be down this hour and up the next, so re-running one that has already
+ * passed spends a request to be told what we know — and can take a confirmed
+ * witness back to unverified for a reason that has nothing to do with them.
+ *
+ * Nothing here is a form field, so nothing here is submitted again either.
+ */
+function ConfirmedWitness({
+  index,
+  record,
+  idTypes,
+}: {
+  index: number;
+  record: WitnessIdentityRecord;
+  idTypes: WitnessIdType[];
+}) {
+  const label =
+    idTypes.find((type) => type.type === record.id_type)?.label ??
+    record.id_type ??
+    "ID";
+
+  return (
+    <fieldset className="border border-success/40 bg-success/5 p-5">
+      <legend className="flex items-center gap-3 px-2 font-serif text-[10px] uppercase tracking-[0.28em] text-gold">
+        Witness {index + 1}
+        <StatusChip status={record.status} />
+      </legend>
+
+      <p className="font-serif text-lg text-navy">{record.full_name}</p>
+
+      <p className="mt-1 text-sm text-muted-foreground">
+        {label} · {record.id_number}
+      </p>
+
+      <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+        Confirmed by the issuing authority. There is nothing more to do for this
+        witness — we will not check them again.
+      </p>
+    </fieldset>
+  );
+}
+
 function StatusChip({ status }: { status: WitnessIdentityRecord["status"] }) {
   const [Icon, label, tone] =
     status === "verified"
@@ -251,7 +296,14 @@ function WitnessFields({
  * `useFormStatus` rather than the action's own state: it reports the pending
  * form from inside it, which is exactly the window the client is staring at.
  */
-function Submit({ hasRecords }: { hasRecords: boolean }) {
+function Submit({
+  hasRecords,
+  remaining,
+}: {
+  hasRecords: boolean;
+  /** How many witnesses this submission covers. */
+  remaining: number;
+}) {
   const { pending } = useFormStatus();
 
   return (
@@ -265,7 +317,9 @@ function Submit({ hasRecords }: { hasRecords: boolean }) {
         ? "Checking with the ID authority…"
         : hasRecords
           ? "Check again"
-          : "Check both witnesses"}
+          : remaining === 1
+            ? "Check this witness"
+            : "Check both witnesses"}
     </button>
   );
 }
@@ -290,8 +344,19 @@ export function WitnessVerification({
 }) {
   const [state, action] = useFormAction(submitWitnessIdentitiesAction);
 
-  const verified = records.filter((r) => r.status === "verified").length;
-  const isComplete = verified >= 2;
+  /*
+   * Two lists, because they are two different things on this screen: an answer
+   * we already have, and a question still outstanding. Only the second is a
+   * form, and only the second is submitted.
+   */
+  const confirmed = records.filter((r) => r.status === "verified");
+  const outstanding = records.filter((r) => r.status !== "verified");
+
+  const isComplete = confirmed.length >= 2;
+
+  // What is left to ask about. A slot with no record yet is a witness whose
+  // details have never been entered.
+  const slots = Math.max(0, 2 - confirmed.length);
 
   return (
     <section className="border border-border bg-background p-6 sm:p-8">
@@ -316,29 +381,49 @@ export function WitnessVerification({
             }`}
         >
           <ShieldCheck className="h-3.5 w-3.5" />
-          {verified} of 2 verified
+          {confirmed.length} of 2 verified
         </span>
       </div>
 
-      <form action={action} className="mt-6 space-y-5">
-        {/* Both, together — see the note at the top of this file. */}
-        <WitnessFields
-          index={0}
-          record={records[0]}
-          suggested={suggested[0]}
-          values={state.values}
-          idTypes={idTypes}
-        />
-        <WitnessFields
-          index={1}
-          record={records[1]}
-          suggested={suggested[1]}
-          values={state.values}
-          idTypes={idTypes}
-        />
+      <div className="mt-6 space-y-5">
+        {confirmed.map((record, index) => (
+          <ConfirmedWitness
+            key={record.id}
+            index={index}
+            record={record}
+            idTypes={idTypes}
+          />
+        ))}
+      </div>
+
+      {isComplete ? (
+        <p className="mt-6 text-sm leading-relaxed text-muted-foreground">
+          Both witnesses are confirmed. Nothing further is needed here.
+        </p>
+      ) : (
+        <form action={action} className="mt-5 space-y-5">
+          {/*
+            Whoever is left, together — see the note at the top of this file.
+            The indices are the form's, not the Will's: the request carries only
+            the witnesses still to be checked, so a confirmed one is never sent
+            back to the authority.
+          */}
+          {Array.from({ length: slots }, (_, index) => (
+            <WitnessFields
+              key={index}
+              index={index}
+              record={outstanding[index]}
+              suggested={suggested[confirmed.length + index]}
+              values={state.values}
+              idTypes={idTypes}
+            />
+          ))}
 
         <div className="flex flex-wrap items-center gap-4">
-          <Submit hasRecords={records.length > 0} />
+          <Submit
+            hasRecords={outstanding.length > 0}
+            remaining={slots}
+          />
 
           {state.status !== "idle" && state.message && (
             <p
@@ -349,9 +434,10 @@ export function WitnessVerification({
             >
               {state.message}
             </p>
-          )}
-        </div>
-      </form>
+            )}
+          </div>
+        </form>
+      )}
     </section>
   );
 }

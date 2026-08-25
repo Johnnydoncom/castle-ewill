@@ -199,7 +199,24 @@ export async function submitWitnessIdentitiesAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const witnesses = [0, 1].map((index) => ({
+  /*
+   * However many the form rendered, not always two.
+   *
+   * A witness the authority has already confirmed is not a field on that form
+   * and is not sent again: re-checking one spends a paid lookup to be told
+   * what we know, and an authority that is down this minute could take a
+   * confirmed witness back to unverified. The server keeps those rows and
+   * checks only what arrives here.
+   */
+  const indices = [
+    ...new Set(
+      [...formData.keys()]
+        .map((key) => /^witnesses\.(\d+)\./.exec(key)?.[1])
+        .filter((index): index is string => index !== undefined),
+    ),
+  ].map(Number).sort((a, b) => a - b);
+
+  const witnesses = indices.map((index) => ({
     first_name: String(formData.get(`witnesses.${index}.first_name`) ?? "").trim(),
     middle_name: String(formData.get(`witnesses.${index}.middle_name`) ?? "").trim(),
     last_name: String(formData.get(`witnesses.${index}.last_name`) ?? "").trim(),
