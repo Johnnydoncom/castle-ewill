@@ -41,6 +41,26 @@ const INTERVAL_MS = 3000;
  */
 const GIVE_UP_MS = 120_000;
 
+/**
+ * Kept asking for, though, after the message changes.
+ *
+ * The server abandons a job that has stopped answering and marks the attempt
+ * over; this page only learns that by asking. Stopping the poll at the same
+ * moment the copy says "you can start again" would leave the client waiting
+ * for a page that never changes — which is the complaint in a third costume.
+ */
+const SLOW_INTERVAL_MS = 15_000;
+
+/**
+ * And a point at which it stops asking altogether.
+ *
+ * The server gives up on a silent job within minutes, so reaching this means
+ * something else is wrong — our own API unreachable, most likely. A tab left
+ * open overnight should not keep polling into it; the client gets a link
+ * instead, which is one click and no worse.
+ */
+const HARD_STOP_MS = 1_200_000;
+
 export function VerificationPending({
   provider,
   next,
@@ -52,6 +72,7 @@ export function VerificationPending({
 }) {
   const automated = provider !== "manual_review";
   const [slow, setSlow] = useState(false);
+  const [stopped, setStopped] = useState(false);
 
   useEffect(() => {
     // A human decides this one. Nothing to poll for — they get an email.
@@ -74,20 +95,32 @@ export function VerificationPending({
        * this is the moment `is_kyc_verified` flips, and every server component
        * down the tree — the dashboard banner, the Will's print gate — has to
        * see it.
+       *
+       * Onward only when it passed. A check that failed, or that we gave up
+       * waiting on, reloads *this* page instead — which falls back to the
+       * check itself, with the reason above it. Sending somebody to the
+       * dashboard on a failure would hide the one thing they need to do.
        */
       if (latest && latest.status !== "pending") {
-        window.location.href = next;
+        window.location.href = latest.status === "passed" ? next : window.location.pathname;
 
         return;
       }
 
-      if (Date.now() - startedAt > GIVE_UP_MS) {
-        setSlow(true);
+      const elapsed = Date.now() - startedAt;
+
+      if (elapsed > GIVE_UP_MS) setSlow(true);
+
+      if (elapsed > HARD_STOP_MS) {
+        setStopped(true);
 
         return;
       }
 
-      window.setTimeout(() => void tick(), INTERVAL_MS);
+      window.setTimeout(
+        () => void tick(),
+        elapsed > GIVE_UP_MS ? SLOW_INTERVAL_MS : INTERVAL_MS,
+      );
     };
 
     const timer = window.setTimeout(() => void tick(), INTERVAL_MS);
@@ -119,11 +152,23 @@ export function VerificationPending({
       )}
 
       <p className="leading-relaxed">
-        {slow ? (
+        {stopped ? (
           <>
-            This is taking longer than usual. Your check is still with our
-            identity provider — you can safely close this page, and we&apos;ll
-            email you the moment it&apos;s confirmed.
+            We are still not hearing back. Nothing you have given us is lost —{" "}
+            <a
+              href={typeof window === "undefined" ? "" : window.location.pathname}
+              className="font-medium text-navy underline decoration-gold underline-offset-4"
+            >
+              start the check again
+            </a>
+            .
+          </>
+        ) : slow ? (
+          <>
+            This is taking longer than usual. We stop waiting after a few
+            minutes and let you start again — this page will offer the check
+            back to you shortly, and nothing you have already given us is
+            lost.
           </>
         ) : (
           <>
