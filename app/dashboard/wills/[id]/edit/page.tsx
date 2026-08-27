@@ -5,6 +5,7 @@ import { FileText } from "lucide-react";
 import { JourneyActions } from "@/components/will/JourneyActions";
 import { JourneyBar } from "@/components/will/JourneyBar";
 import { notFound } from "next/navigation";
+import { getProfile } from "@/lib/actions/guards";
 import { listUserDocuments } from "@/lib/actions/documents";
 import { readWill } from "@/lib/actions/will";
 import {
@@ -137,6 +138,16 @@ export default async function WillEditorPage({
    */
   const documents = await listUserDocuments();
 
+  /*
+   * Whether the name on this Will is this account holder's own.
+   *
+   * It is, for everybody but a lawyer: theirs is the identity checked against
+   * the name the account was opened in. The server settles it either way — the
+   * form only needs to know so it can show the name rather than ask for a
+   * spelling it is going to replace.
+   */
+  const profile = await getProfile();
+
   const stepProps = {
     will,
     help: definition.help,
@@ -144,6 +155,7 @@ export default async function WillEditorPage({
     passportPhotoId:
       documents.find((record) => record.kind === "passport_photograph")?.id ??
       null,
+    nameIsTheirs: !(profile?.may_name_another_testator ?? false),
   };
 
   /*

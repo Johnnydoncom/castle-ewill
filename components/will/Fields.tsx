@@ -23,6 +23,15 @@ type Common = {
   defaultValue?: string;
   errors?: string[];
   className?: string;
+  /**
+   * Shown, but not the client's to change.
+   *
+   * Read-only rather than disabled: a disabled input is dropped from the
+   * submission entirely, and this value still belongs in it. The server
+   * decides the value either way — see `withTestatorName()` — so this is a
+   * courtesy that saves somebody typing a name that would be replaced.
+   */
+  readOnly?: boolean;
 };
 
 function Label({
@@ -76,8 +85,9 @@ export function TextField({
         placeholder={placeholder}
         value={value}
         onChange={(event) => setValue(event.target.value)}
+        readOnly={props.readOnly}
         aria-invalid={invalid}
-        className={inputClass(invalid)}
+        className={`${inputClass(invalid)} ${props.readOnly ? "cursor-not-allowed text-muted-foreground" : ""}`}
       />
       {invalid && (
         <p className="text-xs text-destructive">{props.errors?.[0]}</p>

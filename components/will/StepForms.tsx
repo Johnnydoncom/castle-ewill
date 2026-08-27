@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useState } from "react";
 
 import { useFormAction } from "@/hooks/use-api-form";
@@ -42,6 +43,15 @@ type StepProps = {
    * and the address rather than a panel of its own.
    */
   passportPhotoId?: string | null;
+  /**
+   * Whether the testator is the account holder.
+   *
+   * True for everybody but a lawyer, and it makes the name a fact rather than
+   * a question: it is the name this account was opened in and the name their
+   * identity is checked against, so the wizard shows it instead of inviting a
+   * spelling that would differ from the register's.
+   */
+  nameIsTheirs?: boolean;
 };
 
 const stateOptions = NIGERIAN_STATES.map((s) => ({ value: s, label: s }));
@@ -140,6 +150,7 @@ export function PersonalStep({
   help,
   backHref,
   passportPhotoId = null,
+  nameIsTheirs = true,
 }: StepProps) {
   const [state, action] = useFormAction(savePersonalAction, { refresh: false });
   const e = state.fieldErrors;
@@ -164,13 +175,33 @@ export function PersonalStep({
           government record, so a surname it has to guess at is a surname it
           can guess wrong — and a wrong guess is a failed identity check on a
           perfectly good document.
+          
+          And for everybody but a lawyer it is not a question at all: the
+          account holder is the testator, so the name comes from the account
+          and is shown rather than asked for. The server replaces whatever is
+          submitted, so an editable field here could only mislead.
         */}
+        {nameIsTheirs && (
+          <p className="text-sm leading-relaxed text-muted-foreground sm:col-span-2">
+            Your Will is made in the name on your account, which is the name
+            your identity is checked against. To correct it, change it in{" "}
+            <Link
+              href="/dashboard/settings"
+              className="text-navy underline decoration-gold underline-offset-4"
+            >
+              account settings
+            </Link>
+            .
+          </p>
+        )}
+
         <TextField
           label="First name"
           name="firstName"
           placeholder="Ada"
-          hint="As on your ID"
+          hint={nameIsTheirs ? "From your account" : "As on their ID"}
           required
+          readOnly={nameIsTheirs}
           defaultValue={fieldValue(state, "firstName", will.personal.first_name ?? "")}
           errors={e?.firstName}
         />
@@ -178,6 +209,8 @@ export function PersonalStep({
           label="Middle name"
           name="middleName"
           placeholder="Optional"
+          hint={nameIsTheirs ? "From your account" : undefined}
+          readOnly={nameIsTheirs}
           defaultValue={fieldValue(state, "middleName", will.personal.middle_name ?? "")}
           errors={e?.middleName}
         />
@@ -185,8 +218,9 @@ export function PersonalStep({
           label="Surname"
           name="lastName"
           placeholder="Okafor"
-          hint="As on your ID"
+          hint={nameIsTheirs ? "From your account" : "As on their ID"}
           required
+          readOnly={nameIsTheirs}
           defaultValue={fieldValue(state, "lastName", will.personal.last_name ?? "")}
           errors={e?.lastName}
           className="sm:col-span-2"

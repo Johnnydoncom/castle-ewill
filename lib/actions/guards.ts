@@ -66,6 +66,15 @@ export type Profile = {
    * valid is the worst thing this product could hand an executor.
    */
   may_hold_multiple_wills: boolean;
+  /**
+   * Whether the name on a Will may be somebody other than this account holder.
+   *
+   * True only for a verified lawyer, who drafts for a client. For everybody
+   * else the account holder is the testator — theirs is the identity checked
+   * at Smile ID, against the name the account was opened in — so the wizard
+   * shows that name rather than inviting a spelling of their own.
+   */
+  may_name_another_testator: boolean;
   two_factor_enabled: boolean;
   created_at: string | null;
   last_login_at?: string | null;
