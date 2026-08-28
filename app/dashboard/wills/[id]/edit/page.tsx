@@ -156,6 +156,11 @@ export default async function WillEditorPage({
       documents.find((record) => record.kind === "passport_photograph")?.id ??
       null,
     nameIsTheirs: !(profile?.may_name_another_testator ?? false),
+    accountName: {
+      first: profile?.first_name ?? "",
+      middle: profile?.middle_name ?? "",
+      last: profile?.last_name ?? "",
+    },
   };
 
   /*

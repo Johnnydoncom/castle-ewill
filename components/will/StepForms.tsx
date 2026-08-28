@@ -52,6 +52,16 @@ type StepProps = {
    * spelling that would differ from the register's.
    */
   nameIsTheirs?: boolean;
+  /**
+   * The account holder's name, as a fallback for a Will that has none.
+   *
+   * A Will drafted before the name was carried over from the account has
+   * nothing in these columns, and a read-only field showing nothing is worse
+   * than one showing the truth: there is no way to type into it. The server
+   * writes the same name on save, so this shows what is about to be stored
+   * rather than a guess.
+   */
+  accountName?: { first: string; middle: string; last: string };
 };
 
 const stateOptions = NIGERIAN_STATES.map((s) => ({ value: s, label: s }));
@@ -151,6 +161,7 @@ export function PersonalStep({
   backHref,
   passportPhotoId = null,
   nameIsTheirs = true,
+  accountName,
 }: StepProps) {
   const [state, action] = useFormAction(savePersonalAction, { refresh: false });
   const e = state.fieldErrors;
@@ -202,7 +213,11 @@ export function PersonalStep({
           hint={nameIsTheirs ? "From your account" : "As on their ID"}
           required
           readOnly={nameIsTheirs}
-          defaultValue={fieldValue(state, "firstName", will.personal.first_name ?? "")}
+          defaultValue={fieldValue(
+            state,
+            "firstName",
+            will.personal.first_name || (nameIsTheirs ? (accountName?.first ?? "") : ""),
+          )}
           errors={e?.firstName}
         />
         <TextField
@@ -211,7 +226,11 @@ export function PersonalStep({
           placeholder="Optional"
           hint={nameIsTheirs ? "From your account" : undefined}
           readOnly={nameIsTheirs}
-          defaultValue={fieldValue(state, "middleName", will.personal.middle_name ?? "")}
+          defaultValue={fieldValue(
+            state,
+            "middleName",
+            will.personal.middle_name || (nameIsTheirs ? (accountName?.middle ?? "") : ""),
+          )}
           errors={e?.middleName}
         />
         <TextField
@@ -221,7 +240,11 @@ export function PersonalStep({
           hint={nameIsTheirs ? "From your account" : "As on their ID"}
           required
           readOnly={nameIsTheirs}
-          defaultValue={fieldValue(state, "lastName", will.personal.last_name ?? "")}
+          defaultValue={fieldValue(
+            state,
+            "lastName",
+            will.personal.last_name || (nameIsTheirs ? (accountName?.last ?? "") : ""),
+          )}
           errors={e?.lastName}
           className="sm:col-span-2"
         />
