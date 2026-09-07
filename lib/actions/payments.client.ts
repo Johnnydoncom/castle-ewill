@@ -66,19 +66,7 @@ function selectionFrom(formData: FormData) {
   };
 }
 
-async function startCheckout(
-  /**
-   * Which gateway to use, or null to let the server decide.
-   *
-   * Null is the normal case. The server names an active gateway in Settings,
-   * and sending a provider here overrides it — which is exactly what went
-   * wrong: this hard-coded "nomba" from the release that made Nomba primary,
-   * so switching the active gateway in the console changed the setting, the
-   * screen and nothing else. Every payment still went to Nomba.
-   */
-  provider: "nomba" | "paystack" | "flutterwave" | null,
-  formData: FormData,
-): Promise<FormState> {
+async function startCheckout(formData: FormData): Promise<FormState> {
   const selection = selectionFrom(formData);
 
   if (!selection.plan_slug) return errorState("Choose a plan to continue.");
@@ -87,7 +75,16 @@ async function startCheckout(
     "/payments/checkout",
     {
       method: "POST",
-      body: { ...selection, ...(provider ? { provider } : {}) },
+      /*
+       * No `provider`. The server names the active gateway in Settings, and
+       * sending one here overrides it — which is exactly what went wrong once
+       * before: this hard-coded "nomba", so switching the active gateway in
+       * the console changed the setting, the screen, and nothing else.
+       *
+       * The buttons that named a gateway are gone too. On an account with one
+       * gateway they sat beside "Pay now" doing the identical thing.
+       */
+      body: selection,
     },
   );
 
@@ -134,21 +131,7 @@ export async function startCheckoutAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  return startCheckout(null, formData);
-}
-
-export async function startPaystackCheckoutAction(
-  _previous: FormState,
-  formData: FormData,
-): Promise<FormState> {
-  return startCheckout("paystack", formData);
-}
-
-export async function startFlutterwaveCheckoutAction(
-  _previous: FormState,
-  formData: FormData,
-): Promise<FormState> {
-  return startCheckout("flutterwave", formData);
+  return startCheckout(formData);
 }
 
 /**

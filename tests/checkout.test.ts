@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
   startCheckoutAction,
-  startPaystackCheckoutAction,
 } from "@/lib/actions/payments.client";
 
 /**
@@ -53,12 +52,21 @@ describe("the main checkout button", () => {
   });
 });
 
-describe("the alternate buttons", () => {
-  it("name their gateway, because choosing one is the whole point of them", async () => {
-    await startPaystackCheckoutAction({ status: "idle" }, selection());
+describe("the gateway", () => {
+  it("is never named by the browser", async () => {
+    await startCheckoutAction({ status: "idle" }, selection());
 
     const [, options] = api.mock.calls[0];
 
-    expect(options.body.provider).toBe("paystack");
+    /*
+     * The server names the active gateway in Settings. Sending one from here
+     * overrides it, which is exactly what went wrong once before: the browser
+     * hard-coded "nomba", so switching the gateway in the console changed the
+     * setting, the screen, and nothing else.
+     *
+     * The buttons that named a gateway are gone with it — on an account with
+     * one gateway they sat beside "Pay now" doing the identical thing.
+     */
+    expect(options.body).not.toHaveProperty("provider");
   });
 });

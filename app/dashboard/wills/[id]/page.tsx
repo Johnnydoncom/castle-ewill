@@ -176,8 +176,6 @@ export default async function WillDetailPage({
               subscription={prices.subscription}
               lodging={prices.lodging}
               initialQuotes={prices.quotes}
-              flutterwaveEnabled={prices.providers.flutterwave}
-              paystackEnabled={prices.providers.paystack}
               // This Will's own, not the account's: reading the account would
               // tell a lawyer's second client their document was covered by
               // the first client's payment.

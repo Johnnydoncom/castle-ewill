@@ -8,8 +8,6 @@ import { useFormAction } from "@/hooks/use-api-form";
 import {
   fetchQuoteAction,
   startCheckoutAction,
-  startPaystackCheckoutAction,
-  startFlutterwaveCheckoutAction,
   startBankTransferAction,
   NO_OPTIONS,
   type PriceOptions,
@@ -99,8 +97,6 @@ export function WillCheckout({
   subscription,
   lodging,
   initialQuotes,
-  flutterwaveEnabled,
-  paystackEnabled,
   hasActiveSubscription,
 }: {
   /*
@@ -127,9 +123,6 @@ export function WillCheckout({
   lodging: Plan | null;
   /** Composed server-side, keyed by slug — the state before any toggling. */
   initialQuotes: Record<string, PriceQuote>;
-  flutterwaveEnabled: boolean;
-  /** Offered only when configured — see CheckoutButton. */
-  paystackEnabled: boolean;
   /** Already subscribed: the option is shown as met rather than offered again. */
   hasActiveSubscription: boolean;
 }) {
@@ -141,8 +134,6 @@ export function WillCheckout({
   const [repricing, startReprice] = useTransition();
 
   const [cardState, card] = useFormAction(startCheckoutAction);
-  const [paystackState, paystack] = useFormAction(startPaystackCheckoutAction);
-  const [flwState, flutterwave] = useFormAction(startFlutterwaveCheckoutAction);
   const [transferState, transfer] = useFormAction(startBankTransferAction);
 
   const plan = plans.find((p) => p.slug === selected) ?? null;
@@ -212,8 +203,8 @@ export function WillCheckout({
   }, [selected, options, cacheKey, baseline, fetched]);
 
   const error =
-    [cardState, paystackState, flwState, transferState].find((s) => s.status === "error")
-      ?.message ?? null;
+    [cardState, transferState].find((s) => s.status === "error")?.message ??
+    null;
 
   if (plans.length === 0) {
     return (
@@ -362,28 +353,24 @@ export function WillCheckout({
       )}
 
       <div className="space-y-4">
-        {/* Whichever gateway Settings makes active — the button names no
-            provider, so switching it in the console switches what charges.
-            Each of them offers card, transfer and more on its own hosted page,
-            so the label names the act rather than the instrument. */}
+        {/*
+          Whichever gateway Settings makes active, and only that one.
+
+          The button names no provider, so switching it in the console switches
+          what charges. It used to sit above a row naming the alternates, which
+          on a single-gateway account meant "Pay now" and "Flutterwave" side by
+          side doing exactly the same thing — two buttons, one of them
+          apparently a different choice.
+
+          Bank transfer stays: it is not a gateway but a different way to pay,
+          settled by hand against an account number an administrator publishes.
+        */}
         <form action={card}>
           <SelectionFields willId={willId} planSlug={selected} options={options} />
           <Submit label="Pay now" featured />
         </form>
 
         <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-          {paystackEnabled && (
-            <form action={paystack}>
-              <SelectionFields willId={willId} planSlug={selected} options={options} />
-              <SecondarySubmit label="Paystack" />
-            </form>
-          )}
-          {flutterwaveEnabled && (
-            <form action={flutterwave}>
-              <SelectionFields willId={willId} planSlug={selected} options={options} />
-              <SecondarySubmit label="Flutterwave" />
-            </form>
-          )}
           <form action={transfer}>
             <SelectionFields willId={willId} planSlug={selected} options={options} />
             <SecondarySubmit label="Bank transfer" />

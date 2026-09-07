@@ -3,8 +3,6 @@
 import { useFormAction } from "@/hooks/use-api-form";
 import {
   startCheckoutAction,
-  startPaystackCheckoutAction,
-  startFlutterwaveCheckoutAction,
   startBankTransferAction,
 } from "@/lib/actions/payments.client";
 
@@ -60,15 +58,11 @@ export function CheckoutButton({
   planSlug,
   planName,
   featured = false,
-  flutterwaveEnabled = false,
-  paystackEnabled = false,
 }: {
   planSlug: string;
   planName: string;
   featured?: boolean;
   /** Resolved on the server; an option is hidden rather than shown broken. */
-  flutterwaveEnabled?: boolean;
-  paystackEnabled?: boolean;
 }) {
   /*
    * The main button names no gateway, so the server charges through whichever
@@ -81,14 +75,11 @@ export function CheckoutButton({
    * worse than no button.
    */
   const [primaryState, primary] = useFormAction(startCheckoutAction);
-  const [paystackState, paystack] = useFormAction(startPaystackCheckoutAction);
-  const [flwState, flutterwave] = useFormAction(startFlutterwaveCheckoutAction);
   const [transferState, transfer] = useFormAction(startBankTransferAction);
 
   const error =
-    [primaryState, paystackState, flwState, transferState].find(
-      (s) => s.status === "error",
-    )?.message ?? null;
+    [primaryState, transferState].find((s) => s.status === "error")?.message ??
+    null;
 
   return (
     <div className="mt-8 space-y-4">
@@ -98,18 +89,6 @@ export function CheckoutButton({
       </form>
 
       <div className="flex flex-wrap items-center justify-center gap-x-5 gap-y-2">
-        {paystackEnabled && (
-          <form action={paystack}>
-            <input type="hidden" name="planSlug" value={planSlug} />
-            <SecondarySubmit label="Paystack" />
-          </form>
-        )}
-        {flutterwaveEnabled && (
-          <form action={flutterwave}>
-            <input type="hidden" name="planSlug" value={planSlug} />
-            <SecondarySubmit label="Flutterwave" />
-          </form>
-        )}
         <form action={transfer}>
           <input type="hidden" name="planSlug" value={planSlug} />
           <SecondarySubmit label="Bank transfer" />
