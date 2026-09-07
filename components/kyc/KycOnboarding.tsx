@@ -55,8 +55,8 @@ export function KycOnboarding({
         title={recheckOnly ? "One last check that it is you" : "Verify your identity"}
         description={
           recheckOnly
-            ? "You are already verified — this is a short camera check to confirm it is you collecting the Will. No documents, and it takes a few seconds."
-            : "You'll be asked to photograph your identity document and then your face. It takes about a minute."
+            ? "You are already verified — this is a short camera check to confirm it is you collecting the Will. No documents: just follow the prompts to turn your head, and it takes a few seconds."
+            : "You'll photograph your identity document, then your face — following a couple of on-screen prompts to turn your head, so we can tell a live person from a photograph. It takes about a minute."
         }
         footerNote={
           recheckOnly

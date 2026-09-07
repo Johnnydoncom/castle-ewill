@@ -67,6 +67,15 @@ export type SmileIdConfig = {
   };
   /** `camera,upload` — set on `<smart-camera-web>`, which is the only element that reads it. */
   document_capture_modes: string;
+  /**
+   * Enhanced SmartSelfie™ active liveness — the capture that gives directions.
+   *
+   * True renders `use-strict-mode` on `<smart-camera-web>`, which forwards it
+   * to the selfie screens: randomised head-turn prompts, one at a time, with
+   * the capture gated on following them. False leaves the default, which is
+   * gated on a smile and tells the client very little.
+   */
+  strict_liveness: boolean;
   /** Which documents a client may present, from the vendor's NG catalogue. */
   id_types: { value: string; label: string }[];
   /**

@@ -109,6 +109,13 @@ declare module "react" {
         "document-type"?: string;
         "document-capture-modes"?: string;
         "hide-back-of-id"?: string;
+        /*
+         * Enhanced SmartSelfie active liveness. Read by the wrapper and
+         * forwarded to `<selfie-capture-screens>` as `use-strict-mode="true"`;
+         * the value matters here, since the wrapper treats the string
+         * `"false"` as off.
+         */
+        "use-strict-mode"?: string;
         ref?: React.Ref<HTMLElement>;
       };
       "document-capture-screens": CustomElementProps & {
@@ -765,6 +772,14 @@ export function SmileIdCapture({
               hide-back-of-id={
                 !isRecheck && idType === "PASSPORT" ? "" : undefined
               }
+              /*
+                The difference between "look at the camera" and being told what
+                to do. Enhanced SmartSelfie prompts a randomised head turn and
+                gates the capture on following it; without it the capture waits
+                for a smile and never says so, which is how somebody ends up
+                staring at their own face wondering what is expected.
+              */
+              use-strict-mode={config.strict_liveness ? "true" : undefined}
             >
               {/*
                 Nested, as their setup page shows, and `capture-id` is what
