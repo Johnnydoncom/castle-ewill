@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import {
   CheckCircle2,
@@ -11,7 +10,10 @@ import {
   XCircle,
 } from "lucide-react";
 
-import { submitWitnessIdentitiesAction } from "@/lib/actions/verification.client";
+import {
+  fetchWitnessIdentitiesAction,
+  submitWitnessIdentitiesAction,
+} from "@/lib/actions/verification.client";
 import { useFormAction } from "@/hooks/use-api-form";
 import type {
   SuggestedWitness,
@@ -357,47 +359,66 @@ export function WitnessVerification({
   idTypes?: WitnessIdType[];
 }) {
   const [state, action] = useFormAction(submitWitnessIdentitiesAction);
-  const router = useRouter();
 
   /*
-   * The verdict arrives out of band, so the page has to ask for it.
+   * The verdict arrives out of band, so the screen has to ask for it.
    *
    * Enhanced KYC answers `202` and sends the outcome to our webhook seconds
-   * later. Without this the client sits on "being checked" until they think to
-   * reload — which is the same complaint as a screen that never changes, in a
-   * different costume.
+   * later. Without asking, the client sits on "being checked" until they think
+   * to reload.
    *
-   * Bounded, because a page that polls forever is a page hammering the API
-   * from a tab somebody abandoned. Two minutes is far longer than an answer
-   * takes and short enough to stop mattering.
+   * **Asked for as data, never as a page.** `router.refresh()` was tried and
+   * was worse than the problem: it re-runs the route on the server and
+   * re-renders the form underneath whoever is filling it in, so every four
+   * seconds a half-typed witness vanished. These records live in state and
+   * only the state is replaced.
    */
-  const awaitingVerdict = records.some((r) => r.status === "pending");
+  const [live, setLive] = useState<WitnessIdentityRecord[] | null>(null);
+
+  const shown = live ?? records;
+  const awaitingVerdict = shown.some((r) => r.status === "pending");
 
   useEffect(() => {
     if (!awaitingVerdict) return;
 
+    let cancelled = false;
     const startedAt = Date.now();
 
-    const timer = window.setInterval(() => {
-      if (Date.now() - startedAt > 120_000) {
-        window.clearInterval(timer);
+    const tick = async () => {
+      if (cancelled) return;
 
-        return;
+      const fresh = await fetchWitnessIdentitiesAction();
+
+      if (cancelled) return;
+
+      // Null means the read failed, which is not news about the witnesses.
+      if (fresh) setLive(fresh);
+
+      /*
+       * Bounded, because a page polling forever is a page hammering the API
+       * from a tab somebody abandoned. Two minutes is far longer than an
+       * answer takes and short enough to stop mattering.
+       */
+      if (Date.now() - startedAt < 120_000) {
+        timer = window.setTimeout(() => void tick(), 4000);
       }
+    };
 
-      router.refresh();
-    }, 4000);
+    let timer = window.setTimeout(() => void tick(), 4000);
 
-    return () => window.clearInterval(timer);
-  }, [awaitingVerdict, router]);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(timer);
+    };
+  }, [awaitingVerdict]);
 
   /*
    * Two lists, because they are two different things on this screen: an answer
    * we already have, and a question still outstanding. Only the second is a
    * form, and only the second is submitted.
    */
-  const confirmed = records.filter((r) => r.status === "verified");
-  const outstanding = records.filter((r) => r.status !== "verified");
+  const confirmed = shown.filter((r) => r.status === "verified");
+  const outstanding = shown.filter((r) => r.status !== "verified");
 
   const isComplete = confirmed.length >= 2;
 

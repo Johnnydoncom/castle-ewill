@@ -1,5 +1,6 @@
 import { api } from "@/lib/api/browser";
 import { errorState, successState, type FormState } from "./state";
+import type { WitnessIdentityRecord } from "./verification";
 
 /**
  * Identity verification's mutations, called directly from the browser.
@@ -224,6 +225,31 @@ export async function submittedVerificationAction(
  * number belongs to the name, so no third party's identity document is
  * uploaded, transmitted or held anywhere.
  */
+/**
+ * The witnesses as they stand, read from the browser.
+ *
+ * Enhanced KYC answers on our webhook rather than in the response, so the
+ * screen has to ask again to learn what happened. This asks for the *records*
+ * — not the page.
+ *
+ * `router.refresh()` was tried first and was a bad idea: it re-runs the whole
+ * route on the server, which re-renders the form underneath the person filling
+ * it in. Every four seconds their half-typed witness vanished. Uncontrolled
+ * inputs keep their value only until React replaces them, and a refresh
+ * replaces them.
+ */
+export async function fetchWitnessIdentitiesAction(): Promise<
+  WitnessIdentityRecord[] | null
+> {
+  const result = await api<{ data: WitnessIdentityRecord[] }>(
+    "/witness-identities",
+  );
+
+  // Null rather than an empty list: a failed read must not look like "your
+  // witnesses are gone".
+  return result.ok ? result.data.data : null;
+}
+
 export async function submitWitnessIdentitiesAction(
   _previous: FormState,
   formData: FormData,
