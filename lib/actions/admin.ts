@@ -350,8 +350,6 @@ export type AdminVerificationRow = {
     purpose: "kyc" | "will_submission";
 
     failure_reason: string | null;
-    match_score: number | null;
-    liveness_score: number | null;
     /** The captured frame lives in the vault; this is its document id. */
     created_at: string | null;
   };

@@ -547,12 +547,24 @@ export function SmileIdCapture({
 
           const enrolResponse = await fetch(current.enrolment.endpoint, {
             method: "POST",
+            /*
+             * No `User-ID` header, and it cannot be sent from a browser.
+             *
+             * Their preflight for `/v3/registration` answers
+             * `access-control-allow-headers: Content-Type, SmileID-Partner-ID,
+             * SmileID-Request-Signature, SmileID-Request-Timestamp,
+             * SmileID-Timestamp, SmileID-Token, SmileID-Request-Mac,
+             * SmileID-Source-SDK, SmileID-Source-SDK-Version` — and `User-ID`
+             * is not among them. Sending it anyway is a request the browser
+             * refuses to make, which surfaces as `TypeError: NetworkError when
+             * attempting to fetch resource` and no job at all. That is why no
+             * client has ever been enrolled.
+             *
+             * So Smile ID generate the id instead, and we keep the one they
+             * return — which is what `smartselfie_user_id` is for.
+             */
             headers: {
               "smileid-token": current.enrolment.token,
-              // How Smile ID learns which id to enrol this face under. Omit it
-              // and they mint one of their own, which is an identity we could
-              // never ask about again.
-              "User-ID": current.user_id,
               Accept: "application/json",
             },
             body: enrolBody,

@@ -147,17 +147,6 @@ export default async function AdminVerificationsPage({
                   </p>
                   <p className="text-xs text-muted-foreground">{client.email}</p>
 
-                  {/*
-                    Scores appear only when an automated provider supplied them.
-                    Under manual review there is nothing to show, and inventing a
-                    number would be worse than showing none.
-                  */}
-                  {verification.match_score !== null && (
-                    <p className="mt-2 text-xs text-muted-foreground">
-                      Provider match score: {verification.match_score}
-                    </p>
-                  )}
-
                   {verification.failure_reason && (
                     <p className="mt-2 text-xs italic text-destructive">
                       {verification.failure_reason}
