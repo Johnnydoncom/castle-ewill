@@ -126,7 +126,19 @@ export async function startVerificationAction(
     data: { attempt_id: string; smile_id?: SmileIdConfig | null };
   }>("/verification/start", {
     method: "POST",
-    body: documentType ? { document_type: documentType } : {},
+    body: {
+      /*
+       * Which integration is asking.
+       *
+       * The two apps deploy separately and the backend arrives first, so for a
+       * while a browser holding the previous bundle is talking to today's API.
+       * Naming the flow means each is answered in the vocabulary it speaks —
+       * without it, the old bundle received a config with none of the keys it
+       * reads and died mid-check on a blank error page.
+       */
+      flow: "hosted",
+      ...(documentType ? { document_type: documentType } : {}),
+    },
   });
 
   if (!result.ok) {
