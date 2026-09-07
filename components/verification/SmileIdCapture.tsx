@@ -116,6 +116,11 @@ declare module "react" {
          * `"false"` as off.
          */
         "use-strict-mode"?: string;
+        /*
+         * Assisted capture. Forwarded to the same screens as `use-strict-mode`
+         * and read the same way — the string, not the attribute's presence.
+         */
+        "allow-agent-mode"?: string;
         ref?: React.Ref<HTMLElement>;
       };
       "document-capture-screens": CustomElementProps & {
@@ -580,6 +585,43 @@ export function SmileIdCapture({
      */
     const camera = cameraRef.current;
 
+    /*
+     * Why the capture behaved as it did.
+     *
+     * Enhanced SmartSelfie runs head-pose detection on the device, from models
+     * it fetches at runtime (`web-models.smileidentity.com`: MediaPipe's WASM,
+     * a face-landmarker task, OpenCV). When that cannot load, it says so on
+     * these two events and then either offers a retry — in strict mode, whose
+     * whole mechanic *is* that detection — or drops to an interval capture with
+     * no prompts at all.
+     *
+     * Both are indistinguishable from "the guided check isn't working" at the
+     * far end of a support conversation, so they are recorded here. `version`
+     * is `1.0.0` when detection is live and `0.0.1` when it fell back.
+     */
+    const onLivenessVersion = (event: Event) => {
+      const detail = (event as CustomEvent<{ version?: string }>).detail;
+
+      console.info("[smile-id] active liveness version", detail?.version);
+    };
+
+    const onFallbackReason = (event: Event) => {
+      const detail = (event as CustomEvent<{ reason?: string }>).detail;
+
+      console.error(
+        "[smile-id] face detection unavailable — the guided prompts cannot run",
+        detail?.reason,
+      );
+    };
+
+    camera?.addEventListener(
+      "metadata.active-liveness-version",
+      onLivenessVersion,
+    );
+    camera?.addEventListener(
+      "metadata.mediapipe-fallback-reason",
+      onFallbackReason,
+    );
     camera?.addEventListener("smart-camera-web.publish", onCapture);
     camera?.addEventListener("smart-camera-web.close", onCameraClosed);
 
@@ -589,6 +631,14 @@ export function SmileIdCapture({
       window.removeEventListener(
         "document-capture-screens.publish",
         onDocuments,
+      );
+      camera?.removeEventListener(
+        "metadata.active-liveness-version",
+        onLivenessVersion,
+      );
+      camera?.removeEventListener(
+        "metadata.mediapipe-fallback-reason",
+        onFallbackReason,
       );
       camera?.removeEventListener("smart-camera-web.publish", onCapture);
       camera?.removeEventListener("smart-camera-web.close", onCameraClosed);
@@ -780,6 +830,17 @@ export function SmileIdCapture({
                 staring at their own face wondering what is expected.
               */
               use-strict-mode={config.strict_liveness ? "true" : undefined}
+              /*
+                Assisted capture: a switch-camera control, so somebody helping
+                can turn the device round and use the rear camera on the person
+                in front of them. Strict mode still opens on the front camera
+                and the control switches mid-session.
+
+                It appears only where the device has two cameras — every phone,
+                a laptop only if it genuinely has both — so on a single-webcam
+                machine this is invisible by design rather than broken.
+              */
+              allow-agent-mode={config.allow_agent_mode ? "true" : undefined}
             >
               {/*
                 Nested, as their setup page shows, and `capture-id` is what

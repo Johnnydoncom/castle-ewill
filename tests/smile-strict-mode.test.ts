@@ -77,3 +77,38 @@ describe("Smile ID's guided liveness capture", () => {
     expect(readme.toLowerCase()).toContain("head-turn");
   });
 });
+
+describe("Smile ID's assisted capture", () => {
+  const wrapper = packageSource(
+    "lib/components/smart-camera-web/src/SmartCameraWeb.js",
+  );
+
+  const enhanced = packageSource(
+    "lib/components/selfie/src/enhanced-smartselfie-capture/EnhancedSmartSelfieCapture.tsx",
+  );
+
+  it("is an attribute the wrapper watches and passes down", () => {
+    /*
+     * Smile ID's web-component docs do not mention `allow-agent-mode` either —
+     * the theming page lists two attributes for this element and neither is
+     * this one. It is real, and pinned here for the same reason as strict mode.
+     */
+    expect(wrapper).toContain("'allow-agent-mode'");
+    expect(wrapper).toContain('allow-agent-mode="');
+  });
+
+  it("is a camera switch, not a second liveness mechanic", () => {
+    /*
+     * Worth pinning as a *fact about what it does*, because it is the thing
+     * most easily mistaken for the guided capture. It chooses which camera the
+     * session opens on and offers a control to swap — the prompts come from
+     * strict mode and from nowhere else.
+     */
+    expect(enhanced).toContain("!useStrictMode && allowAgentMode ? 'environment' : 'user'");
+  });
+
+  it("is independent of strict mode here, unlike the hosted modal", () => {
+    // Both can be on: nothing in this component discards one for the other.
+    expect(enhanced).not.toMatch(/allowAgentMode\s*&&\s*!useStrictMode\s*\?\s*false/);
+  });
+});

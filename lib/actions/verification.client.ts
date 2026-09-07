@@ -76,6 +76,15 @@ export type SmileIdConfig = {
    * gated on a smile and tells the client very little.
    */
   strict_liveness: boolean;
+  /**
+   * Assisted capture — a switch-camera control on the capture screen.
+   *
+   * Lets a second person hold the device and use the rear camera on whoever is
+   * being verified. Independent of `strict_liveness` here (in the hosted modal
+   * the two are exclusive), and the control only appears on a device that
+   * actually has two cameras.
+   */
+  allow_agent_mode: boolean;
   /** Which documents a client may present, from the vendor's NG catalogue. */
   id_types: { value: string; label: string }[];
   /**
