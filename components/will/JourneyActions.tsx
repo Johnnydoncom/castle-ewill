@@ -184,11 +184,23 @@ export function JourneyActions({
   const [pressed, setPressed] = useState<"requested" | "skipped" | null>(null);
 
   /*
-   * Derived rather than synchronised. A choice the server refused is not a
-   * choice, so it stops showing as one the moment the error arrives — without
-   * an effect writing state back into the render that produced it.
+   * What to show as chosen: the click if there has been one, otherwise the
+   * answer already on record.
+   *
+   * The stored answer matters as much as the click. This section used to
+   * vanish the moment a choice was made, so somebody coming back to the page
+   * found the question gone with nothing saying which way they had answered —
+   * and somebody who wanted to change their mind found nothing to change.
+   *
+   * Derived rather than synchronised: a choice the server refused stops
+   * showing as one the moment the error arrives, without an effect writing
+   * state back into the render that produced it.
    */
-  const choosing = state.status === "error" ? null : pressed;
+  const choosing =
+    state.status === "error"
+      ? null
+      : (pressed ??
+        (journey.review_choice === "undecided" ? null : journey.review_choice));
 
   const blocked = journey.print_blocked_by;
 
@@ -205,7 +217,12 @@ export function JourneyActions({
 
       {/* The optional stage. Offered only while the choice is still open —
           after the Will is issued, a review is a different product. */}
-      {journey.can_skip_review && journey.review_choice === "undecided" && (
+      {/*
+        Shown while the choice is still the client's to make — not only while
+        it is unmade. The server allows either answer right up until the Will
+        is printed, so the question stays, with the current answer marked.
+      */}
+      {(journey.can_skip_review || journey.can_request_review) && (
         <section className="border border-border bg-background p-6">
           <h3 className="font-serif text-lg text-navy">
             Would you like a lawyer to read it?
@@ -251,44 +268,14 @@ export function JourneyActions({
               className="mt-4 text-sm text-muted-foreground"
             >
               {choosing === "requested"
-                ? "A review is being requested…"
-                : "Noted — you will print it yourself…"}
+                ? "A solicitor will read your Will. You can change this until it is printed."
+                : "You will print it yourself. You can change this until it is printed."}
             </p>
           )}
         </section>
       )}
 
-      {/*
-        The other answer, which had nothing to show for itself.
-        
-        Choosing a review left a panel saying so; choosing to print left the
-        question simply gone from the page, which reads the same as a click
-        that did not register. Both answers are answers.
-      */}
-      {journey.review_choice === "skipped" && (
-        <section className="border border-border bg-surface p-6">
-          <h3 className="font-serif text-lg text-navy">
-            You are printing it yourself
-          </h3>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            No solicitor will read this Will before you print it, and it is no
-            less valid for that. If you change your mind, ask us for a review —
-            it can still be arranged.
-          </p>
-        </section>
-      )}
-
-      {journey.review_choice === "requested" && (
-        <section className="border border-gold/50 bg-gold/5 p-6">
-          <h3 className="font-serif text-lg text-navy">Review requested</h3>
-          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-            A solicitor will read your Will and write back. You can still pay and
-            print at any time — the review does not hold up your document.
-          </p>
-        </section>
-      )}
-
-      {/* Print: either the gate, or the download. */}
+                  {/* Print: either the gate, or the download. */}
       {journey.can_print ? (
         <section className="border border-success/40 bg-success/5 p-6">
           <h3 className="font-serif text-lg text-navy">Your Will is ready</h3>
