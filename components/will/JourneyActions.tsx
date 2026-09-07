@@ -1,22 +1,54 @@
 "use client";
 
 import Link from "next/link";
+import { useState } from "react";
 import { useFormStatus } from "react-dom";
-import { CreditCard, Download, ScanFace, Scale } from "lucide-react";
+import { Check, CreditCard, Download, ScanFace, Scale } from "lucide-react";
 
 import { useFormAction } from "@/hooks/use-api-form";
 import { chooseReviewAction } from "@/lib/actions/will.client";
 import type { PrintBlocker, WillJourney } from "@/lib/actions/will";
 
-function Submit({ children }: { children: React.ReactNode }) {
+/**
+ * One of two answers to a question, and it shows which one you gave.
+ *
+ * These were two plain buttons. Pressing one submitted its own form, and until
+ * the server answered and the route refetched, the screen looked exactly as it
+ * had a moment earlier — so people pressed again, or wondered whether it had
+ * registered at all.
+ *
+ * The choice is held here as well as on the server: pressed, it takes the
+ * chosen state immediately and keeps it while the request is in flight. Marked
+ * up as a pressed toggle rather than styled to look like one, so a screen
+ * reader says "Request a review, pressed" instead of describing a button that
+ * happens to be a different colour.
+ */
+function ChoiceSubmit({
+  chosen,
+  children,
+}: {
+  chosen: boolean;
+  children: React.ReactNode;
+}) {
   const { pending } = useFormStatus();
 
   return (
     <button
       type="submit"
+      aria-pressed={chosen}
+      /*
+        Only the one being saved is disabled. Disabling both would take away
+        the correction from somebody who has just realised they pressed the
+        wrong one, in the seconds where it is easiest to make that mistake.
+      */
       disabled={pending}
-      className="inline-flex h-11 items-center justify-center border border-border px-5 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy transition-colors hover:border-gold hover:text-gold disabled:opacity-50"
+      className={`inline-flex h-11 items-center justify-center gap-2 border px-5 text-[11px] font-semibold uppercase tracking-[0.18em] transition-colors disabled:opacity-70 ${
+        chosen
+          ? "border-navy bg-navy text-navy-foreground"
+          : "border-border text-navy hover:border-gold hover:text-gold"
+      }`}
     >
+      {chosen && !pending && <Check className="h-3.5 w-3.5" aria-hidden />}
       {pending ? "Saving…" : children}
     </button>
   );
@@ -132,6 +164,21 @@ export function JourneyActions({
 }) {
   const [state, action] = useFormAction(chooseReviewAction);
 
+  /*
+   * Which answer was given, held here so the screen can show it at the moment
+   * of the click rather than after the server has been asked and the route
+   * refetched. Cleared if the request fails, so a failed choice does not sit
+   * on screen looking settled.
+   */
+  const [pressed, setPressed] = useState<"requested" | "skipped" | null>(null);
+
+  /*
+   * Derived rather than synchronised. A choice the server refused is not a
+   * choice, so it stops showing as one the moment the error arrives — without
+   * an effect writing state back into the render that produced it.
+   */
+  const choosing = state.status === "error" ? null : pressed;
+
   const blocked = journey.print_blocked_by;
 
   const blocker =
@@ -159,17 +206,58 @@ export function JourneyActions({
             it.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
-            <form action={action}>
+            <form action={action} onSubmit={() => setPressed("requested")}>
               <input type="hidden" name="willId" value={willId} />
               <input type="hidden" name="choice" value="requested" />
-              <Submit>Request a review</Submit>
+              <ChoiceSubmit chosen={choosing === "requested"}>
+                Request a review
+              </ChoiceSubmit>
             </form>
-            <form action={action}>
+            <form action={action} onSubmit={() => setPressed("skipped")}>
               <input type="hidden" name="willId" value={willId} />
               <input type="hidden" name="choice" value="skipped" />
-              <Submit>Skip — I&apos;ll print it myself</Submit>
+              <ChoiceSubmit chosen={choosing === "skipped"}>
+                Skip — I&apos;ll print it myself
+              </ChoiceSubmit>
             </form>
           </div>
+
+          {/*
+            Said in words as well as in colour, because a filled button is not
+            an answer — and it stays on screen through the refetch that follows,
+            which is the second or two where nothing else on the page moves.
+          */}
+          {choosing && (
+            <p
+              role="status"
+              aria-live="polite"
+              className="mt-4 text-sm text-muted-foreground"
+            >
+              {choosing === "requested"
+                ? "A review is being requested…"
+                : "Noted — you will print it yourself…"}
+            </p>
+          )}
+        </section>
+      )}
+
+      {/*
+        The other answer, which had nothing to show for itself.
+        
+        Choosing a review left a panel saying so; choosing to print left the
+        question simply gone from the page, which reads the same as a click
+        that did not register. Both answers are answers.
+      */}
+      {journey.review_choice === "skipped" && (
+        <section className="border border-border bg-surface p-6">
+          <h3 className="font-serif text-lg text-navy">
+            You are printing it yourself
+          </h3>
+          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            No solicitor will read this Will before you print it, and it is no
+            less valid for that. If you change your mind, ask us for a review —
+            it can still be arranged.
+          </p>
         </section>
       )}
 
