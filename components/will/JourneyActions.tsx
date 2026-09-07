@@ -25,9 +25,19 @@ import type { PrintBlocker, WillJourney } from "@/lib/actions/will";
  */
 function ChoiceSubmit({
   chosen,
+  onChoose,
   children,
 }: {
   chosen: boolean;
+  /**
+   * Fired on the click, not on the form's `onSubmit`.
+   *
+   * A `<form action={fn}>` in React 19 is submitted by React itself, and how
+   * a user-supplied `onSubmit` interleaves with that is a detail of theirs to
+   * change. A click on the submit button is not: it happens first, always, and
+   * it is the moment the client expects the screen to answer.
+   */
+  onChoose: () => void;
   children: React.ReactNode;
 }) {
   const { pending } = useFormStatus();
@@ -35,6 +45,7 @@ function ChoiceSubmit({
   return (
     <button
       type="submit"
+      onClick={onChoose}
       aria-pressed={chosen}
       /*
         Only the one being saved is disabled. Disabling both would take away
@@ -206,17 +217,23 @@ export function JourneyActions({
             it.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
-            <form action={action} onSubmit={() => setPressed("requested")}>
+            <form action={action}>
               <input type="hidden" name="willId" value={willId} />
               <input type="hidden" name="choice" value="requested" />
-              <ChoiceSubmit chosen={choosing === "requested"}>
+              <ChoiceSubmit
+                chosen={choosing === "requested"}
+                onChoose={() => setPressed("requested")}
+              >
                 Request a review
               </ChoiceSubmit>
             </form>
-            <form action={action} onSubmit={() => setPressed("skipped")}>
+            <form action={action}>
               <input type="hidden" name="willId" value={willId} />
               <input type="hidden" name="choice" value="skipped" />
-              <ChoiceSubmit chosen={choosing === "skipped"}>
+              <ChoiceSubmit
+                chosen={choosing === "skipped"}
+                onChoose={() => setPressed("skipped")}
+              >
                 Skip — I&apos;ll print it myself
               </ChoiceSubmit>
             </form>
