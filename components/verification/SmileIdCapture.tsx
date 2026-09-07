@@ -359,15 +359,24 @@ export function SmileIdCapture({
        * which is how people ended up staring at their own face wondering what
        * was expected of them.
        */
-      use_strict_mode: config.use_strict_mode,
-
       /*
-       * Assisted capture: a switch-camera control, so somebody helping can
-       * turn the device round and use the rear camera on the person in front
-       * of them. Ignored by their flow while strict mode is on, which is why
-       * the two are sent as the server decided them rather than merged here.
+       * The two capture switches, sent **only when they are turned on**.
+       *
+       * Both default to `false` in their SDK, so sending `false` says exactly
+       * what saying nothing says — except that it puts our fingerprints on the
+       * capture, and this capture has been the source of every problem with
+       * this flow. Omitted, the camera runs the way Smile ID ship it.
+       *
+       * `allow_agent_mode` in particular is not the harmless button it sounds
+       * like. In their bundle the opening camera is chosen as
+       * `!strictMode && allowAgentMode ? 'environment' : 'user'` — with the
+       * prompts off, turning it on opens the *rear* camera, whose wider field
+       * of view puts the face below the 35%-of-frame the capture insists on.
+       * That is a face it will never accept, and an instruction to move the
+       * device that never ends.
        */
-      allow_agent_mode: config.allow_agent_mode,
+      ...(config.use_strict_mode ? { use_strict_mode: true } : {}),
+      ...(config.allow_agent_mode ? { allow_agent_mode: true } : {}),
 
       onResult: (result: SmileIdResult) => {
         void report(started.attemptId, config, result);
