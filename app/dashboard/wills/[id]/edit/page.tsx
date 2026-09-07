@@ -254,31 +254,16 @@ export default async function WillEditorPage({
               <ReviewSummary will={will} editBasePath={basePath} />
 
               {/*
-                What used to sit here was an identity check and a "submit"
-                button: identity gated submission, and printing came later.
-                That order is reversed now — anyone may draft, then pay, then
-                be identified, then print — so this step shows the journey and
-                its next action instead. The liveness capture itself lives at
-                /dashboard/kyc, which `JourneyActions` links to when it is
-                actually the next thing owed.
+                Nothing about the journey here any more.
+
+                This step used to carry the journey bar and its next action —
+                a card saying payment was next, above a button that goes to
+                payment. "Save & continue" commits the answers and lands on the
+                Will's own page, which is that card's destination and where the
+                bar, the review question and the payment button all live. Shown
+                here as well, they were the same two things twice, a click
+                apart.
               */}
-              {will.journey && (
-                <div className="space-y-6">
-                  <JourneyBar journey={will.journey} />
-                  <JourneyActions
-                    willId={will.id}
-                    journey={will.journey}
-                    pdfUrl={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${will.id}/pdf`}
-                    /*
-                      The review question is asked on the Will's own page,
-                      where paying and printing happen. Asked here as well, it
-                      was the same question twice in one journey — which reads
-                      as a question that was not heard the first time.
-                    */
-                    asksAboutReview={false}
-                  />
-                </div>
-              )}
             </ReviewStep>
           )}
         </div>
