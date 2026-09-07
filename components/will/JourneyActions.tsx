@@ -202,6 +202,19 @@ export function JourneyActions({
       : (pressed ??
         (journey.review_choice === "undecided" ? null : journey.review_choice));
 
+  /** Whether the question has been answered — on the server, or just now. */
+  const decided = choosing !== null;
+
+  /** The answer they did not give, which is the only thing left to offer. */
+  const theOtherAnswer = choosing === "requested" ? "skipped" : "requested";
+
+  /*
+   * Whether this instance carries the question at all. The journey block
+   * appears on more than one screen; only the Will's own page asks, where
+   * paying and printing happen.
+   */
+  const asksAboutReview = journey.can_skip_review || journey.can_request_review;
+
   const blocked = journey.print_blocked_by;
 
   const blocker =
@@ -212,11 +225,19 @@ export function JourneyActions({
       {/* The optional stage. Offered only while the choice is still open —
           after the Will is issued, a review is a different product. */}
       {/*
-        Shown while the choice is still the client's to make — not only while
-        it is unmade. The server allows either answer right up until the Will
-        is printed, so the question stays, with the current answer marked.
+        Asked while it is the question in front of the client, and afterwards
+        only summarised.
+
+        The choice stays the client's until the Will is printed, so it was
+        rendered in full at every later stage as well — heading, explanation
+        and both buttons, on a page whose journey bar had already ticked legal
+        review off. A question asked again after it has been answered reads as
+        a question that was not heard.
+
+        Undecided, it is the step: asked in full wherever they are. Decided, it
+        is a line saying what they chose and how to change it.
       */}
-      {(journey.can_skip_review || journey.can_request_review) && (
+      {asksAboutReview && !decided && (
         <section className="border border-border bg-background p-6">
           <h3 className="font-serif text-lg text-navy">
             Would you like a lawyer to read it?
@@ -283,6 +304,42 @@ export function JourneyActions({
                 : "You will print it yourself. You can change this until it is printed."}
             </p>
           )}
+        </section>
+      )}
+
+      {asksAboutReview && decided && (
+        <section className="flex flex-wrap items-center justify-between gap-4 border border-border bg-surface px-6 py-4">
+          <p className="text-sm leading-relaxed text-navy">
+            <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
+              Legal review
+            </span>
+            <br />
+            {choosing === "requested"
+              ? "A solicitor will read your Will before you print it."
+              : "You are printing it yourself, without a solicitor's read."}
+          </p>
+
+          {/*
+            The other answer, offered as one button rather than the whole
+            question again. It is still changeable until the Will is printed,
+            which is worth saying once rather than asking twice.
+          */}
+          <form action={action}>
+            <input type="hidden" name="willId" value={willId} />
+            <input type="hidden" name="choice" value={theOtherAnswer} />
+            {/*
+              Pressing it takes the new answer immediately, so the line above
+              changes with the click rather than after the round trip.
+            */}
+            <ChoiceSubmit
+              chosen={false}
+              onChoose={() => setPressed(theOtherAnswer)}
+            >
+              {theOtherAnswer === "skipped"
+                ? "Change — print it myself"
+                : "Change — request a review"}
+            </ChoiceSubmit>
+          </form>
         </section>
       )}
 
