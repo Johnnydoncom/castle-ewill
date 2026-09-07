@@ -4,11 +4,11 @@ import { errorState, successState, type FormState } from "./state";
 /**
  * Identity verification's mutations, called directly from the browser.
  *
- * No image passes through here. We own the flow now — the screens are mounted
- * in our own page from `@smileid/web-sdk` — but the job still goes from the
- * client's browser straight to Smile ID's V3 API. This module opens an
- * attempt, receives the token that authorises that post, and afterwards
- * records the job id their 202 returned.
+ * No image passes through here, and none through our own code either: the
+ * hosted flow (`window.SmileIdentity`) owns its screens and posts the job to
+ * Smile ID itself with the token below. This module opens an attempt, receives
+ * the config that authorises that flow, and afterwards records what their
+ * `onResult` reported.
  */
 
 /**
@@ -22,71 +22,71 @@ export type SmileIdConfig = {
   /** Short-lived v3 token, minted by our backend. The API key never leaves it. */
   token: string;
   /**
-   * Which check this is, decided server-side.
+   * Which of their flows to open, in the SDK's own vocabulary.
    *
-   * `document_verification` proves who somebody is, once.
-   * `smart_selfie_authentication` asks only whether the face in front of the
-   * camera is the identity already proved — no document, no second ID check.
-   */
-  product: string;
-  /** Required by the authentication endpoint, which matches against this id. */
-  user_id: string;
-  /**
-   * The enrolment to submit alongside a first verification, or null.
+   * `doc_verification` proves who somebody is against a government document,
+   * once. `authentication` asks only whether the face in front of the camera
+   * is the identity already proved. `smartselfie` is a registration — the same
+   * short camera check, and it enrols the face so `authentication` has
+   * something to match against next time.
    *
-   * Null on a recheck and once the client is already enrolled. Enrolment is
-   * what makes every later SmartSelfie check possible — without it,
-   * `/v3/authentication` can only answer "no enrolled user found".
+   * Note these are *not* the names the token endpoint uses; the server maps
+   * between the two, and the mismatch is a documented one.
    */
-  enrolment: { endpoint: string; token: string } | null;
-  /** Where the browser posts the job — follows the configured environment. */
-  endpoint: string;
-  environment: "sandbox" | "production";
+  product: "doc_verification" | "authentication" | "smartselfie";
+  /** True when this run enrols the client, so the browser can stamp it after. */
+  enrols: boolean;
   callback_url: string;
-  country: string;
+  environment: "sandbox" | "production";
+  partner_details: {
+    partner_id: string;
+    name: string;
+    logo_url: string;
+    policy_url: string;
+    theme_color: string;
+  };
   /**
-   * How a verdict finds its attempt.
+   * Enhanced SmartSelfie™ — the guided capture.
    *
-   * Smile ID generate `job_id` and `user_id` themselves and return them in the
-   * 202, so — unlike the hosted modal, where we chose the job id — this is what
-   * travels with the submission and comes back on the webhook verbatim.
+   * Randomised head-turn prompts, one at a time, with the capture gated on
+   * following them. Off, the capture waits for a smile and tells the client
+   * nothing, which is how somebody ends up staring at their own face.
    */
-  partner_params: { attempt_id: string };
-  consent: { notice_language: string; notice_privacy_policy_url: string };
+  use_strict_mode: boolean;
   /**
-   * Who this is, from our own records.
+   * Assisted capture — a second person operates the camera.
    *
-   * Required on every V3 job — but the element that collects it is not, since
-   * we already hold all of it.
+   * Exclusive with `use_strict_mode` in this integration: Smile ID's reference
+   * states agent mode is ignored whenever strict mode is on. With the prompts
+   * off, which is how this ships, it is the mode that applies.
    */
+  allow_agent_mode: boolean;
+  /** Consent we already hold, which skips their consent screen. */
+  consent_information: {
+    granted: boolean;
+    granted_at: string;
+    notice_language: string;
+    notice_privacy_policy_url: string;
+  };
+  /** Who this is, from our records, so their user-details form is skipped. */
   user_details: {
     given_names?: string;
     last_name?: string;
     email?: string;
     phone_number?: string;
   };
-  /** `camera,upload` — set on `<smart-camera-web>`, which is the only element that reads it. */
-  document_capture_modes: string;
   /**
-   * Enhanced SmartSelfie™ active liveness — the capture that gives directions.
+   * Echoed back on the webhook verbatim.
    *
-   * True renders `use-strict-mode` on `<smart-camera-web>`, which forwards it
-   * to the selfie screens: randomised head-turn prompts, one at a time, with
-   * the capture gated on following them. False leaves the default, which is
-   * gated on a smile and tells the client very little.
+   * `attempt_id` is how a verdict finds the attempt it belongs to. `user_id`
+   * is what an `authentication` job matches against — omit it and the job is
+   * refused *after* the client has finished capturing.
    */
-  strict_liveness: boolean;
-  /**
-   * Assisted capture — a switch-camera control on the capture screen.
-   *
-   * Lets a second person hold the device and use the rear camera on whoever is
-   * being verified. Independent of `strict_liveness` here (in the hosted modal
-   * the two are exclusive), and the control only appears on a device that
-   * actually has two cameras.
-   */
-  allow_agent_mode: boolean;
-  /** Which documents a client may present, from the vendor's NG catalogue. */
-  id_types: { value: string; label: string }[];
+  partner_params: { attempt_id: string; user_id: string };
+  /** `['camera', 'upload']` — an array here, not the components' comma string. */
+  document_capture_modes: string[];
+  /** e.g. `{ NG: ['PASSPORT', ...] }`. Null on a SmartSelfie run, which has no document step. */
+  id_selection: Record<string, string[]> | null;
   /**
    * Sandbox test mode, or null.
    *
@@ -98,16 +98,31 @@ export type SmileIdConfig = {
     key: string;
     status: string;
     describes: string;
-    user_details: Record<string, string>;
+    user_details: { given_names: string; last_name: string; email?: string };
   } | null;
-  partner_details: {
-    partner_id: string;
-    name: string;
-    logo_url: string;
-    policy_url: string;
-    theme_color: string;
-  };
 };
+
+/**
+ * Their `onResult` union, as their reference documents it.
+ *
+ * `value` carries the job only for `doc_verification` and
+ * `enhanced_document_verification` today; every other product fires `success`
+ * with nothing in it, and the verdict arrives on the webhook either way.
+ */
+export type SmileIdResult =
+  | {
+      status: "success";
+      value?: { job_id?: string; user_id?: string; status?: string };
+    }
+  | {
+      status: "failure";
+      error: {
+        error_code: string;
+        message?: string;
+        retryable?: boolean;
+      };
+    }
+  | { status: "cancelled" };
 
 export async function startVerificationAction(
   documentType?: string | null,
@@ -119,7 +134,19 @@ export async function startVerificationAction(
     data: { attempt_id: string; smile_id?: SmileIdConfig | null };
   }>("/verification/start", {
     method: "POST",
-    body: documentType ? { document_type: documentType } : {},
+    body: {
+      /*
+       * Which integration is asking.
+       *
+       * The two apps deploy separately and the backend arrives first, so for a
+       * while a browser holding the previous bundle is talking to today's API.
+       * Naming the flow means each is answered in the vocabulary it speaks —
+       * without it, the old bundle received a config with none of the keys it
+       * reads and died mid-check on a blank error page.
+       */
+      flow: "hosted",
+      ...(documentType ? { document_type: documentType } : {}),
+    },
   });
 
   if (!result.ok) {

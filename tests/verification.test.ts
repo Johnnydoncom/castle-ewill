@@ -56,7 +56,13 @@ describe("starting an attempt", () => {
 
     expect(api).toHaveBeenCalledWith("/verification/start", {
       method: "POST",
-      body: { document_type: "national_id" },
+      /*
+       * `flow` names the integration asking. The two apps deploy separately
+       * and the backend arrives first, so the API has to tell this bundle
+       * apart from the one before it — which read a different set of keys and
+       * crashed mid-check when it was served these.
+       */
+      body: { flow: "hosted", document_type: "national_id" },
     });
   });
 
