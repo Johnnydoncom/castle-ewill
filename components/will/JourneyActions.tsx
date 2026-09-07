@@ -159,6 +159,7 @@ export function JourneyActions({
   journey,
   pdfUrl,
   resolvedHere = [],
+  asksAboutReview = true,
 }: {
   willId: string;
   journey: WillJourney;
@@ -172,6 +173,18 @@ export function JourneyActions({
    * call to action and this card is furniture.
    */
   resolvedHere?: string[];
+  /**
+   * Whether this instance asks about legal review.
+   *
+   * The journey block appears on more than one screen — the wizard's review
+   * step and the Will's own page — and every instance used to ask. The same
+   * question twice in one journey reads as a question that was not heard the
+   * first time, which is exactly how it was reported.
+   *
+   * It is asked once, on the Will's page, where paying and printing happen
+   * and where a chargeable review is a decision that belongs.
+   */
+  asksAboutReview?: boolean;
 }) {
   const [state, action] = useFormAction(chooseReviewAction);
 
@@ -209,12 +222,6 @@ export function JourneyActions({
 
   return (
     <div className="space-y-6">
-      {state.status === "error" && (
-        <p className="border border-destructive/40 bg-destructive/5 p-4 text-sm text-destructive">
-          {state.message}
-        </p>
-      )}
-
       {/* The optional stage. Offered only while the choice is still open —
           after the Will is issued, a review is a different product. */}
       {/*
@@ -222,7 +229,8 @@ export function JourneyActions({
         it is unmade. The server allows either answer right up until the Will
         is printed, so the question stays, with the current answer marked.
       */}
-      {(journey.can_skip_review || journey.can_request_review) && (
+      {asksAboutReview &&
+        (journey.can_skip_review || journey.can_request_review) && (
         <section className="border border-border bg-background p-6">
           <h3 className="font-serif text-lg text-navy">
             Would you like a lawyer to read it?
@@ -261,7 +269,24 @@ export function JourneyActions({
             an answer — and it stays on screen through the refetch that follows,
             which is the second or two where nothing else on the page moves.
           */}
-          {choosing && (
+          {/*
+            Beside the buttons, not at the top of the block.
+
+            A refusal shown above a journey bar is a refusal nobody scrolls up
+            to read: the click looked as though it had simply done nothing,
+            which is how a 403 on every single choice went unnoticed for as
+            long as it did.
+          */}
+          {state.status === "error" && (
+            <p
+              role="alert"
+              className="mt-4 border-l-2 border-destructive bg-destructive/5 px-4 py-3 text-sm text-destructive"
+            >
+              {state.message}
+            </p>
+          )}
+
+          {choosing && state.status !== "error" && (
             <p
               role="status"
               aria-live="polite"

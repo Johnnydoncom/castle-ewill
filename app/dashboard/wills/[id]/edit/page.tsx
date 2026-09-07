@@ -269,6 +269,13 @@ export default async function WillEditorPage({
                     willId={will.id}
                     journey={will.journey}
                     pdfUrl={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${will.id}/pdf`}
+                    /*
+                      The review question is asked on the Will's own page,
+                      where paying and printing happen. Asked here as well, it
+                      was the same question twice in one journey — which reads
+                      as a question that was not heard the first time.
+                    */
+                    asksAboutReview={false}
                   />
                 </div>
               )}
