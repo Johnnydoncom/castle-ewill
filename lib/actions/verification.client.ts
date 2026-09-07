@@ -76,8 +76,15 @@ export type SmileIdConfig = {
    * gated on a smile and tells the client very little.
    */
   strict_liveness: boolean;
-  /** Which documents a client may present, from the vendor's NG catalogue. */
-  id_types: { value: string; label: string }[];
+  /**
+   * Which IDs this client may be checked against, and the shape each takes.
+   *
+   * Smile ID's own catalogue for Nigeria, narrowed to what this account can
+   * actually ask about — the same list the witnesses' check is built from. The
+   * regex comes with each type so the number can be checked before anybody is
+   * asked for a camera.
+   */
+  id_types: { type: string; label: string; regex: string }[];
   /**
    * Sandbox test mode, or null.
    *

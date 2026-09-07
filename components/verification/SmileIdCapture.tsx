@@ -4,7 +4,6 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import {
   AlertCircle,
   CheckCircle2,
-  ChevronRight,
   FlaskConical,
   Loader2,
   ShieldCheck,
@@ -162,65 +161,119 @@ function toJpegFile(base64: string, filename: string): File {
 }
 
 /**
- * Which document the client will present.
+ * Which ID, and its number.
  *
- * `id_type` is optional for Document Verification — omit it and Smile ID
- * classifies whatever it is given. Asking anyway buys two things: their
- * capture screens frame a passport page differently from a card, and the
- * answer is checked against the document the client said they held rather
- * than inferred from the photograph.
+ * Biometric KYC checks a selfie against the record the **issuing authority**
+ * holds for this number — so the number is the whole input, and there is no
+ * document to photograph. Eleven digits typed off a card beats a photograph of
+ * that card taken in whatever light somebody happens to be standing in.
+ *
+ * The number is checked against Smile ID's own regex for the type before it
+ * goes anywhere. A number in the wrong shape is a request that can only fail,
+ * and failing it here gives the client something to correct instead of a
+ * vendor error code after a camera.
  */
-function DocumentChoice({
+function IdNumberStep({
   types,
   onChosen,
 }: {
-  types: { value: string; label: string }[];
-  onChosen: (value: string) => void;
+  types: { type: string; label: string; regex: string }[];
+  onChosen: (idType: string, idNumber: string) => void;
 }) {
+  const [idType, setIdType] = useState(types[0]?.type ?? "");
+  const [idNumber, setIdNumber] = useState("");
+  const [error, setError] = useState<string | null>(null);
+
+  const chosen = types.find((type) => type.type === idType) ?? types[0] ?? null;
+
+  const submit = (event: React.FormEvent) => {
+    event.preventDefault();
+
+    const value = idNumber.trim();
+
+    if (!chosen) return;
+
+    if (!new RegExp(chosen.regex).test(value)) {
+      setError(`That does not look like a ${chosen.label}. Check it and try again.`);
+
+      return;
+    }
+
+    setError(null);
+    onChosen(chosen.type, value);
+  };
+
   return (
-    <div className="mt-2">
+    <form onSubmit={submit} className="mt-2 space-y-4 text-left">
       <p className="text-center text-sm text-muted-foreground">
-        Which document will you show?
+        We check this against the authority that issued it, then match your
+        face to their record. Nothing is uploaded.
       </p>
 
-      <div className="mt-4 space-y-2">
-        {types.map((type) => (
-          <button
-            key={type.value}
-            type="button"
-            onClick={() => onChosen(type.value)}
-            className="flex w-full items-center justify-between gap-3 border border-border bg-surface px-5 py-4 text-left text-sm text-navy transition-colors hover:border-gold hover:bg-gold/5"
-          >
-            <span>{type.label}</span>
-            <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />
-          </button>
-        ))}
-      </div>
+      <label className="block">
+        <span className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+          Which ID
+        </span>
+        <select
+          value={idType}
+          onChange={(event) => {
+            setIdType(event.target.value);
+            setError(null);
+          }}
+          className="mt-1.5 w-full border border-border bg-background px-3 py-2.5 font-serif text-sm text-navy focus:border-gold focus:outline-none"
+        >
+          {types.map((type) => (
+            <option key={type.type} value={type.type}>
+              {type.label}
+            </option>
+          ))}
+        </select>
+      </label>
 
-      <p className="mt-4 text-center text-xs leading-relaxed text-muted-foreground">
-        You can photograph it or upload a clear scan.
-      </p>
-    </div>
+      <label className="block">
+        <span className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+          Number
+        </span>
+        <input
+          value={idNumber}
+          onChange={(event) => {
+            setIdNumber(event.target.value);
+            setError(null);
+          }}
+          inputMode={/^\^\[0-9\]/.test(chosen?.regex ?? "") ? "numeric" : "text"}
+          autoComplete="off"
+          required
+          className="mt-1.5 w-full border border-border bg-background px-3 py-2.5 font-serif text-sm text-navy focus:border-gold focus:outline-none"
+        />
+      </label>
+
+      {error && (
+        <p role="status" className="text-sm text-destructive">
+          {error}
+        </p>
+      )}
+
+      <button
+        type="submit"
+        className="flex h-12 w-full items-center justify-center rounded-full bg-navy px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-foreground transition-colors hover:bg-navy/90"
+      >
+        Continue to the camera
+      </button>
+    </form>
   );
 }
 
 /**
  * What the camera step actually wants, said before it opens.
  *
- * Smile ID's capture will not start until the face sits inside its oval at
- * between 35% and 62% of the frame — a band hard-coded in their component —
- * and until then it answers with one instruction after another: "move your
- * device higher", "lower", "right". Nothing on that screen says what it is
- * waiting for, so from the outside it reads as a check that has hung.
+ * Their capture is gated on a **smile**, and says so nowhere: while it waits
+ * for one it issues framing hints — "move your device higher", "lower",
+ * "right" — which read as the thing being asked for. They are not. Somebody
+ * following them exactly can stand there indefinitely; somebody who shows
+ * their teeth is through in a second. That was reported as the check being
+ * stuck, three times, before the difference was understood.
  *
- * We cannot widen the band and cannot change their screen. We can say what it
- * is looking for beforehand, which turns a loop of orders into a thing with a
- * shape: get this right and it starts.
- *
- * The last line is the escape hatch. Their capture enables its own button after
- * ten seconds of not being satisfied — `CAPTURE_FALLBACK_TIMEOUT_MS` in the
- * package — and a client who does not know that will sit there indefinitely
- * doing as they are told.
+ * We cannot edit their screen. We can say what it is looking for beforehand.
  */
 function CaptureGuidance() {
   return (
@@ -236,25 +289,21 @@ function CaptureGuidance() {
           arm&apos;s length on a phone.
         </li>
         <li>
-          <span className="text-navy">Face a window or a lamp,</span> not away
-          from one. A bright background behind you is what usually fails.
-        </li>
-        <li>
           <span className="text-navy">Then smile, showing your teeth.</span>{" "}
           That is what the camera is waiting for — it is how it tells a live
           person from a photograph, and the check moves on the moment it sees
           one. It will keep suggesting you move the device until then.
         </li>
         <li>
-          <span className="text-navy">Hold still</span> once you are in frame,
-          and take off a hat or sunglasses.
+          <span className="text-navy">Face a window or a lamp,</span> not away
+          from one, and take off a hat or sunglasses.
         </li>
       </ul>
     </div>
   );
 }
 
-type Step = "idle" | "loading" | "consent" | "document" | "capture";
+type Step = "idle" | "loading" | "consent" | "identity" | "capture";
 type Outcome = null | { kind: "done" | "error"; message: string };
 
 export function SmileIdCapture({
@@ -284,15 +333,15 @@ export function SmileIdCapture({
   const attemptRef = useRef<string | null>(null);
 
   /*
-   * Which document the client said they would show. Sent as `id_type`.
+   * The ID this check is made against, typed before the camera opens.
    *
-   * State, not a ref, because it decides what is rendered — the attributes
-   * that frame the capture are read off it.
+   * A ref as well as state: the submission reads it from inside a listener
+   * bound once, where a closure over state would still be looking at the
+   * render that bound it.
    */
-  const [idType, setIdType] = useState<string | null>(null);
+  const identityRef = useRef<{ id_type: string; id_number: string } | null>(null);
   const configRef = useRef<SmileIdConfig | null>(null);
   const consentRef = useRef<ConsentDetail | null>(null);
-  const documentImagesRef = useRef<CapturedImage[]>([]);
 
   const fail = useCallback((message: string) => {
     setStep("idle");
@@ -344,23 +393,12 @@ export function SmileIdCapture({
        * separately it does not. Reading both means neither arrangement
        * silently submits a job with no document in it.
        */
-      const all = [...images, ...documentImagesRef.current];
-
-      const selfie = all.find((i) => i.image_type_id === IMAGE_TYPE.selfie);
-      const front = all.find(
-        (i) => i.image_type_id === IMAGE_TYPE.documentFront,
-      );
+      const selfie = images.find((i) => i.image_type_id === IMAGE_TYPE.selfie);
 
       if (!selfie) {
         fail(
           "The camera did not capture a usable photograph. Please try again.",
         );
-
-        return;
-      }
-
-      if (!isRecheck && !front) {
-        fail("We did not receive a photograph of your ID. Please try again.");
 
         return;
       }
@@ -371,7 +409,7 @@ export function SmileIdCapture({
 
       // Repeated under one name. Indexed names — `liveness_images[0]` — are
       // their documented failure mode: only one frame arrives.
-      all
+      images
         .filter((i) => i.image_type_id === IMAGE_TYPE.liveness)
         .forEach((frame, i) => {
           body.append(
@@ -379,30 +417,6 @@ export function SmileIdCapture({
             toJpegFile(frame.image, `liveness-${i}.jpg`),
           );
         });
-
-      /*
-       * Only the document check carries a document.
-       *
-       * A returning client is asked for a face and nothing else — their
-       * identity was proved once and does not need proving again — and the
-       * authentication endpoint refuses a document part it never asked for.
-       */
-      if (!isRecheck) {
-        body.append("document", toJpegFile(front!.image, "document-front.jpg"));
-      }
-
-      // Only when one was actually published: plenty of IDs have no back, and
-      // an empty part is its own error.
-      const back = isRecheck
-        ? undefined
-        : all.find((i) => i.image_type_id === IMAGE_TYPE.documentBack);
-
-      if (back) {
-        body.append(
-          "document_back",
-          toJpegFile(back.image, "document-back.jpg"),
-        );
-      }
 
       body.append(
         "consent",
@@ -424,13 +438,15 @@ export function SmileIdCapture({
       body.append("user_id", current.user_id);
 
       /*
-       * Optional for this product — omit it and their server auto-classifies —
-       * but the client told us which document they were holding, and passing
-       * it through means the answer is checked against that rather than
-       * inferred from a photograph.
+       * The identity being checked. Required by Biometric KYC — it is what
+       * the authority is asked about — and absent from a recheck, which
+       * matches a face against an enrolment rather than against a record.
        */
-      if (idType) {
-        body.append("id_type", idType);
+      const identity = identityRef.current;
+
+      if (!isRecheck && identity) {
+        body.append("id_type", identity.id_type);
+        body.append("id_number", identity.id_number);
       }
       body.append("callback_url", current.callback_url);
 
@@ -505,7 +521,7 @@ export function SmileIdCapture({
 
           enrolBody.append("selfie_image", toJpegFile(selfie.image, "selfie.jpg"));
 
-          all
+          images
             .filter((i) => i.image_type_id === IMAGE_TYPE.liveness)
             .forEach((frame, i) => {
               enrolBody.append(
@@ -593,7 +609,7 @@ export function SmileIdCapture({
           : "Your identity check has been submitted. We will email you as soon as it is confirmed.",
       );
     },
-    [fail, finish, idType],
+    [fail, finish],
   );
 
   /*
@@ -605,13 +621,13 @@ export function SmileIdCapture({
       consentRef.current = (event as CustomEvent<ConsentDetail>).detail;
 
       /*
-       * A recheck skips the document question entirely — there is no document
-       * in it, so asking which one somebody will show is asking about
-       * something that is not going to happen.
+       * A recheck goes straight to the camera. It matches a face against an
+       * enrolment rather than against an authority's record, so there is no ID
+       * to ask about.
        */
       setStep(configRef.current?.product === "smart_selfie_authentication"
         ? "capture"
-        : "document");
+        : "identity");
     };
 
     const onConsentDenied = () => {
@@ -621,10 +637,6 @@ export function SmileIdCapture({
       );
     };
 
-    const onDocuments = (event: Event) => {
-      documentImagesRef.current =
-        (event as CustomEvent<{ images: CapturedImage[] }>).detail?.images ?? [];
-    };
 
     const onCapture = (event: Event) => {
       void submit(
@@ -640,7 +652,6 @@ export function SmileIdCapture({
 
     window.addEventListener("smileid-consent.granted", onConsentGranted);
     window.addEventListener("smileid-consent.denied", onConsentDenied);
-    window.addEventListener("document-capture-screens.publish", onDocuments);
 
     /*
      * Bound to the element, and re-bound whenever it mounts — see the note at
@@ -692,10 +703,6 @@ export function SmileIdCapture({
     return () => {
       window.removeEventListener("smileid-consent.granted", onConsentGranted);
       window.removeEventListener("smileid-consent.denied", onConsentDenied);
-      window.removeEventListener(
-        "document-capture-screens.publish",
-        onDocuments,
-      );
       camera?.removeEventListener(
         "metadata.active-liveness-version",
         onLivenessVersion,
@@ -759,14 +766,6 @@ export function SmileIdCapture({
 
   const theme = config?.partner_details.theme_color ?? "#0f1e3d";
 
-  /*
-   * Whether this is a face-only recheck, decided by the server.
-   *
-   * Identity is proved once. A returning client is matched against the
-   * identity they already proved, so nothing here mounts a document step or
-   * asks which ID they will show.
-   */
-  const isRecheck = config?.product === "smart_selfie_authentication";
   const showsIntro = step === "idle" || step === "loading";
 
   return (
@@ -852,11 +851,11 @@ export function SmileIdCapture({
             />
           )}
 
-          {config && step === "document" && (
-            <DocumentChoice
+          {config && step === "identity" && (
+            <IdNumberStep
               types={config.id_types}
-              onChosen={(value) => {
-                setIdType(value);
+              onChosen={(type, number) => {
+                identityRef.current = { id_type: type, id_number: number };
                 setStep("capture");
               }}
             />
@@ -867,50 +866,16 @@ export function SmileIdCapture({
               ref={cameraRef}
               theme-color={theme}
               /*
-                `capture-id` is what turns the document step on, so a recheck
-                leaves it off entirely: a client who has already proved who
-                they are is asked for a face and nothing else. With it set,
-                they would be walked through photographing their ID again —
-                which is what "I was asked to do KYC twice" was.
-              */
-              capture-id={isRecheck ? undefined : ""}
-              document-type={isRecheck ? undefined : (idType ?? undefined)}
-              /*
-                On the wrapper, which is the only place it is read — see the
-                note on its attribute typing above. This is what puts "upload a
-                file" beside "take a photograph", so a passport can be sent as
-                a scan rather than fought with on a laptop webcam.
-              */
-              document-capture-modes={
-                isRecheck ? undefined : config.document_capture_modes
-              }
-              /* A passport is one page; asking for its back is a dead end. */
-              hide-back-of-id={
-                !isRecheck && idType === "PASSPORT" ? "" : undefined
-              }
-              /*
-                The difference between "look at the camera" and being told what
-                to do. Enhanced SmartSelfie prompts a randomised head turn and
-                gates the capture on following it; without it the capture waits
-                for a smile and never says so, which is how somebody ends up
-                staring at their own face wondering what is expected.
+                No `capture-id`, and no nested document screens.
+
+                Biometric KYC has no document step: the client typed their ID
+                number, and the authority's own record is what the face is
+                matched against. `capture-id` is what used to turn a document
+                capture on — with it set, this element would walk them through
+                photographing a card that nothing is going to read.
               */
               use-strict-mode={config.strict_liveness ? "true" : undefined}
-            >
-              {/*
-                Nested, as their setup page shows, and `capture-id` is what
-                turns the document step on: without the attribute the wrapper
-                publishes straight after the selfie and the job goes out with
-                no document in it — `this.captureId ? setActiveScreen(document)
-                : publish()`, read out of the package.
-              */}
-              <document-capture-screens
-                theme-color={theme}
-                document-capture-modes={
-                isRecheck ? undefined : config.document_capture_modes
-              }
-              />
-            </smart-camera-web>
+            />
           )}
         </div>
 
