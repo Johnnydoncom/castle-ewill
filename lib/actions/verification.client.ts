@@ -103,17 +103,17 @@ export type SmileIdConfig = {
  */
 export type SmileIdResult =
   | {
-      status: "success";
-      value?: { job_id?: string; user_id?: string; status?: string };
-    }
+    status: "success";
+    value?: { job_id?: string; user_id?: string; status?: string };
+  }
   | {
-      status: "failure";
-      error: {
-        error_code: string;
-        message?: string;
-        retryable?: boolean;
-      };
-    }
+    status: "failure";
+    error: {
+      error_code: string;
+      message?: string;
+      retryable?: boolean;
+    };
+  }
   | { status: "cancelled" };
 
 export async function startVerificationAction(
@@ -128,7 +128,7 @@ export async function startVerificationAction(
     method: "POST",
     body: {
       /*
-       * Which integration is asking.
+       * Which integration is asking
        *
        * The two apps deploy separately and the backend arrives first, so for a
        * while a browser holding the previous bundle is talking to today's API.
@@ -293,12 +293,12 @@ export async function submitWitnessIdentitiesAction(
 export async function getVerificationStatusAction(): Promise<
   | { status: "error"; message: string }
   | {
-      status: "success";
-      data: {
-        is_verified: boolean;
-        latest: { status: string; provider: string } | null;
-      };
-    }
+    status: "success";
+    data: {
+      is_verified: boolean;
+      latest: { status: string; provider: string } | null;
+    };
+  }
 > {
   const result = await api<{
     data: {
