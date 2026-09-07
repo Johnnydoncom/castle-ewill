@@ -319,3 +319,24 @@
     top: 0.75rem;
   }
 }
+/*
+ * Smile ID's hosted modal, made reachable on a short window.
+ *
+ * Their script prepends an iframe — `#smile-identity-hosted-web-integration` —
+ * styled `position: fixed; height: 100%`, and inside it their card is
+ * `height: max(600px, 80vh)`. Below about 620px of viewport the 600px floor
+ * wins: the card is taller than the iframe that contains it, its bottom sits
+ * off-screen, and because the iframe is fixed there is nothing to scroll. The
+ * button and the footer are simply gone. Measured in Chromium at 1600×560 —
+ * card bottom 600px against a 560px frame, page scroll range zero — which is
+ * an ordinary laptop at 125% display scaling.
+ *
+ * The iframe's *contents* are cross-origin and untouchable, but the element is
+ * ours. Made absolute, it scrolls with the page; given a floor of 760px it is
+ * always tall enough for their 600px card and its margins. On a normal window
+ * `100dvh` wins and nothing changes.
+ */
+#smile-identity-hosted-web-integration {
+  position: absolute !important;
+  height: max(100dvh, 760px) !important;
+}

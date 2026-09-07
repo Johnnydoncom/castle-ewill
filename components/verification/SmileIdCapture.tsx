@@ -323,6 +323,15 @@ export function SmileIdCapture({
     setStep("open");
 
     /*
+     * Their modal is made `position: absolute` by our stylesheet so a short
+     * window can scroll to the bottom of it — see the note in `globals.css`.
+     * Absolute means it sits at the top of the document rather than the top of
+     * the viewport, so a client who had scrolled down would otherwise open the
+     * check and see their own page.
+     */
+    window.scrollTo({ top: 0, behavior: "auto" });
+
+    /*
      * Passed through as the server composed it, with two exceptions that are
      * the browser's by nature: the callbacks.
      *
