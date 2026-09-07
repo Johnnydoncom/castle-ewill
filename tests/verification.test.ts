@@ -37,7 +37,7 @@ beforeEach(() => {
 });
 
 describe("starting an attempt", () => {
-  it("takes the whole hosted-flow configuration from the server", async () => {
+  it("takes the whole capture configuration from the server", async () => {
     api.mockResolvedValue({
       ok: true,
       data: { data: { attempt_id: "attempt-1", smile_id: CONFIG } },
@@ -54,15 +54,13 @@ describe("starting an attempt", () => {
       expect(result.attemptId).toBe("attempt-1");
     }
 
+    /*
+     * No `flow`: this is the web-component integration, which is what the API
+     * answers by default. The hosted modal named itself; nothing else has to.
+     */
     expect(api).toHaveBeenCalledWith("/verification/start", {
       method: "POST",
-      /*
-       * `flow` names the integration asking. The two apps deploy separately
-       * and the backend arrives first, so the API has to tell this bundle
-       * apart from the one before it — which read a different set of keys and
-       * crashed mid-check when it was served these.
-       */
-      body: { flow: "hosted", document_type: "national_id" },
+      body: { document_type: "national_id" },
     });
   });
 
