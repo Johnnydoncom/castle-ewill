@@ -209,6 +209,54 @@ function DocumentChoice({
   );
 }
 
+/**
+ * What the camera step actually wants, said before it opens.
+ *
+ * Smile ID's capture will not start until the face sits inside its oval at
+ * between 35% and 62% of the frame — a band hard-coded in their component —
+ * and until then it answers with one instruction after another: "move your
+ * device higher", "lower", "right". Nothing on that screen says what it is
+ * waiting for, so from the outside it reads as a check that has hung.
+ *
+ * We cannot widen the band and cannot change their screen. We can say what it
+ * is looking for beforehand, which turns a loop of orders into a thing with a
+ * shape: get this right and it starts.
+ *
+ * The last line is the escape hatch. Their capture enables its own button after
+ * ten seconds of not being satisfied — `CAPTURE_FALLBACK_TIMEOUT_MS` in the
+ * package — and a client who does not know that will sit there indefinitely
+ * doing as they are told.
+ */
+function CaptureGuidance() {
+  return (
+    <div className="mt-6 border border-border bg-surface px-5 py-4 text-left">
+      <p className="text-[10px] uppercase tracking-[0.18em] text-gold">
+        Before the camera opens
+      </p>
+
+      <ul className="mt-3 space-y-2 text-sm leading-relaxed text-muted-foreground">
+        <li>
+          <span className="text-navy">Fill the oval.</span> Your face needs to
+          take up most of it — closer than feels natural on a laptop, about an
+          arm&apos;s length on a phone.
+        </li>
+        <li>
+          <span className="text-navy">Face a window or a lamp,</span> not away
+          from one. A bright background behind you is what usually fails.
+        </li>
+        <li>
+          <span className="text-navy">Hold still</span> once you are in frame,
+          and take off a hat or sunglasses.
+        </li>
+        <li>
+          If it keeps asking you to move the device, wait a few seconds — the
+          capture button unlocks on its own, and you can start it yourself.
+        </li>
+      </ul>
+    </div>
+  );
+}
+
 type Step = "idle" | "loading" | "consent" | "document" | "capture";
 type Outcome = null | { kind: "done" | "error"; message: string };
 
@@ -760,6 +808,8 @@ export function SmileIdCapture({
               <span className="text-left">{outcome.message}</span>
             </p>
           )}
+
+          {step === "idle" && <CaptureGuidance />}
 
           {step === "idle" && (
             <button
