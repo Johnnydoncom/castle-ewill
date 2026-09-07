@@ -249,6 +249,12 @@ export async function submitWitnessIdentitiesAction(
     first_name: String(formData.get(`witnesses.${index}.first_name`) ?? "").trim(),
     middle_name: String(formData.get(`witnesses.${index}.middle_name`) ?? "").trim(),
     last_name: String(formData.get(`witnesses.${index}.last_name`) ?? "").trim(),
+    /*
+     * Enhanced KYC asks for at least one contact method beside the name it
+     * puts to the authority. It is also what the sandbox matches a test
+     * identity on, so without it no witness check can be rehearsed at all.
+     */
+    email: String(formData.get(`witnesses.${index}.email`) ?? "").trim(),
     id_type: String(formData.get(`witnesses.${index}.id_type`) ?? "").trim(),
     id_number: String(formData.get(`witnesses.${index}.id_number`) ?? "").trim(),
   }));

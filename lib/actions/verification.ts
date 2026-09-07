@@ -77,6 +77,8 @@ export type WitnessIdentityRecord = {
   first_name: string | null;
   middle_name: string | null;
   last_name: string | null;
+  /** Required by Enhanced KYC, which asks for one contact method. */
+  email: string | null;
   id_type: string | null;
   /** Masked — the last four characters only. Never a value to submit. */
   id_number: string | null;
@@ -125,6 +127,8 @@ export type SuggestedWitness = {
   middle_name: string | null;
   last_name: string | null;
   full_name: string | null;
+  /** As the Will already has it, so nobody types it twice. */
+  email: string | null;
 };
 
 /**

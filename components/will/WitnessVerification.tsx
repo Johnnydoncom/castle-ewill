@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { useFormStatus } from "react-dom";
 import {
   CheckCircle2,
@@ -239,6 +240,19 @@ function WitnessFields({
 
         <label className="block">
           <span className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
+            Email address
+          </span>
+          <input
+            name={field("email")}
+            type="email"
+            defaultValue={value("email") || record?.email || suggested?.email || ""}
+            required
+            className="mt-1.5 w-full border border-border bg-background px-3 py-2.5 font-serif text-sm text-navy focus:border-gold focus:outline-none"
+          />
+        </label>
+
+        <label className="block">
+          <span className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
             Which ID
           </span>
           <select
@@ -343,6 +357,39 @@ export function WitnessVerification({
   idTypes?: WitnessIdType[];
 }) {
   const [state, action] = useFormAction(submitWitnessIdentitiesAction);
+  const router = useRouter();
+
+  /*
+   * The verdict arrives out of band, so the page has to ask for it.
+   *
+   * Enhanced KYC answers `202` and sends the outcome to our webhook seconds
+   * later. Without this the client sits on "being checked" until they think to
+   * reload — which is the same complaint as a screen that never changes, in a
+   * different costume.
+   *
+   * Bounded, because a page that polls forever is a page hammering the API
+   * from a tab somebody abandoned. Two minutes is far longer than an answer
+   * takes and short enough to stop mattering.
+   */
+  const awaitingVerdict = records.some((r) => r.status === "pending");
+
+  useEffect(() => {
+    if (!awaitingVerdict) return;
+
+    const startedAt = Date.now();
+
+    const timer = window.setInterval(() => {
+      if (Date.now() - startedAt > 120_000) {
+        window.clearInterval(timer);
+
+        return;
+      }
+
+      router.refresh();
+    }, 4000);
+
+    return () => window.clearInterval(timer);
+  }, [awaitingVerdict, router]);
 
   /*
    * Two lists, because they are two different things on this screen: an answer
@@ -364,10 +411,11 @@ export function WitnessVerification({
         <div className="min-w-0">
           <h2 className="font-serif text-xl text-navy">Your two witnesses</h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            We check each witness against the authority that issued their ID.
-            Both must be confirmed before your Will can be printed. Ask each
-            witness first — it is their identity, not yours — and enter their
-            name exactly as it appears on the ID.
+            We ask the authority that issued each witness&apos;s ID whether the
+            number belongs to them. Both must be confirmed before your Will can
+            be printed. Ask each witness first — it is their identity, not
+            yours — and enter their name exactly as it appears on the ID.
+            Answers usually come back within a few seconds.
           </p>
           <p className="mt-2 max-w-2xl text-xs leading-relaxed text-muted-foreground">
             Nothing is uploaded, and we keep no copy of anyone&apos;s document.
