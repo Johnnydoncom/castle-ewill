@@ -152,10 +152,23 @@ export async function startVerificationAction(
  * is enough, because an accepted enrolment is one `/v3/authentication` can be
  * asked about.
  */
-export async function enrolledAction(jobId: string | null): Promise<void> {
+export async function enrolledAction(
+  jobId: string | null,
+  /**
+   * The identity Smile ID enrolled.
+   *
+   * Ours if they honoured the `User-ID` header, theirs if they generated one —
+   * their documentation reserves both. Whichever it is, it is what a later
+   * SmartSelfie authentication is matched against, so it is reported rather
+   * than assumed.
+   */
+  smileUserId: string | null = null,
+  /** Why it did not happen, when it did not — recorded, not shown. */
+  error: string | null = null,
+): Promise<void> {
   await api("/verification/enrolled", {
     method: "POST",
-    body: { job_id: jobId },
+    body: { job_id: jobId, user_id: smileUserId, error },
   });
 }
 

@@ -240,12 +240,14 @@ function CaptureGuidance() {
           from one. A bright background behind you is what usually fails.
         </li>
         <li>
-          <span className="text-navy">Hold still</span> once you are in frame,
-          and take off a hat or sunglasses.
+          <span className="text-navy">Then smile, showing your teeth.</span>{" "}
+          That is what the camera is waiting for — it is how it tells a live
+          person from a photograph, and the check moves on the moment it sees
+          one. It will keep suggesting you move the device until then.
         </li>
         <li>
-          If it keeps asking you to move the device, wait a few seconds — the
-          capture button unlocks on its own, and you can start it yourself.
+          <span className="text-navy">Hold still</span> once you are in frame,
+          and take off a hat or sunglasses.
         </li>
       </ul>
     </div>
@@ -543,18 +545,37 @@ export function SmileIdCapture({
           if (enrolResponse.status === 202) {
             const enrolled = (await enrolResponse.json().catch(() => ({}))) as {
               job_id?: string;
+              user_id?: string;
             };
 
-            await enrolledAction(enrolled.job_id ?? null);
+            /*
+             * Both, and the `user_id` is the one that matters.
+             *
+             * It names the identity they enrolled — ours if they honoured the
+             * `User-ID` header above, theirs if they generated one, which
+             * their documentation says is their choice. Every later
+             * authentication is matched against it, so it is stored rather
+             * than assumed.
+             */
+            await enrolledAction(enrolled.job_id ?? null, enrolled.user_id ?? null);
           } else {
-            console.error(
-              "[smile-id] enrolment refused",
-              enrolResponse.status,
-              await enrolResponse.text().catch(() => ""),
-            );
+            /*
+             * Reported rather than only logged. A browser console is not
+             * somewhere anybody looks, and an enrolment that never succeeds
+             * leaves every later recheck falling back to a full document
+             * check — which reads to the client as being asked to do their
+             * KYC over again, with nothing anywhere saying why.
+             */
+            const reason = await enrolResponse.text().catch(() => "");
+
+            console.error("[smile-id] enrolment refused", enrolResponse.status, reason);
+
+            await enrolledAction(null, null, `${enrolResponse.status} ${reason}`.slice(0, 500));
           }
         } catch (error) {
           console.error("[smile-id] enrolment failed", error);
+
+          await enrolledAction(null, null, String(error).slice(0, 500));
         }
       }
 
