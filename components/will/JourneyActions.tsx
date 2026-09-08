@@ -132,19 +132,18 @@ const BLOCKERS: Record<
     cta: { label: "Open this Will", href: null },
   },
   /*
-   * Reachable from printing again, and from editing.
+   * No `liveness_required` card.
    *
-   * Two paths return this code, and the copy has to serve both: the last step
-   * before a Will is released, and reopening one that has already been
-   * produced. What they have in common is the question being asked — not
-   * "whose ID is on file", which was settled once, but "is this you, now".
+   * It used to appear here, on the Print stage, and asked a client who was
+   * already verified and already paid to find a camera before collecting the
+   * document they had bought — then again on the next visit, because a
+   * liveness pass expires within the hour.
+   *
+   * The camera is now asked for in exactly one place: the last step of an
+   * *amendment*, where the question it answers is a real one — is the person
+   * altering an instrument somebody may be relying on the testator, right now.
+   * See `ReviewStep` in `StepForms.tsx`.
    */
-  liveness_required: {
-    icon: ScanFace,
-    title: "One last check that it is you",
-    body: "A short camera check before we release your Will. It confirms the person collecting it is the person named in it, and takes about a minute.",
-    cta: { label: "Start the check", href: "/dashboard/kyc" },
-  },
 };
 
 /**

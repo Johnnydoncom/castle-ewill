@@ -1074,6 +1074,59 @@ export function ReviewStep({
       </div>
 
       {/*
+        The one camera check in the journey, and only for an amendment.
+
+        `update_blocked_by` is the server's answer, not a rule re-derived here:
+        it is null for a first draft, null for a first submission and null for
+        every print, and is only `liveness_required` when this Will has been
+        produced once already and the plan covers amending it.
+
+        Here rather than on each step because this is where the change is
+        committed. Guarding every save stopped somebody at the first field they
+        touched and sent them for a camera between two sentences — and a
+        liveness pass expires within the hour, so doing it early is doing it
+        twice.
+      */}
+      {will.journey?.update_blocked_by === "liveness_required" && (
+        <div className="flex flex-col gap-4 border border-accent/40 bg-accent/5 p-6 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
+            <p className="font-serif text-lg text-foreground">
+              Confirm it is you before this update is saved
+            </p>
+            <p className="text-sm text-muted-foreground">
+              You are changing a Will that has already been produced. A short
+              camera check confirms the change is being made by you. It takes
+              about a minute, and is only asked when you amend.
+            </p>
+          </div>
+          <Link
+            href="/dashboard/kyc"
+            className="shrink-0 border border-foreground px-5 py-2.5 text-center text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:bg-foreground hover:text-background"
+          >
+            Start the check
+          </Link>
+        </div>
+      )}
+
+      {will.journey?.update_blocked_by === "subscription_required" && (
+        <div className="border border-border bg-muted/30 p-6">
+          <p className="font-serif text-lg text-foreground">
+            Updating this Will needs an active subscription
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">
+            Writing your Will was a one-off purchase. Keeping it current as your
+            life changes is what the subscription covers.
+          </p>
+          <Link
+            href="/dashboard/billing"
+            className="mt-4 inline-block text-sm font-semibold text-foreground underline underline-offset-4"
+          >
+            See the plans
+          </Link>
+        </div>
+      )}
+
+      {/*
         Not "Submit for review". Review is the *optional* stage, and most
         clients skip it — labelling the only way out of the form as though it
         summoned a solicitor promised something the platform does not do by

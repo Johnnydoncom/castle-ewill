@@ -81,14 +81,27 @@ export const JOURNEY_STAGES = [
 
 export type JourneyStage = (typeof JOURNEY_STAGES)[number];
 
-/** Why printing is refused, in the order the client must satisfy them. */
+/**
+ * Why printing is refused, in the order the client must satisfy them.
+ *
+ * No `liveness_required`. Printing is collecting a document already paid for
+ * by somebody already proved, and asks for no camera — see `UpdateBlocker`
+ * for the one place in the journey that does.
+ */
 export type PrintBlocker =
   | "incomplete"
   | "unpaid"
   | "kyc_required"
   | "passport_photograph_required"
-  | "witnesses_required"
-  | "liveness_required";
+  | "witnesses_required";
+
+/**
+ * Why an *amendment* may not be committed.
+ *
+ * Only ever set for a Will that has been produced once. A first draft, a first
+ * submission and every print return null.
+ */
+export type UpdateBlocker = "subscription_required" | "liveness_required";
 
 export type WillJourney = {
   stage: JourneyStage;
@@ -106,6 +119,8 @@ export type WillJourney = {
   can_skip_review: boolean;
   can_print: boolean;
   print_blocked_by: PrintBlocker | null;
+  /** What the final step of an amendment still owes; null otherwise. */
+  update_blocked_by: UpdateBlocker | null;
   can_update: boolean;
   printed_at: string | null;
   executed_at: string | null;

@@ -22,7 +22,6 @@ const NEXT_ACTION: Record<string, string> = {
   kyc_required: "Confirm your identity",
   passport_photograph_required: "Add your photograph",
   witnesses_required: "Checking your witnesses",
-  liveness_required: "One last camera check",
 };
 
 /**
