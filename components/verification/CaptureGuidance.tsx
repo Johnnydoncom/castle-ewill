@@ -18,7 +18,7 @@
  */
 export function CaptureGuidance() {
   return (
-    <div className="mt-6 border border-border bg-surface px-5 py-4 text-left">
+    <div className="border border-border bg-surface px-5 py-4 text-left">
       <p className="text-[10px] uppercase tracking-[0.18em] text-gold">
         Before you start
       </p>
