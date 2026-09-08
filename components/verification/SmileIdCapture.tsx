@@ -500,7 +500,7 @@ export function SmileIdCapture({
           )}
 
           {step === "idle" && (
-            <div className="p-6 sm:p-8">
+            <div className="p-6 sm:p-8 !pt-0">
               <CaptureGuidance />
 
               <button
