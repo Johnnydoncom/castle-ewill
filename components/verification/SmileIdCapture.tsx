@@ -395,7 +395,7 @@ export function SmileIdCapture({
           </div>
         )}
 
-        <div className="p-6 sm:p-8">
+        <div className="p-0 sm:p-0">
           {showsIntro && (
             <div className="text-center">
               <ShieldCheck className="mx-auto h-6 w-6 text-gold" />
