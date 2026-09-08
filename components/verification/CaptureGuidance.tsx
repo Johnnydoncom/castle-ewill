@@ -10,9 +10,9 @@
  *    stand there indefinitely; somebody who shows their teeth is through in a
  *    second. That was reported as the check being stuck, three times, before
  *    the difference was understood.
- *  - **A document is photographed after the selfie.** Worth saying up front so
- *    the client fetches their ID before starting rather than halfway through,
- *    with a camera already open.
+ *  - **The document comes first.** Worth saying up front so the client fetches
+ *    their ID before starting rather than halfway through — which is also why
+ *    the flow itself asks for it before opening a camera on anybody's face.
  *
  * We cannot edit their screens. We can say what they are looking for.
  */
@@ -26,17 +26,17 @@ export function CaptureGuidance() {
       <ul className="mt-3 space-y-2 text-sm leading-relaxed text-muted-foreground">
         <li>
           <span className="text-navy">Have a government ID to hand</span> — your
-          NIN slip, passport, driver&apos;s licence or voter&apos;s card. You
-          will photograph it, or attach a photo you already have, after the
-          selfie.
+          NIN slip, passport, driver&apos;s licence or voter&apos;s card. This
+          comes first: you will photograph it, or attach a photo you already
+          have, before the camera turns to you.
         </li>
         <li>
-          <span className="text-navy">Fill the oval.</span> Your face needs to
+          <span className="text-navy">Then fill the oval.</span> Your face needs to
           take up most of it — closer than feels natural on a laptop, about an
           arm&apos;s length on a phone.
         </li>
         <li>
-          <span className="text-navy">Then smile, showing your teeth.</span> That
+          <span className="text-navy">And smile, showing your teeth.</span> That
           is what the camera is waiting for — it is how it tells a live person
           from a photograph, and the check moves on the moment it sees one. It
           will keep suggesting you move the device until then.

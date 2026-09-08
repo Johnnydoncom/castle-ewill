@@ -7,29 +7,32 @@
  * the capture. The hosted modal — `window.SmileIdentity()` — is a different
  * integration entirely and this application no longer uses it.
  *
- * Two elements are registered, and only two — `<smileid-consent>` and
- * `<smart-camera-web>`.
+ * Three elements are registered and each is mounted **on its own**:
+ * `<smileid-consent>`, `<document-capture-screens>`, `<smart-camera-web>`.
  *
- * **`<document-capture-screens>` is neither imported nor mounted, and that is
- * not an omission.** Their setup page shows it written as a child of
- * `<smart-camera-web>`; the shipped element ignores such a child. It renders
- * its *own* `<document-capture-screens>` into its shadow root, built from its
- * own attributes, and drives the sequence itself:
+ * ## Why they are mounted separately, and not nested
  *
- *     selfie/liveness  →  (if `capture-id`)  document front  →  document back
+ * Smile ID's flow for Document Verification is
  *
- * then merges every frame into one `smart-camera-web.publish`. Read out of
- * `SmartCameraWeb.js`, where `_data.images = [...this._data.images, ...]` on
- * the document publish is followed immediately by `_publishSelectedImages()`.
+ *     consent  →  document  →  selfie/liveness  →  submit
  *
- * Its chunk is already pulled in by the `smart-camera-web` entry, so the
- * element is defined without a second import — which is why the document step
- * works at all here.
+ * and that order is the point: somebody is asked for the thing they have to go
+ * and fetch first, while they are still sitting down, rather than after a
+ * camera is already open on their face.
  *
- * Every document attribute therefore belongs on `<smart-camera-web>`.
- * `document-capture-modes` sat on the child for a release, which is why
- * "upload a file" never appeared and people were photographing a passport with
- * a laptop webcam.
+ * `<smart-camera-web capture-id>` **cannot produce that order.** The shipped
+ * element hard-codes the reverse — on `selfie-capture-screens.publish` it
+ * either publishes (no `capture-id`) or switches to its own document screens.
+ * There is no attribute that flips it. It also ignores a
+ * `<document-capture-screens>` written as its child, which is what their setup
+ * page shows: it renders its own into its shadow root from its own attributes.
+ *
+ * So the nested arrangement is not used at all. Each element is mounted alone,
+ * in the order above, and the images are accumulated across the two publishes
+ * — which is exactly the shape of the sample on their payloads page.
+ *
+ * `capture-id` is therefore never set. Every document attribute goes on the
+ * `<document-capture-screens>` we mount ourselves, where it is read directly.
  *
  * @see https://docs.usesmileid.com/developer-resources/sdks/web/web-components/setup
  */
@@ -60,6 +63,24 @@ declare module "react" {
          */
         "consent-region"?: string;
       };
+      /**
+       * The document step, mounted on its own and before the camera.
+       *
+       * Deliberately **not** given `capture-id` on `<smart-camera-web>` — see
+       * the note at the top of this file. These attributes are read by this
+       * element directly, which is where they work.
+       */
+      "document-capture-screens": SmileIdElementProps & {
+        /** `"camera"` or `"camera,upload"`. Upload-only is not supported. */
+        "document-capture-modes"?: string;
+        /** Presence, not value: skips the back-of-ID step. */
+        "hide-back-of-id"?: string;
+        /** Presence, not value: skips the capture-instructions sub-screen. */
+        "hide-instructions"?: string;
+        /** Presence, not value: shows a back control between sub-screens. */
+        "show-navigation"?: string;
+        ref?: React.Ref<HTMLElement>;
+      };
       "smart-camera-web": SmileIdElementProps & {
         /**
          * Enhanced SmartSelfie active liveness.
@@ -69,17 +90,6 @@ declare module "react" {
          * screens. The value matters: the string `"false"` reads as off.
          */
         "use-strict-mode"?: string;
-        /**
-         * Presence, not value — `get captureId() { return this.hasAttribute(...) }`.
-         *
-         * With it, the wrapper follows the selfie with a document capture and
-         * publishes both together. Without it, it publishes after the selfie.
-         */
-        "capture-id"?: string;
-        /** `"camera"` or `"camera,upload"`. Upload-only is not supported. */
-        "document-capture-modes"?: string;
-        /** `"true"` skips the back-of-ID step even when the type has one. */
-        "hide-back-of-id"?: string;
         ref?: React.Ref<HTMLElement>;
       };
     }
@@ -101,6 +111,7 @@ export function registerSmileIdElements(): Promise<void> {
 
   registration ??= (async () => {
     await import("@smileid/web-sdk/consent");
+    await import("@smileid/web-sdk/document-capture");
     await import("@smileid/web-sdk/smart-camera-web");
   })().catch((error: unknown) => {
     // A failed load must not be cached as permanent — the next attempt should
@@ -140,15 +151,20 @@ export const CAPTURE_PUBLISHED = "smart-camera-web.publish";
 export const CAPTURE_CLOSED = "smart-camera-web.close";
 
 /**
- * The document frames, also on their own element.
+ * The document frames, on the `<document-capture-screens>` element itself.
  *
- * Redundant when `<smart-camera-web capture-id>` drives the flow — it merges
- * these into its own publish before firing it. Listened for anyway, because
- * the wrapper's internal element is reachable through the shadow root and a
- * future version could publish them separately; reading both means neither
- * arrangement silently submits a job with no document in it.
+ * Same discrepancy as the capture: their setup page says `window`, and
+ * `_publishSelectedImages()` on this element dispatches with
+ * `this.dispatchEvent(...)` and no `bubbles`.
+ *
+ * This is the first of the two publishes now — the document is captured
+ * before the camera opens on anybody's face.
  */
 export const DOCUMENT_PUBLISHED = "document-capture-screens.publish";
+
+/** Their back/close controls on the document step. */
+export const DOCUMENT_CANCELLED = "document-capture-screens.cancelled";
+export const DOCUMENT_CLOSED = "document-capture-screens.close";
 
 /**
  * Diagnostics the capture emits about its own liveness engine.

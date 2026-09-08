@@ -20,6 +20,8 @@ import {
   CAPTURE_PUBLISHED,
   CONSENT_DENIED,
   CONSENT_GRANTED,
+  DOCUMENT_CANCELLED,
+  DOCUMENT_CLOSED,
   DOCUMENT_PUBLISHED,
   LIVENESS_FALLBACK,
   LIVENESS_VERSION,
@@ -36,7 +38,11 @@ import { CaptureGuidance } from "./CaptureGuidance";
  *
  * ## The flow — Document Verification
  *
- *     consent  →  selfie + liveness  →  document front (+ back)  →  submit
+ *     consent  →  document front (+ back)  →  selfie + liveness  →  submit
+ *
+ * Smile ID's own order, and the order matters: the client is asked for the
+ * thing they may have to go and fetch **first**, while they are still sitting
+ * down, rather than after a camera is already open on their face.
  *
  * Their components render all three capture steps; the submission is ours.
  * Everything that is not a decision — which product, which endpoint, whether
@@ -44,23 +50,20 @@ import { CaptureGuidance } from "./CaptureGuidance";
  * the backend and arrives in one config object, so nothing here is a rule the
  * server does not also hold.
  *
- * ## Two departures from their guide, both deliberate
+ * ## Each element is mounted on its own, and that is what makes the order
  *
- *  - **`<smileid-user-details>` is not mounted.** `user_details` is required on
- *    every V3 job, but we already hold this person's name, email and phone
- *    number. A form to re-type them on the way to a camera is a step that can
- *    only lose people, so the backend fills the field from the account.
- *  - **`<document-capture-screens>` is not mounted either, and there is one
- *    capture listener rather than two.** Their payloads page shows the document
- *    frames arriving on their own event and being held in a variable until the
- *    selfie publishes. That is the shape for mounting the two elements *side by
- *    side*. We use the nested arrangement their setup page prescribes, where
- *    `<smart-camera-web capture-id>` owns the whole sequence — and the shipped
- *    element ignores a `<document-capture-screens>` child, rendering its own
- *    into its shadow root and merging every frame into a single
- *    `smart-camera-web.publish`. So one listener receives selfie, liveness and
- *    document together. The document event is still listened for, harmlessly,
- *    so neither arrangement could silently submit a job with no document.
+ * `<smart-camera-web capture-id>` can also drive a document step, and cannot
+ * produce this order: it hard-codes selfie → document, with no attribute to
+ * flip it. So the nested arrangement is not used. The elements are mounted one
+ * at a time and the frames accumulate across two publishes — the shape of the
+ * sample on their payloads page.
+ *
+ * ## One departure from their guide
+ *
+ * **`<smileid-user-details>` is not mounted.** `user_details` is required on
+ * every V3 job, but we already hold this person's name, email and phone
+ * number. A form to re-type them on the way to a camera is a step that can
+ * only lose people, so the backend fills the field from the account.
  *
  * The hosted Web SDK — `window.SmileIdentity()` — is a separate integration and
  * is gone. The npm package is *named* `@smileid/web-sdk` and is the components
@@ -69,7 +72,7 @@ import { CaptureGuidance } from "./CaptureGuidance";
  * @see https://docs.usesmileid.com/developer-resources/sdks/web/web-components
  */
 
-type Step = "idle" | "loading" | "consent" | "capture";
+type Step = "idle" | "loading" | "consent" | "document" | "capture";
 type Outcome = null | { kind: "done" | "error"; message: string };
 
 export function SmileIdCapture({
@@ -95,16 +98,16 @@ export function SmileIdCapture({
    * None of them drives the UI.
    */
   const cameraRef = useRef<HTMLElement | null>(null);
+  const documentElementRef = useRef<HTMLElement | null>(null);
   const attemptRef = useRef<string | null>(null);
   const configRef = useRef<SmileIdConfig | null>(null);
   const consentRef = useRef<ConsentDetail | null>(null);
 
   /*
-   * Document frames, if they ever arrive on their own event.
+   * The document frames, held between the two publishes.
    *
-   * Empty in the nested arrangement, where the wrapper merges them into its
-   * own publish before firing it. Kept so a future version that publishes them
-   * separately cannot silently produce a job with no document in it.
+   * They arrive first, on their own element, and are needed when the camera
+   * publishes some minutes later — so they cannot live in the capture event.
    */
   const documentRef = useRef<CapturedImage[]>([]);
 
@@ -198,12 +201,12 @@ export function SmileIdCapture({
       setStep("loading");
 
       /*
-       * Both sources, merged and de-duplicated by type.
+       * Both publishes, merged.
        *
-       * The wrapper publishes everything together, so `images` normally holds
-       * the document frames already; `documentRef` is only non-empty in the
-       * side-by-side arrangement. Preferring what just published keeps the
-       * newest capture when somebody retook a page.
+       * The camera brings the selfie and the liveness frames; the document
+       * step brought its own some minutes earlier. De-duplicated by type and
+       * preferring what just published, so retaking a page cannot leave the
+       * older frame in the job.
        */
       const seen = new Set(images.map((image) => image.image_type_id));
 
@@ -282,9 +285,11 @@ export function SmileIdCapture({
     const onGranted = (event: Event) => {
       consentRef.current = (event as CustomEvent<ConsentDetail>).detail;
 
-      // Straight to the capture. Whether it also asks for a document is the
-      // element's business, decided by `capture-id` below.
-      setStep("capture");
+      /*
+       * The document first, when this check has one. A recheck has none — it
+       * matches a face against an enrolment — and goes straight to the camera.
+       */
+      setStep(configRef.current?.document_capture ? "document" : "capture");
     };
 
     const onDenied = () => {
@@ -304,6 +309,45 @@ export function SmileIdCapture({
   }, [fail]);
 
   /*
+   * The document step, which dispatches on its own element.
+   *
+   * Bound when it mounts, which is only on the document step. Its publish is
+   * the *first* of the two — the frames are kept and the flow moves on to the
+   * camera; nothing is submitted until the selfie arrives, because both are
+   * required in the same request.
+   */
+  useEffect(() => {
+    const element = documentElementRef.current;
+
+    if (step !== "document" || element === null) return;
+
+    const onPublish = (event: Event) => {
+      documentRef.current =
+        (event as CustomEvent<{ images: CapturedImage[] }>).detail?.images ?? [];
+
+      setStep("capture");
+    };
+
+    // Their back control. Not a failure — the attempt stays open, and the
+    // frames are dropped so a half-finished capture cannot reach a job.
+    const onCancelled = () => {
+      documentRef.current = [];
+      setStep("idle");
+      setOutcome(null);
+    };
+
+    element.addEventListener(DOCUMENT_PUBLISHED, onPublish);
+    element.addEventListener(DOCUMENT_CANCELLED, onCancelled);
+    element.addEventListener(DOCUMENT_CLOSED, onCancelled);
+
+    return () => {
+      element.removeEventListener(DOCUMENT_PUBLISHED, onPublish);
+      element.removeEventListener(DOCUMENT_CANCELLED, onCancelled);
+      element.removeEventListener(DOCUMENT_CLOSED, onCancelled);
+    };
+  }, [step]);
+
+  /*
    * The capture, which dispatches on the **element** — see `elements.ts`.
    * Bound when it mounts, which is only on the capture step.
    */
@@ -316,12 +360,6 @@ export function SmileIdCapture({
       void submit(
         (event as CustomEvent<{ images: CapturedImage[] }>).detail?.images ?? [],
       );
-    };
-
-    // Only fires in the side-by-side arrangement — see `documentRef`.
-    const onDocument = (event: Event) => {
-      documentRef.current =
-        (event as CustomEvent<{ images: CapturedImage[] }>).detail?.images ?? [];
     };
 
     // Their back control. Not a failure — the attempt stays open.
@@ -346,14 +384,12 @@ export function SmileIdCapture({
     };
 
     camera.addEventListener(CAPTURE_PUBLISHED, onPublish);
-    camera.addEventListener(DOCUMENT_PUBLISHED, onDocument);
     camera.addEventListener(CAPTURE_CLOSED, onClose);
     camera.addEventListener(LIVENESS_VERSION, onVersion);
     camera.addEventListener(LIVENESS_FALLBACK, onFallback);
 
     return () => {
       camera.removeEventListener(CAPTURE_PUBLISHED, onPublish);
-      camera.removeEventListener(DOCUMENT_PUBLISHED, onDocument);
       camera.removeEventListener(CAPTURE_CLOSED, onClose);
       camera.removeEventListener(LIVENESS_VERSION, onVersion);
       camera.removeEventListener(LIVENESS_FALLBACK, onFallback);
@@ -495,26 +531,32 @@ export function SmileIdCapture({
             />
           )}
 
+          {config?.document_capture && step === "document" && (
+            /*
+              The document, before the camera — Smile ID's own order.
+
+              Mounted on its own rather than nested inside
+              `<smart-camera-web capture-id>`, which is the only way to get
+              this order: that element hard-codes selfie → document.
+            */
+            <document-capture-screens
+              ref={documentElementRef}
+              theme-color={theme}
+              document-capture-modes={config.document_capture.modes}
+            />
+          )}
+
           {config && step === "capture" && (
             /*
-              One element for the whole capture.
+              The selfie and its liveness frames.
 
-              `capture-id` is presence-checked by the element, so it is set to
-              an empty string when a document is wanted and left off entirely
-              otherwise — a recheck must not be walked through photographing an
-              ID for a job that has no field to carry it.
-
-              The document attributes go here, on the wrapper. It renders its
-              own `<document-capture-screens>` into its shadow root from these
-              and never reads a child element's, which is why writing them on a
-              nested tag — as their setup page shows — silently does nothing.
+              No `capture-id`: the document is already captured, and setting it
+              would send this element looking for a second one.
             */
             <smart-camera-web
               ref={cameraRef}
               theme-color={theme}
               use-strict-mode={config.strict_liveness ? "true" : undefined}
-              capture-id={config.document_capture ? "" : undefined}
-              document-capture-modes={config.document_capture?.modes}
             />
           )}
         </div>

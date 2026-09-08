@@ -8,6 +8,9 @@ import {
   CAPTURE_PUBLISHED,
   CONSENT_DENIED,
   CONSENT_GRANTED,
+  DOCUMENT_CANCELLED,
+  DOCUMENT_CLOSED,
+  DOCUMENT_PUBLISHED,
 } from "@/lib/smile-id/elements";
 
 /**
@@ -94,89 +97,56 @@ describe("the capture's publish event", () => {
   });
 });
 
-describe("the document capture, when nested", () => {
+describe("the document step, mounted on its own", () => {
   const wrapper = packageSource(
     "lib/components/smart-camera-web/src/SmartCameraWeb.js",
   );
 
+  const document = packageSource(
+    "lib/components/document/src/DocumentCaptureScreens.js",
+  );
+
   /*
-   * Their setup page shows `<document-capture-screens>` written as a child of
-   * `<smart-camera-web>`, and their payloads page shows the two mounted side
-   * by side with a listener each. The shipped wrapper does neither: it renders
-   * its *own* document screens into its shadow root from its *own* attributes,
-   * ignoring any child, and drives the sequence itself.
+   * Smile ID's flow for Document Verification is consent → document → selfie,
+   * and that is the order this application runs. `<smart-camera-web>` can also
+   * drive a document step, via `capture-id`, and **cannot produce that order**:
+   * it hard-codes the reverse and offers no attribute to flip it.
    *
-   * Everything below is what makes a single `smart-camera-web.publish` carry
-   * the document as well as the selfie. If a version bump changes it, this
-   * fails — rather than a job going to Smile ID with no document in it.
+   * That is the whole reason the two elements are mounted separately rather
+   * than nested as their setup page shows. If a version bump ever made the
+   * nested mode document-first, this would fail and somebody could simplify.
    */
-  it("renders its own document screens from its own attributes", () => {
-    expect(wrapper).toMatch(
-      /<document-capture-screens[^>]*\$\{this\.documentCaptureModes\}/s,
-    );
-    expect(wrapper).toContain("this.shadowRoot.querySelector(");
-  });
-
-  it("still gates the document step on the presence of capture-id", () => {
-    // `hasAttribute`, not `getAttribute` — which is why the attribute is set
-    // to an empty string rather than to "true".
-    expect(wrapper).toMatch(
-      /get captureId\(\)\s*\{\s*return this\.hasAttribute\(\s*['"]capture-id['"]\s*\)/,
-    );
-  });
-
-  it("still merges the document frames into its own publish", () => {
-    /*
-     * The assertion the single-listener design rests on: on the document
-     * publish it concatenates onto `_data.images` and immediately publishes.
-     */
-    expect(wrapper).toMatch(
-      /document-capture-screens\.publish['"],\s*\(event\)\s*=>\s*\{\s*this\._data\.images\s*=\s*\[\s*\.\.\.this\._data\.images,\s*\.\.\.event\.detail\.images,?\s*\];\s*this\._publishSelectedImages\(\)/,
-    );
-  });
-
-  it("still takes the selfie first, then the document", () => {
-    // Their flow diagram shows document → selfie. The element does the
-    // reverse, and the guidance copy is written to match the element.
+  it("is why nesting is not used: the wrapper hard-codes selfie then document", () => {
     expect(wrapper).toMatch(
       /selfie-capture-screens\.publish[\s\S]{0,260}?if \(!this\.captureId\)[\s\S]{0,120}?this\.setActiveScreen\(this\.documentCapture\)/,
     );
   });
-});
 
-describe("the capture-id attribute, as React renders it", () => {
-  /*
-   * `capture-id` is presence-checked by the element (`hasAttribute`), not read
-   * for a value. So the document step is switched on with an **empty string**
-   * and off with `undefined` — which reads oddly enough that somebody could
-   * reasonably try to "fix" it to a boolean or to `"false"`.
-   *
-   * Both of those would be wrong in the same direction: React renders the
-   * string `"false"` as `capture-id="false"`, an attribute that is *present*,
-   * so a recheck would be walked through photographing an ID for a job with no
-   * field to carry it. This pins the two halves together — what React emits,
-   * and what the element does with it.
-   */
-  const render = async (value: string | undefined) => {
-    const { renderToStaticMarkup } = await import("react-dom/server");
-    const { createElement } = await import("react");
-
-    return renderToStaticMarkup(
-      createElement("smart-camera-web", { "capture-id": value }),
+  it("publishes its frames on its own element, not on window", () => {
+    /*
+     * Same discrepancy as the capture: their setup page says `window`, and
+     * `_publishSelectedImages()` dispatches on `this` with no `bubbles`.
+     */
+    expect(document).toMatch(
+      /_publishSelectedImages\(\)\s*\{\s*this\.dispatchEvent\(/,
     );
-  };
-
-  it("emits the attribute for an empty string, which is what turns it on", async () => {
-    expect(await render("")).toContain("capture-id=\"\"");
+    expect(document).not.toMatch(
+      /window\.dispatchEvent\(\s*new CustomEvent\(\s*['"]document-capture-screens\.publish['"]/,
+    );
   });
 
-  it("omits it entirely for undefined, which is what a recheck sends", async () => {
-    expect(await render(undefined)).not.toContain("capture-id");
+  it("still reads the attributes we set on it directly", () => {
+    // Mounted standalone, these are read by this element rather than by the
+    // wrapper — which is where they silently did nothing before.
+    expect(document).toMatch(
+      /get documentCaptureModes\(\)[\s\S]{0,120}?document-capture-modes/,
+    );
+    expect(document).toMatch(/get themeColor\(\)[\s\S]{0,80}?theme-color/);
   });
 
-  it("would emit a present attribute for \"false\" — which is why we never send one", async () => {
-    // Not how we call it; asserted so the footgun is documented rather than
-    // discovered. `hasAttribute` would read this as "yes, capture a document".
-    expect(await render("false")).toContain("capture-id=\"false\"");
+  it("are the names we listen for", () => {
+    expect(DOCUMENT_PUBLISHED).toBe("document-capture-screens.publish");
+    expect(DOCUMENT_CANCELLED).toBe("document-capture-screens.cancelled");
+    expect(DOCUMENT_CLOSED).toBe("document-capture-screens.close");
   });
 });
