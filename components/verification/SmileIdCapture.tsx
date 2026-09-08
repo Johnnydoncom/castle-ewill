@@ -465,9 +465,9 @@ export function SmileIdCapture({
           </div>
         )}
 
-        <div className="p-6 sm:p-8">
+        <div className="">
           {showsIntro && (
-            <div className="text-center">
+            <div className="text-center p-6 sm:p-8">
               <ShieldCheck className="mx-auto h-6 w-6 text-gold" />
               <h2 className="mt-3 font-serif text-xl text-navy">{title}</h2>
               <p className="mx-auto mt-2 max-w-sm text-sm leading-relaxed text-muted-foreground">
@@ -477,7 +477,7 @@ export function SmileIdCapture({
           )}
 
           {step === "loading" && (
-            <p className="mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
+            <p className="p-6 sm:p-8 mt-6 flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <Loader2 className="h-4 w-4 animate-spin text-gold" />
               Preparing your identity check…
             </p>
@@ -487,7 +487,7 @@ export function SmileIdCapture({
             <p
               role="status"
               aria-live="polite"
-              className={`mt-6 flex items-start justify-center gap-2 text-sm ${outcome.kind === "done" ? "text-success" : "text-destructive"
+              className={`p-6 sm:p-8mt-6 flex items-start justify-center gap-2 text-sm ${outcome.kind === "done" ? "text-success" : "text-destructive"
                 }`}
             >
               {outcome.kind === "done" ? (
@@ -500,7 +500,7 @@ export function SmileIdCapture({
           )}
 
           {step === "idle" && (
-            <>
+            <div className="p-6 sm:p-8">
               <CaptureGuidance />
 
               <button
@@ -510,7 +510,7 @@ export function SmileIdCapture({
               >
                 {outcome?.kind === "error" ? "Try again" : "Begin identity check"}
               </button>
-            </>
+            </div>
           )}
 
           {/*
@@ -562,7 +562,7 @@ export function SmileIdCapture({
         </div>
 
         {showsIntro && (
-          <p className="border-t border-border bg-surface px-6 py-4 text-center text-xs leading-relaxed text-muted-foreground">
+          <p className="p-6 sm:p-8 border-t border-border bg-surface px-6 py-4 text-center text-xs leading-relaxed text-muted-foreground">
             {footerNote}
           </p>
         )}
