@@ -7,10 +7,29 @@
  * the capture. The hosted modal — `window.SmileIdentity()` — is a different
  * integration entirely and this application no longer uses it.
  *
- * Two elements are registered, and only two. Biometric KYC is
- * consent → our ID form → selfie capture → our submission; there is no
- * document to photograph, so `@smileid/web-sdk/document-capture` is not
- * imported and `<document-capture-screens>` is not typed.
+ * Two elements are registered, and only two — `<smileid-consent>` and
+ * `<smart-camera-web>`.
+ *
+ * **`<document-capture-screens>` is neither imported nor mounted, and that is
+ * not an omission.** Their setup page shows it written as a child of
+ * `<smart-camera-web>`; the shipped element ignores such a child. It renders
+ * its *own* `<document-capture-screens>` into its shadow root, built from its
+ * own attributes, and drives the sequence itself:
+ *
+ *     selfie/liveness  →  (if `capture-id`)  document front  →  document back
+ *
+ * then merges every frame into one `smart-camera-web.publish`. Read out of
+ * `SmartCameraWeb.js`, where `_data.images = [...this._data.images, ...]` on
+ * the document publish is followed immediately by `_publishSelectedImages()`.
+ *
+ * Its chunk is already pulled in by the `smart-camera-web` entry, so the
+ * element is defined without a second import — which is why the document step
+ * works at all here.
+ *
+ * Every document attribute therefore belongs on `<smart-camera-web>`.
+ * `document-capture-modes` sat on the child for a release, which is why
+ * "upload a file" never appeared and people were photographing a passport with
+ * a laptop webcam.
  *
  * @see https://docs.usesmileid.com/developer-resources/sdks/web/web-components/setup
  */
@@ -50,6 +69,17 @@ declare module "react" {
          * screens. The value matters: the string `"false"` reads as off.
          */
         "use-strict-mode"?: string;
+        /**
+         * Presence, not value — `get captureId() { return this.hasAttribute(...) }`.
+         *
+         * With it, the wrapper follows the selfie with a document capture and
+         * publishes both together. Without it, it publishes after the selfie.
+         */
+        "capture-id"?: string;
+        /** `"camera"` or `"camera,upload"`. Upload-only is not supported. */
+        "document-capture-modes"?: string;
+        /** `"true"` skips the back-of-ID step even when the type has one. */
+        "hide-back-of-id"?: string;
         ref?: React.Ref<HTMLElement>;
       };
     }
@@ -110,6 +140,17 @@ export const CAPTURE_PUBLISHED = "smart-camera-web.publish";
 export const CAPTURE_CLOSED = "smart-camera-web.close";
 
 /**
+ * The document frames, also on their own element.
+ *
+ * Redundant when `<smart-camera-web capture-id>` drives the flow — it merges
+ * these into its own publish before firing it. Listened for anyway, because
+ * the wrapper's internal element is reachable through the shadow root and a
+ * future version could publish them separately; reading both means neither
+ * arrangement silently submits a job with no document in it.
+ */
+export const DOCUMENT_PUBLISHED = "document-capture-screens.publish";
+
+/**
  * Diagnostics the capture emits about its own liveness engine.
  *
  * Enhanced SmartSelfie runs head-pose detection on the device from models it
@@ -122,10 +163,15 @@ export const CAPTURE_CLOSED = "smart-camera-web.close";
 export const LIVENESS_VERSION = "metadata.active-liveness-version";
 export const LIVENESS_FALLBACK = "metadata.mediapipe-fallback-reason";
 
-/** Their image type ids, from the payload reference. */
+/**
+ * Their image type ids, from the payload reference — and confirmed against
+ * `lib/components/selfie/src/capture-shared/constants.ts` in the package.
+ */
 export const IMAGE_TYPE = {
   selfie: 2,
+  documentFront: 3,
   liveness: 6,
+  documentBack: 7,
 } as const;
 
 export type CapturedImage = { image: string; image_type_id: number };

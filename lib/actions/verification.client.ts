@@ -25,12 +25,13 @@ export type SmileIdConfig = {
   /**
    * Which check this is, decided server-side.
    *
-   * `biometric_kyc` proves who somebody is, once, by matching a selfie against
-   * the record an issuing authority holds for a typed ID number.
-   * `smart_selfie_authentication` asks only whether the face in front of the
-   * camera is the identity already proved — no ID number, no second check.
+   * `document_verification` proves who somebody is, once: they photograph a
+   * government ID, Smile ID reads it, and the portrait on it is matched to a
+   * selfie and liveness sequence. `smart_selfie_authentication` asks only
+   * whether the face in front of the camera is the identity already proved —
+   * no document, no second check.
    */
-  product: "biometric_kyc" | "smart_selfie_authentication";
+  product: "document_verification" | "smart_selfie_authentication";
   /**
    * The enrolment to submit alongside a first verification, or null.
    *
@@ -76,14 +77,18 @@ export type SmileIdConfig = {
    */
   strict_liveness: boolean;
   /**
-   * Which IDs this client may be checked against, and the shape each takes.
+   * The document step, or null when there is not one.
    *
-   * Smile ID's own catalogue for Nigeria, narrowed to what this account can
-   * actually ask about — the same list the witnesses' check is built from. The
-   * regex comes with each type so the number can be checked before anybody is
-   * asked for a camera.
+   * Null on a recheck, which photographs nothing. Otherwise `modes` goes on
+   * `<smart-camera-web>` as `document-capture-modes` — never on a nested
+   * `<document-capture-screens>`, which the wrapper renders itself and never
+   * reads a child's attributes from.
+   *
+   * No ID types travel with it: `id_type` is optional for this product and is
+   * omitted so their server auto-classifies, and there is no `id_number` field
+   * at all — identity comes off the card.
    */
-  id_types: { type: string; label: string; regex: string }[];
+  document_capture: { modes: string } | null;
   /**
    * Sandbox test mode, or null.
    *

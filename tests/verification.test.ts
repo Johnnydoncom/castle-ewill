@@ -21,7 +21,7 @@ vi.mock("@/lib/api/browser", () => ({ api }));
 
 const CONFIG = {
   token: "sid.web.token",
-  product: "biometric_kyc",
+  product: "document_verification",
   environment: "sandbox" as const,
   partner_details: {
     partner_id: "9055",

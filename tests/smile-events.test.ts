@@ -93,3 +93,53 @@ describe("the capture's publish event", () => {
     expect(CAPTURE_CLOSED).toBe("smart-camera-web.close");
   });
 });
+
+describe("the document capture, when nested", () => {
+  const wrapper = packageSource(
+    "lib/components/smart-camera-web/src/SmartCameraWeb.js",
+  );
+
+  /*
+   * Their setup page shows `<document-capture-screens>` written as a child of
+   * `<smart-camera-web>`, and their payloads page shows the two mounted side
+   * by side with a listener each. The shipped wrapper does neither: it renders
+   * its *own* document screens into its shadow root from its *own* attributes,
+   * ignoring any child, and drives the sequence itself.
+   *
+   * Everything below is what makes a single `smart-camera-web.publish` carry
+   * the document as well as the selfie. If a version bump changes it, this
+   * fails — rather than a job going to Smile ID with no document in it.
+   */
+  it("renders its own document screens from its own attributes", () => {
+    expect(wrapper).toMatch(
+      /<document-capture-screens[^>]*\$\{this\.documentCaptureModes\}/s,
+    );
+    expect(wrapper).toContain("this.shadowRoot.querySelector(");
+  });
+
+  it("still gates the document step on the presence of capture-id", () => {
+    // `hasAttribute`, not `getAttribute` — which is why the attribute is set
+    // to an empty string rather than to "true".
+    expect(wrapper).toMatch(
+      /get captureId\(\)\s*\{\s*return this\.hasAttribute\(\s*['"]capture-id['"]\s*\)/,
+    );
+  });
+
+  it("still merges the document frames into its own publish", () => {
+    /*
+     * The assertion the single-listener design rests on: on the document
+     * publish it concatenates onto `_data.images` and immediately publishes.
+     */
+    expect(wrapper).toMatch(
+      /document-capture-screens\.publish['"],\s*\(event\)\s*=>\s*\{\s*this\._data\.images\s*=\s*\[\s*\.\.\.this\._data\.images,\s*\.\.\.event\.detail\.images,?\s*\];\s*this\._publishSelectedImages\(\)/,
+    );
+  });
+
+  it("still takes the selfie first, then the document", () => {
+    // Their flow diagram shows document → selfie. The element does the
+    // reverse, and the guidance copy is written to match the element.
+    expect(wrapper).toMatch(
+      /selfie-capture-screens\.publish[\s\S]{0,260}?if \(!this\.captureId\)[\s\S]{0,120}?this\.setActiveScreen\(this\.documentCapture\)/,
+    );
+  });
+});

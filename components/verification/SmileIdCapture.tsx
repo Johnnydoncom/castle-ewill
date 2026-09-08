@@ -20,6 +20,7 @@ import {
   CAPTURE_PUBLISHED,
   CONSENT_DENIED,
   CONSENT_GRANTED,
+  DOCUMENT_PUBLISHED,
   LIVENESS_FALLBACK,
   LIVENESS_VERSION,
   registerSmileIdElements,
@@ -28,30 +29,38 @@ import {
 } from "@/lib/smile-id/elements";
 import { buildJobBody, postJob, type JobBasics } from "@/lib/smile-id/job";
 
-import { CaptureGuidance, IdNumberStep } from "./IdNumberStep";
+import { CaptureGuidance } from "./CaptureGuidance";
 
 /**
  * Identity verification, built from Smile ID's v12 web components.
  *
- * ## The flow
+ * ## The flow — Document Verification
  *
- *     consent  →  which ID and its number  →  selfie + liveness  →  submit
+ *     consent  →  selfie + liveness  →  document front (+ back)  →  submit
  *
- * Their components render the first and third; the second is ours, and the
- * submission is ours. Everything that is not a decision — which product, which
- * endpoint, which ID types, whose name goes on the job — is decided by the
- * backend and arrives in one config object, so nothing here is a rule the
+ * Their components render all three capture steps; the submission is ours.
+ * Everything that is not a decision — which product, which endpoint, whether
+ * there is a document step at all, whose name goes on the job — is decided by
+ * the backend and arrives in one config object, so nothing here is a rule the
  * server does not also hold.
  *
- * Two deliberate departures from their guide, both stated once:
+ * ## Two departures from their guide, both deliberate
  *
  *  - **`<smileid-user-details>` is not mounted.** `user_details` is required on
  *    every V3 job, but we already hold this person's name, email and phone
  *    number. A form to re-type them on the way to a camera is a step that can
  *    only lose people, so the backend fills the field from the account.
- *  - **No document step.** Biometric KYC asks an authority about a typed
- *    number; there is nothing to photograph. `<document-capture-screens>` is
- *    neither imported nor mounted.
+ *  - **`<document-capture-screens>` is not mounted either, and there is one
+ *    capture listener rather than two.** Their payloads page shows the document
+ *    frames arriving on their own event and being held in a variable until the
+ *    selfie publishes. That is the shape for mounting the two elements *side by
+ *    side*. We use the nested arrangement their setup page prescribes, where
+ *    `<smart-camera-web capture-id>` owns the whole sequence — and the shipped
+ *    element ignores a `<document-capture-screens>` child, rendering its own
+ *    into its shadow root and merging every frame into a single
+ *    `smart-camera-web.publish`. So one listener receives selfie, liveness and
+ *    document together. The document event is still listened for, harmlessly,
+ *    so neither arrangement could silently submit a job with no document.
  *
  * The hosted Web SDK — `window.SmileIdentity()` — is a separate integration and
  * is gone. The npm package is *named* `@smileid/web-sdk` and is the components
@@ -60,7 +69,7 @@ import { CaptureGuidance, IdNumberStep } from "./IdNumberStep";
  * @see https://docs.usesmileid.com/developer-resources/sdks/web/web-components
  */
 
-type Step = "idle" | "loading" | "consent" | "identity" | "capture";
+type Step = "idle" | "loading" | "consent" | "capture";
 type Outcome = null | { kind: "done" | "error"; message: string };
 
 export function SmileIdCapture({
@@ -87,9 +96,17 @@ export function SmileIdCapture({
    */
   const cameraRef = useRef<HTMLElement | null>(null);
   const attemptRef = useRef<string | null>(null);
-  const identityRef = useRef<{ id_type: string; id_number: string } | null>(null);
   const configRef = useRef<SmileIdConfig | null>(null);
   const consentRef = useRef<ConsentDetail | null>(null);
+
+  /*
+   * Document frames, if they ever arrive on their own event.
+   *
+   * Empty in the nested arrangement, where the wrapper merges them into its
+   * own publish before firing it. Kept so a future version that publishes them
+   * separately cannot silently produce a job with no document in it.
+   */
+  const documentRef = useRef<CapturedImage[]>([]);
 
   const fail = useCallback((message: string) => {
     setStep("idle");
@@ -180,8 +197,23 @@ export function SmileIdCapture({
 
       setStep("loading");
 
+      /*
+       * Both sources, merged and de-duplicated by type.
+       *
+       * The wrapper publishes everything together, so `images` normally holds
+       * the document frames already; `documentRef` is only non-empty in the
+       * side-by-side arrangement. Preferring what just published keeps the
+       * newest capture when somebody retook a page.
+       */
+      const seen = new Set(images.map((image) => image.image_type_id));
+
+      const allImages = [
+        ...images,
+        ...documentRef.current.filter((image) => !seen.has(image.image_type_id)),
+      ];
+
       const basics: JobBasics = {
-        images,
+        images: allImages,
         consent: consentRef.current,
         notice: current.consent,
         userDetails: current.user_details,
@@ -190,19 +222,17 @@ export function SmileIdCapture({
       };
 
       /*
-       * Identity fields belong to Biometric KYC alone. A recheck matches a
-       * face against an enrolment rather than against an authority's record,
-       * so it carries no ID at all — and the server decided which this is.
+       * The document half, on a first check only. A recheck matches a face
+       * against an enrolment and has no document field to carry — and it is
+       * the server that decided which this is.
        */
-      const identity =
-        current.product === "smart_selfie_authentication" || !identityRef.current
-          ? undefined
-          : { country: current.country, ...identityRef.current };
-
-      const body = buildJobBody(basics, identity);
+      const body = buildJobBody(
+        basics,
+        current.document_capture ? { country: current.country } : undefined,
+      );
 
       if (!body) {
-        fail("The camera did not capture a usable photograph. Please try again.");
+        fail("The camera did not capture everything we need. Please try again.");
 
         return;
       }
@@ -252,13 +282,9 @@ export function SmileIdCapture({
     const onGranted = (event: Event) => {
       consentRef.current = (event as CustomEvent<ConsentDetail>).detail;
 
-      // A recheck goes straight to the camera: it matches a face against an
-      // enrolment, so there is no ID to ask about.
-      setStep(
-        configRef.current?.product === "smart_selfie_authentication"
-          ? "capture"
-          : "identity",
-      );
+      // Straight to the capture. Whether it also asks for a document is the
+      // element's business, decided by `capture-id` below.
+      setStep("capture");
     };
 
     const onDenied = () => {
@@ -292,6 +318,12 @@ export function SmileIdCapture({
       );
     };
 
+    // Only fires in the side-by-side arrangement — see `documentRef`.
+    const onDocument = (event: Event) => {
+      documentRef.current =
+        (event as CustomEvent<{ images: CapturedImage[] }>).detail?.images ?? [];
+    };
+
     // Their back control. Not a failure — the attempt stays open.
     const onClose = () => {
       setStep("idle");
@@ -314,12 +346,14 @@ export function SmileIdCapture({
     };
 
     camera.addEventListener(CAPTURE_PUBLISHED, onPublish);
+    camera.addEventListener(DOCUMENT_PUBLISHED, onDocument);
     camera.addEventListener(CAPTURE_CLOSED, onClose);
     camera.addEventListener(LIVENESS_VERSION, onVersion);
     camera.addEventListener(LIVENESS_FALLBACK, onFallback);
 
     return () => {
       camera.removeEventListener(CAPTURE_PUBLISHED, onPublish);
+      camera.removeEventListener(DOCUMENT_PUBLISHED, onDocument);
       camera.removeEventListener(CAPTURE_CLOSED, onClose);
       camera.removeEventListener(LIVENESS_VERSION, onVersion);
       camera.removeEventListener(LIVENESS_FALLBACK, onFallback);
@@ -461,21 +495,26 @@ export function SmileIdCapture({
             />
           )}
 
-          {config && step === "identity" && (
-            <IdNumberStep
-              types={config.id_types}
-              onChosen={(idType, idNumber) => {
-                identityRef.current = { id_type: idType, id_number: idNumber };
-                setStep("capture");
-              }}
-            />
-          )}
-
           {config && step === "capture" && (
+            /*
+              One element for the whole capture.
+
+              `capture-id` is presence-checked by the element, so it is set to
+              an empty string when a document is wanted and left off entirely
+              otherwise — a recheck must not be walked through photographing an
+              ID for a job that has no field to carry it.
+
+              The document attributes go here, on the wrapper. It renders its
+              own `<document-capture-screens>` into its shadow root from these
+              and never reads a child element's, which is why writing them on a
+              nested tag — as their setup page shows — silently does nothing.
+            */
             <smart-camera-web
               ref={cameraRef}
               theme-color={theme}
               use-strict-mode={config.strict_liveness ? "true" : undefined}
+              capture-id={config.document_capture ? "" : undefined}
+              document-capture-modes={config.document_capture?.modes}
             />
           )}
         </div>

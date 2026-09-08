@@ -41,20 +41,31 @@ export type JobBasics = {
   partnerParams: Record<string, string>;
 };
 
-/** Identity fields, which only Biometric KYC carries. */
-export type JobIdentity = { country: string; id_type: string; id_number: string };
+/**
+ * The document half of a Document Verification job.
+ *
+ * `country` is required on every document job. **`id_type` is deliberately
+ * absent**: their reference makes it optional for this product and omitting it
+ * lets their server auto-classify against the supported-documents catalogue,
+ * which is more forgiving than asking somebody to name their own document and
+ * then refusing the mismatch. And there is no `id_number` at all — "sending
+ * one is ignored", because identity comes off the card.
+ */
+export type JobDocument = { country: string };
 
 /**
  * The parts every product shares, in one place.
  *
  * Both jobs this application submits — the verification and the SmartSelfie
  * enrolment made from the same frames — differ only in their endpoint, their
- * token, and whether identity fields are attached. Writing the shared nine
- * fields twice is how the two drifted apart before.
+ * token, and whether the document fields are attached. (The enrolment takes
+ * none: `/v3/registration` carries a selfie, consent and user details, and
+ * nothing else.) Writing the shared six fields twice is how the two copies
+ * drifted apart before.
  */
 export function buildJobBody(
   basics: JobBasics,
-  identity?: JobIdentity,
+  document?: JobDocument,
 ): FormData | null {
   const selfie = basics.images.find(
     (image) => image.image_type_id === IMAGE_TYPE.selfie,
@@ -101,10 +112,33 @@ export function buildJobBody(
    */
   body.append("partner_params", JSON.stringify(basics.partnerParams));
 
-  if (identity) {
-    body.append("country", identity.country);
-    body.append("id_type", identity.id_type);
-    body.append("id_number", identity.id_number);
+  if (document) {
+    body.append("country", document.country);
+
+    /*
+     * The document itself. Front is always present on a completed capture;
+     * back only when the ID type has one and `hide-back-of-id` was not set, so
+     * it is appended only when a frame actually arrived.
+     */
+    const front = basics.images.find(
+      (image) => image.image_type_id === IMAGE_TYPE.documentFront,
+    );
+
+    const back = basics.images.find(
+      (image) => image.image_type_id === IMAGE_TYPE.documentBack,
+    );
+
+    // No document, no document job — the same reasoning as the selfie above.
+    if (!front) return null;
+
+    body.append("document", toJpegFile(front.image, "document-front.jpg"));
+
+    if (back) {
+      body.append(
+        "document_back",
+        toJpegFile(back.image, "document-back.jpg"),
+      );
+    }
   }
 
   return body;
