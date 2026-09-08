@@ -15,293 +15,50 @@ import {
   submittedVerificationAction,
   type SmileIdConfig,
 } from "@/lib/actions/verification.client";
+import {
+  CAPTURE_CLOSED,
+  CAPTURE_PUBLISHED,
+  CONSENT_DENIED,
+  CONSENT_GRANTED,
+  LIVENESS_FALLBACK,
+  LIVENESS_VERSION,
+  registerSmileIdElements,
+  type CapturedImage,
+  type ConsentDetail,
+} from "@/lib/smile-id/elements";
+import { buildJobBody, postJob, type JobBasics } from "@/lib/smile-id/job";
+
+import { CaptureGuidance, IdNumberStep } from "./IdNumberStep";
 
 /**
- * Identity verification, built from Smile ID's web components.
+ * Identity verification, built from Smile ID's v12 web components.
  *
- * ## The flow, and who does what
+ * ## The flow
  *
- * `@smileid/web-sdk` ships the same screens their hosted modal renders, as
- * standalone custom elements. We own the order and the layout; they own the
- * screens. Per their documentation, for Document Verification that order is:
+ *     consent  →  which ID and its number  →  selfie + liveness  →  submit
  *
- *     consent → document capture → selfie/liveness → submit
+ * Their components render the first and third; the second is ours, and the
+ * submission is ours. Everything that is not a decision — which product, which
+ * endpoint, which ID types, whose name goes on the job — is decided by the
+ * backend and arrives in one config object, so nothing here is a rule the
+ * server does not also hold.
  *
- * Their guide puts `<smileid-user-details>` between the first two. It is left
- * out on purpose: `user_details` is required on the job, but we already hold
- * this person's name, email and phone number, and a form to re-type them on
- * the way to a camera is a step that can only lose people. The backend fills
- * the field from the account instead.
+ * Two deliberate departures from their guide, both stated once:
  *
- * The last step is ours: the browser posts one `multipart/form-data` job to
- * Smile ID **directly**, with a short-lived v3 token minted by our backend.
- * The API key never reaches the browser, and no image passes through our
- * servers — owning the flow and relaying the bytes are different things, and
- * only the first was asked for.
+ *  - **`<smileid-user-details>` is not mounted.** `user_details` is required on
+ *    every V3 job, but we already hold this person's name, email and phone
+ *    number. A form to re-type them on the way to a camera is a step that can
+ *    only lose people, so the backend fills the field from the account.
+ *  - **No document step.** Biometric KYC asks an authority about a typed
+ *    number; there is nothing to photograph. `<document-capture-screens>` is
+ *    neither imported nor mounted.
  *
- * Their `202` carries `job_id` and `user_id`, which *they* generate. So the
- * attempt id travels in `partner_params` instead, and comes back on the
- * webhook verbatim — that is what correlates a verdict to a person.
+ * The hosted Web SDK — `window.SmileIdentity()` — is a separate integration and
+ * is gone. The npm package is *named* `@smileid/web-sdk` and is the components
+ * package; that stays.
  *
- * ## Two things their documentation is emphatic about
- *
- *  - **Events dispatch on `window` — except the one that matters most.**
- *    Their setup page says to listen on `window`, and that is right for
- *    `smileid-consent.*`. But `<smart-camera-web>` publishes with
- *    `this.dispatchEvent(new CustomEvent("smart-camera-web.publish", …))` on
- *    *itself*, and a CustomEvent without `bubbles` does not reach `window`.
- *    Listening there means the capture never arrives, the flow sits on their
- *    "Submitting…" screen forever, and nothing in the console says why. Read
- *    out of the package, not guessed. So that one is bound to the element.
- *  - **Never set `Content-Type`** on the submission. The browser writes the
- *    multipart boundary from the `FormData` itself, and setting the header by
- *    hand breaks the boundary and the parse with it.
+ * @see https://docs.usesmileid.com/developer-resources/sdks/web/web-components
  */
-
-/** Their image type ids, from the payload reference. */
-const IMAGE_TYPE = {
-  selfie: 2,
-  documentFront: 3,
-  liveness: 6,
-  documentBack: 7,
-} as const;
-
-type CapturedImage = { image: string; image_type_id: number };
-
-type ConsentDetail = { granted: boolean; granted_at: string };
-
-type CustomElementProps = React.DetailedHTMLProps<
-  React.HTMLAttributes<HTMLElement>,
-  HTMLElement
-> & { "theme-color"?: string };
-
-/*
- * Typing the custom elements.
- *
- * JSX's intrinsic-element table only exists as a namespace, so there is no
- * module-syntax way to add to it — the rule below has nothing to prefer here.
- * The alternative is casting these tags to `any` at every use, which would
- * lose the attribute names this is written to check.
- */
-declare module "react" {
-  /* The JSX intrinsic-element table is only reachable as a namespace. */
-  // eslint-disable-next-line @typescript-eslint/no-namespace
-  namespace JSX {
-    interface IntrinsicElements {
-      "smileid-consent": CustomElementProps & {
-        "partner-name"?: string;
-        "partner-logo"?: string;
-        "policy-url"?: string;
-      };
-      /*
-       * Every document attribute belongs **here**, not on the nested element.
-       *
-       * `<smart-camera-web>` renders its own `<document-capture-screens>` into
-       * its shadow root from its own attributes — the child written in our JSX
-       * is never slotted and never read. `document-capture-modes` sat there for
-       * a release, which is why "upload a file" never appeared and people were
-       * stuck photographing a passport with a laptop webcam.
-       */
-      "smart-camera-web": CustomElementProps & {
-        /* Presence, not value: `hasAttribute("capture-id")` turns on the document step. */
-        "capture-id"?: string;
-        "document-type"?: string;
-        "document-capture-modes"?: string;
-        "hide-back-of-id"?: string;
-        /*
-         * Enhanced SmartSelfie active liveness. Read by the wrapper and
-         * forwarded to `<selfie-capture-screens>` as `use-strict-mode="true"`;
-         * the value matters here, since the wrapper treats the string
-         * `"false"` as off.
-         */
-        "use-strict-mode"?: string;
-        ref?: React.Ref<HTMLElement>;
-      };
-      "document-capture-screens": CustomElementProps & {
-        "document-capture-modes"?: string;
-      };
-    }
-  }
-}
-
-/**
- * Registers the custom elements, once per page.
- *
- * The package is ESM-only and touches `window` on import, so it is loaded
- * dynamically in the browser rather than imported at module scope where the
- * server would evaluate it. A module-level promise, not a ref: two mounts
- * would otherwise race to define the same elements.
- */
-let elementsPromise: Promise<void> | null = null;
-
-function loadElements(): Promise<void> {
-  if (typeof window === "undefined") return Promise.resolve();
-
-  elementsPromise ??= (async () => {
-    await import("@smileid/web-sdk/consent");
-    await import("@smileid/web-sdk/document-capture");
-    await import("@smileid/web-sdk/smart-camera-web");
-  })().catch((error: unknown) => {
-    // A failed load must not be cached as permanent — the next attempt should
-    // try again rather than inherit this rejection.
-    elementsPromise = null;
-
-    throw error;
-  });
-
-  return elementsPromise;
-}
-
-/** Their examples' base64 → JPEG File, which is what the V3 API expects. */
-function toJpegFile(base64: string, filename: string): File {
-  const bytes = atob(base64.split(",").pop() ?? "");
-  const buffer = Uint8Array.from(bytes, (c) => c.charCodeAt(0));
-
-  return new File([buffer], filename, { type: "image/jpeg" });
-}
-
-/**
- * Which ID, and its number.
- *
- * Biometric KYC checks a selfie against the record the **issuing authority**
- * holds for this number — so the number is the whole input, and there is no
- * document to photograph. Eleven digits typed off a card beats a photograph of
- * that card taken in whatever light somebody happens to be standing in.
- *
- * The number is checked against Smile ID's own regex for the type before it
- * goes anywhere. A number in the wrong shape is a request that can only fail,
- * and failing it here gives the client something to correct instead of a
- * vendor error code after a camera.
- */
-function IdNumberStep({
-  types,
-  onChosen,
-}: {
-  types: { type: string; label: string; regex: string }[];
-  onChosen: (idType: string, idNumber: string) => void;
-}) {
-  const [idType, setIdType] = useState(types[0]?.type ?? "");
-  const [idNumber, setIdNumber] = useState("");
-  const [error, setError] = useState<string | null>(null);
-
-  const chosen = types.find((type) => type.type === idType) ?? types[0] ?? null;
-
-  const submit = (event: React.FormEvent) => {
-    event.preventDefault();
-
-    const value = idNumber.trim();
-
-    if (!chosen) return;
-
-    if (!new RegExp(chosen.regex).test(value)) {
-      setError(`That does not look like a ${chosen.label}. Check it and try again.`);
-
-      return;
-    }
-
-    setError(null);
-    onChosen(chosen.type, value);
-  };
-
-  return (
-    <form onSubmit={submit} className="mt-2 space-y-4 text-left">
-      <p className="text-center text-sm text-muted-foreground">
-        We check this against the authority that issued it, then match your
-        face to their record. Nothing is uploaded.
-      </p>
-
-      <label className="block">
-        <span className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
-          Which ID
-        </span>
-        <select
-          value={idType}
-          onChange={(event) => {
-            setIdType(event.target.value);
-            setError(null);
-          }}
-          className="mt-1.5 w-full border border-border bg-background px-3 py-2.5 font-serif text-sm text-navy focus:border-gold focus:outline-none"
-        >
-          {types.map((type) => (
-            <option key={type.type} value={type.type}>
-              {type.label}
-            </option>
-          ))}
-        </select>
-      </label>
-
-      <label className="block">
-        <span className="text-[11px] uppercase tracking-[0.15em] text-muted-foreground">
-          Number
-        </span>
-        <input
-          value={idNumber}
-          onChange={(event) => {
-            setIdNumber(event.target.value);
-            setError(null);
-          }}
-          inputMode={/^\^\[0-9\]/.test(chosen?.regex ?? "") ? "numeric" : "text"}
-          autoComplete="off"
-          required
-          className="mt-1.5 w-full border border-border bg-background px-3 py-2.5 font-serif text-sm text-navy focus:border-gold focus:outline-none"
-        />
-      </label>
-
-      {error && (
-        <p role="status" className="text-sm text-destructive">
-          {error}
-        </p>
-      )}
-
-      <button
-        type="submit"
-        className="flex h-12 w-full items-center justify-center rounded-full bg-navy px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-foreground transition-colors hover:bg-navy/90"
-      >
-        Continue to the camera
-      </button>
-    </form>
-  );
-}
-
-/**
- * What the camera step actually wants, said before it opens.
- *
- * Their capture is gated on a **smile**, and says so nowhere: while it waits
- * for one it issues framing hints — "move your device higher", "lower",
- * "right" — which read as the thing being asked for. They are not. Somebody
- * following them exactly can stand there indefinitely; somebody who shows
- * their teeth is through in a second. That was reported as the check being
- * stuck, three times, before the difference was understood.
- *
- * We cannot edit their screen. We can say what it is looking for beforehand.
- */
-function CaptureGuidance() {
-  return (
-    <div className="mt-6 border border-border bg-surface px-5 py-4 text-left">
-      <p className="text-[10px] uppercase tracking-[0.18em] text-gold">
-        Before the camera opens
-      </p>
-
-      <ul className="mt-3 space-y-2 text-sm leading-relaxed text-muted-foreground">
-        <li>
-          <span className="text-navy">Fill the oval.</span> Your face needs to
-          take up most of it — closer than feels natural on a laptop, about an
-          arm&apos;s length on a phone.
-        </li>
-        <li>
-          <span className="text-navy">Then smile, showing your teeth.</span>{" "}
-          That is what the camera is waiting for — it is how it tells a live
-          person from a photograph, and the check moves on the moment it sees
-          one. It will keep suggesting you move the device until then.
-        </li>
-        <li>
-          <span className="text-navy">Face a window or a lamp,</span> not away
-          from one, and take off a hat or sunglasses.
-        </li>
-      </ul>
-    </div>
-  );
-}
 
 type Step = "idle" | "loading" | "consent" | "identity" | "capture";
 type Outcome = null | { kind: "done" | "error"; message: string };
@@ -322,23 +79,14 @@ export function SmileIdCapture({
   const [config, setConfig] = useState<SmileIdConfig | null>(null);
 
   /*
-   * The session, accumulated across four separate events.
+   * The session, accumulated across separate events.
    *
    * Refs rather than state: these are read inside listeners bound once, and a
    * closure over state would still be looking at the render that bound it.
    * None of them drives the UI.
    */
-  /** The element itself — `smart-camera-web.publish` dispatches on it, not on `window`. */
   const cameraRef = useRef<HTMLElement | null>(null);
   const attemptRef = useRef<string | null>(null);
-
-  /*
-   * The ID this check is made against, typed before the camera opens.
-   *
-   * A ref as well as state: the submission reads it from inside a listener
-   * bound once, where a closure over state would still be looking at the
-   * render that bound it.
-   */
   const identityRef = useRef<{ id_type: string; id_number: string } | null>(null);
   const configRef = useRef<SmileIdConfig | null>(null);
   const consentRef = useRef<ConsentDetail | null>(null);
@@ -358,254 +106,128 @@ export function SmileIdCapture({
   );
 
   /**
-   * Builds and posts the job, then reports the job id back to our API.
+   * The enrolment, made from the same frames.
    *
-   * Every field name is from their Document Verification table. Notably there
-   * is **no `id_number`** — identity comes from the scanned document — and
-   * `id_type` is omitted so their server auto-classifies against the
-   * supported-documents catalogue, which is more forgiving than us guessing
-   * from what the client told us earlier.
+   * `/v3/authentication` — every later check that this is still the same
+   * person — matches a face against an identity registered under a user id.
+   * Nothing registers one unless we ask, so the frames just captured are
+   * submitted a second time to `/v3/registration`: one capture, two jobs, no
+   * second appointment with the camera.
+   *
+   * Deliberately after the verification and deliberately non-fatal. The
+   * identity check has already succeeded; failing it now because an enrolment
+   * did not take would refuse somebody for a convenience they never asked for.
+   * A client who ends up unenrolled is asked for a full check again later,
+   * which is recoverable — one refused here is stuck.
+   *
+   * The failure is *reported*, not merely logged: a browser console is not
+   * somewhere anybody looks, and an enrolment that never succeeded left every
+   * recheck falling back to a full check with nothing anywhere saying why.
    */
+  const enrol = useCallback(async (basics: JobBasics, current: SmileIdConfig) => {
+    if (!current.enrolment) return;
+
+    try {
+      const body = buildJobBody(basics);
+
+      if (!body) return;
+
+      const result = await postJob(
+        current.enrolment.endpoint,
+        current.enrolment.token,
+        body,
+      );
+
+      if (result.ok) {
+        /*
+         * Their `user_id`, kept because every later authentication is matched
+         * against it. It is ours only while Smile ID honour the `User-ID`
+         * header, which their documentation makes optional for them — and the
+         * header cannot be sent from a browser anyway: it is absent from the
+         * `access-control-allow-headers` on their preflight, so sending it is
+         * a request the browser refuses to make.
+         */
+        await enrolledAction(result.data.job_id, result.data.user_id);
+
+        return;
+      }
+
+      console.error("[smile-id] enrolment refused", result.error);
+
+      await enrolledAction(
+        null,
+        null,
+        `${result.error.status} ${result.error.reason}`.slice(0, 500),
+      );
+    } catch (error) {
+      console.error("[smile-id] enrolment failed", error);
+
+      await enrolledAction(null, null, String(error).slice(0, 500));
+    }
+  }, []);
+
+  /** Builds and posts the verification, then records the job id with our API. */
   const submit = useCallback(
     async (images: CapturedImage[]) => {
       const current = configRef.current;
       const attemptId = attemptRef.current;
 
       if (current === null || attemptId === null) {
-        fail(
-          "Your session expired before that could be sent. Please start again.",
-        );
+        fail("Your session expired before that could be sent. Please start again.");
 
         return;
       }
 
       setStep("loading");
 
-      // Decided by the server: a client who has already proved who they are is
-      // checked against that identity rather than against a document.
-      const isRecheck = current.product === "smart_selfie_authentication";
+      const basics: JobBasics = {
+        images,
+        consent: consentRef.current,
+        notice: current.consent,
+        userDetails: current.user_details,
+        callbackUrl: current.callback_url,
+        partnerParams: current.partner_params,
+      };
 
       /*
-       * Both sources, merged.
-       *
-       * Nested inside `<smart-camera-web>`, the wrapper collects the document
-       * frames itself and publishes everything in one payload. Mounted
-       * separately it does not. Reading both means neither arrangement
-       * silently submits a job with no document in it.
+       * Identity fields belong to Biometric KYC alone. A recheck matches a
+       * face against an enrolment rather than against an authority's record,
+       * so it carries no ID at all — and the server decided which this is.
        */
-      const selfie = images.find((i) => i.image_type_id === IMAGE_TYPE.selfie);
+      const identity =
+        current.product === "smart_selfie_authentication" || !identityRef.current
+          ? undefined
+          : { country: current.country, ...identityRef.current };
 
-      if (!selfie) {
-        fail(
-          "The camera did not capture a usable photograph. Please try again.",
-        );
+      const body = buildJobBody(basics, identity);
+
+      if (!body) {
+        fail("The camera did not capture a usable photograph. Please try again.");
 
         return;
       }
 
-      const body = new FormData();
-
-      body.append("selfie_image", toJpegFile(selfie.image, "selfie.jpg"));
-
-      // Repeated under one name. Indexed names — `liveness_images[0]` — are
-      // their documented failure mode: only one frame arrives.
-      images
-        .filter((i) => i.image_type_id === IMAGE_TYPE.liveness)
-        .forEach((frame, i) => {
-          body.append(
-            "liveness_images",
-            toJpegFile(frame.image, `liveness-${i}.jpg`),
-          );
-        });
-
-      body.append(
-        "consent",
-        JSON.stringify({
-          ...(consentRef.current ?? { granted: true }),
-          notice_language: current.consent.notice_language,
-          notice_privacy_policy_url: current.consent.notice_privacy_policy_url,
-        }),
-      );
-      // From our own records, decided server-side — see the note at the top.
-      body.append("user_details", JSON.stringify(current.user_details));
-      body.append("country", current.country);
-
-      /*
-       * Identifies the enrolled person the face is matched against. Required
-       * by the authentication endpoint and harmless on the document one, so it
-       * is sent either way rather than branched on.
-       */
-      body.append("user_id", current.user_id);
-
-      /*
-       * The identity being checked. Required by Biometric KYC — it is what
-       * the authority is asked about — and absent from a recheck, which
-       * matches a face against an enrolment rather than against a record.
-       */
-      const identity = identityRef.current;
-
-      if (!isRecheck && identity) {
-        body.append("id_type", identity.id_type);
-        body.append("id_number", identity.id_number);
-      }
-      body.append("callback_url", current.callback_url);
-
-      // How the verdict finds this person. Their job id is generated on their
-      // side and comes back in the 202; this is ours and survives the round
-      // trip untouched.
-      body.append("partner_params", JSON.stringify(current.partner_params));
-
       let jobId: string | null = null;
 
       try {
-        const response = await fetch(current.endpoint, {
-          method: "POST",
-          // No Content-Type: the browser writes the multipart boundary.
-          headers: {
-            "smileid-token": current.token,
-            Accept: "application/json",
-          },
-          body,
-        });
+        const result = await postJob(current.endpoint, current.token, body);
 
-        const payload = (await response.json().catch(() => ({}))) as {
-          job_id?: string;
-          message?: string;
-          error?: string;
-        };
-
-        if (response.status !== 202) {
-          console.error(
-            "[smile-id] submission refused",
-            response.status,
-            payload,
-          );
-
-          fail(
-            payload.message ??
-            payload.error ??
-            "We could not send your identity check. Please try again.",
-          );
+        if (!result.ok) {
+          console.error("[smile-id] submission refused", result.error);
+          fail(result.error.reason);
 
           return;
         }
 
-        jobId = payload.job_id ?? null;
+        jobId = result.data.job_id;
       } catch (error) {
         console.error("[smile-id] submission failed", error);
-
         fail("We could not reach the identity service. Please try again.");
 
         return;
       }
 
-      /*
-       * The enrolment, from the same capture.
-       *
-       * `/v3/authentication` — every future check that this is still the same
-       * person — matches a face against an identity registered under this user
-       * id. Nothing registers one unless we ask, so the frames the client has
-       * just provided are submitted a second time to `/v3/registration`. One
-       * capture, two jobs, and no second appointment with the camera.
-       *
-       * Deliberately after the verification and deliberately swallowed: the
-       * identity check has already succeeded, and failing it now because an
-       * enrolment did not take would refuse somebody for a convenience they
-       * did not ask for. A client who ends up unenrolled is asked for a
-       * document check again later, which is recoverable; a client refused
-       * here is stuck.
-       */
-      if (current.enrolment) {
-        try {
-          const enrolBody = new FormData();
-
-          enrolBody.append("selfie_image", toJpegFile(selfie.image, "selfie.jpg"));
-
-          images
-            .filter((i) => i.image_type_id === IMAGE_TYPE.liveness)
-            .forEach((frame, i) => {
-              enrolBody.append(
-                "liveness_images",
-                toJpegFile(frame.image, `liveness-${i}.jpg`),
-              );
-            });
-
-          enrolBody.append(
-            "consent",
-            JSON.stringify({
-              ...(consentRef.current ?? { granted: true }),
-              notice_language: current.consent.notice_language,
-              notice_privacy_policy_url: current.consent.notice_privacy_policy_url,
-            }),
-          );
-          enrolBody.append("user_details", JSON.stringify(current.user_details));
-          enrolBody.append("callback_url", current.callback_url);
-          enrolBody.append(
-            "partner_params",
-            JSON.stringify(current.partner_params),
-          );
-
-          const enrolResponse = await fetch(current.enrolment.endpoint, {
-            method: "POST",
-            /*
-             * No `User-ID` header, and it cannot be sent from a browser.
-             *
-             * Their preflight for `/v3/registration` answers
-             * `access-control-allow-headers: Content-Type, SmileID-Partner-ID,
-             * SmileID-Request-Signature, SmileID-Request-Timestamp,
-             * SmileID-Timestamp, SmileID-Token, SmileID-Request-Mac,
-             * SmileID-Source-SDK, SmileID-Source-SDK-Version` — and `User-ID`
-             * is not among them. Sending it anyway is a request the browser
-             * refuses to make, which surfaces as `TypeError: NetworkError when
-             * attempting to fetch resource` and no job at all. That is why no
-             * client has ever been enrolled.
-             *
-             * So Smile ID generate the id instead, and we keep the one they
-             * return — which is what `smartselfie_user_id` is for.
-             */
-            headers: {
-              "smileid-token": current.enrolment.token,
-              Accept: "application/json",
-            },
-            body: enrolBody,
-          });
-
-          if (enrolResponse.status === 202) {
-            const enrolled = (await enrolResponse.json().catch(() => ({}))) as {
-              job_id?: string;
-              user_id?: string;
-            };
-
-            /*
-             * Both, and the `user_id` is the one that matters.
-             *
-             * It names the identity they enrolled — ours if they honoured the
-             * `User-ID` header above, theirs if they generated one, which
-             * their documentation says is their choice. Every later
-             * authentication is matched against it, so it is stored rather
-             * than assumed.
-             */
-            await enrolledAction(enrolled.job_id ?? null, enrolled.user_id ?? null);
-          } else {
-            /*
-             * Reported rather than only logged. A browser console is not
-             * somewhere anybody looks, and an enrolment that never succeeds
-             * leaves every later recheck falling back to a full document
-             * check — which reads to the client as being asked to do their
-             * KYC over again, with nothing anywhere saying why.
-             */
-            const reason = await enrolResponse.text().catch(() => "");
-
-            console.error("[smile-id] enrolment refused", enrolResponse.status, reason);
-
-            await enrolledAction(null, null, `${enrolResponse.status} ${reason}`.slice(0, 500));
-          }
-        } catch (error) {
-          console.error("[smile-id] enrolment failed", error);
-
-          await enrolledAction(null, null, String(error).slice(0, 500));
-        }
-      }
+      await enrol(basics, current);
 
       /*
        * Told to our own API second, and deliberately not treated as the thing
@@ -615,84 +237,74 @@ export function SmileIdCapture({
       const recorded = await submittedVerificationAction(attemptId, jobId);
 
       finish(
-        recorded.status === "success"
-          ? (recorded.message ??
-            "Your identity check has been submitted. We will email you as soon as it is confirmed.")
-          : "Your identity check has been submitted. We will email you as soon as it is confirmed.",
+        (recorded.status === "success" ? recorded.message : null) ??
+        "Your identity check has been submitted. We will email you as soon as it is confirmed.",
       );
     },
-    [fail, finish],
+    [enrol, fail, finish],
   );
 
   /*
-   * One set of listeners, bound once, on `window` — where their documentation
-   * says these dispatch.
+   * Consent, which dispatches on `window` — bound once, for the life of the
+   * component.
    */
   useEffect(() => {
-    const onConsentGranted = (event: Event) => {
+    const onGranted = (event: Event) => {
       consentRef.current = (event as CustomEvent<ConsentDetail>).detail;
 
-      /*
-       * A recheck goes straight to the camera. It matches a face against an
-       * enrolment rather than against an authority's record, so there is no ID
-       * to ask about.
-       */
-      setStep(configRef.current?.product === "smart_selfie_authentication"
-        ? "capture"
-        : "identity");
+      // A recheck goes straight to the camera: it matches a face against an
+      // enrolment, so there is no ID to ask about.
+      setStep(
+        configRef.current?.product === "smart_selfie_authentication"
+          ? "capture"
+          : "identity",
+      );
     };
 
-    const onConsentDenied = () => {
-      // Respect the decision — their documentation asks not to re-prompt.
+    const onDenied = () => {
+      // Their documentation asks that the decision not be re-prompted.
       fail(
         "The identity check cannot go ahead without your consent. You can start it again whenever you are ready.",
       );
     };
 
+    window.addEventListener(CONSENT_GRANTED, onGranted);
+    window.addEventListener(CONSENT_DENIED, onDenied);
 
-    const onCapture = (event: Event) => {
+    return () => {
+      window.removeEventListener(CONSENT_GRANTED, onGranted);
+      window.removeEventListener(CONSENT_DENIED, onDenied);
+    };
+  }, [fail]);
+
+  /*
+   * The capture, which dispatches on the **element** — see `elements.ts`.
+   * Bound when it mounts, which is only on the capture step.
+   */
+  useEffect(() => {
+    const camera = cameraRef.current;
+
+    if (step !== "capture" || camera === null) return;
+
+    const onPublish = (event: Event) => {
       void submit(
         (event as CustomEvent<{ images: CapturedImage[] }>).detail?.images ?? [],
       );
     };
 
-    const onCameraClosed = () => {
-      // Their back/close control. Not a failure — the attempt stays open.
+    // Their back control. Not a failure — the attempt stays open.
+    const onClose = () => {
       setStep("idle");
       setOutcome(null);
     };
 
-    window.addEventListener("smileid-consent.granted", onConsentGranted);
-    window.addEventListener("smileid-consent.denied", onConsentDenied);
-
-    /*
-     * Bound to the element, and re-bound whenever it mounts — see the note at
-     * the top. `camera` is read at effect time because the element only exists
-     * on the capture step.
-     */
-    const camera = cameraRef.current;
-
-    /*
-     * Why the capture behaved as it did.
-     *
-     * Enhanced SmartSelfie runs head-pose detection on the device, from models
-     * it fetches at runtime (`web-models.smileidentity.com`: MediaPipe's WASM,
-     * a face-landmarker task, OpenCV). When that cannot load, it says so on
-     * these two events and then either offers a retry — in strict mode, whose
-     * whole mechanic *is* that detection — or drops to an interval capture with
-     * no prompts at all.
-     *
-     * Both are indistinguishable from "the guided check isn't working" at the
-     * far end of a support conversation, so they are recorded here. `version`
-     * is `1.0.0` when detection is live and `0.0.1` when it fell back.
-     */
-    const onLivenessVersion = (event: Event) => {
+    const onVersion = (event: Event) => {
       const detail = (event as CustomEvent<{ version?: string }>).detail;
 
       console.info("[smile-id] active liveness version", detail?.version);
     };
 
-    const onFallbackReason = (event: Event) => {
+    const onFallback = (event: Event) => {
       const detail = (event as CustomEvent<{ reason?: string }>).detail;
 
       console.error(
@@ -701,39 +313,25 @@ export function SmileIdCapture({
       );
     };
 
-    camera?.addEventListener(
-      "metadata.active-liveness-version",
-      onLivenessVersion,
-    );
-    camera?.addEventListener(
-      "metadata.mediapipe-fallback-reason",
-      onFallbackReason,
-    );
-    camera?.addEventListener("smart-camera-web.publish", onCapture);
-    camera?.addEventListener("smart-camera-web.close", onCameraClosed);
+    camera.addEventListener(CAPTURE_PUBLISHED, onPublish);
+    camera.addEventListener(CAPTURE_CLOSED, onClose);
+    camera.addEventListener(LIVENESS_VERSION, onVersion);
+    camera.addEventListener(LIVENESS_FALLBACK, onFallback);
 
     return () => {
-      window.removeEventListener("smileid-consent.granted", onConsentGranted);
-      window.removeEventListener("smileid-consent.denied", onConsentDenied);
-      camera?.removeEventListener(
-        "metadata.active-liveness-version",
-        onLivenessVersion,
-      );
-      camera?.removeEventListener(
-        "metadata.mediapipe-fallback-reason",
-        onFallbackReason,
-      );
-      camera?.removeEventListener("smart-camera-web.publish", onCapture);
-      camera?.removeEventListener("smart-camera-web.close", onCameraClosed);
+      camera.removeEventListener(CAPTURE_PUBLISHED, onPublish);
+      camera.removeEventListener(CAPTURE_CLOSED, onClose);
+      camera.removeEventListener(LIVENESS_VERSION, onVersion);
+      camera.removeEventListener(LIVENESS_FALLBACK, onFallback);
     };
-  }, [fail, submit, step]);
+  }, [step, submit]);
 
   const start = useCallback(async () => {
     setStep("loading");
     setOutcome(null);
 
     try {
-      await loadElements();
+      await registerSmileIdElements();
     } catch (error) {
       console.error("[smile-id] could not load the components", error);
 
@@ -757,15 +355,11 @@ export function SmileIdCapture({
     if (started.smileId === null) {
       // No vendor configured: a person will decide this one. The attempt is
       // real, so it is recorded rather than shown as a broken camera.
-      const recorded = await submittedVerificationAction(
-        started.attemptId,
-        null,
-      );
+      const recorded = await submittedVerificationAction(started.attemptId, null);
 
       finish(
-        recorded.status === "success"
-          ? (recorded.message ?? "Your identity check has been recorded.")
-          : "Your identity check has been recorded.",
+        (recorded.status === "success" ? recorded.message : null) ??
+        "Your identity check has been recorded.",
       );
 
       return;
@@ -777,7 +371,6 @@ export function SmileIdCapture({
   }, [fail, finish]);
 
   const theme = config?.partner_details.theme_color ?? "#0f1e3d";
-
   const showsIntro = step === "idle" || step === "loading";
 
   return (
@@ -785,10 +378,10 @@ export function SmileIdCapture({
       <div className="overflow-hidden rounded-3xl border border-border bg-background shadow-elegant">
         {/*
           Said plainly, at the top, whenever it is on.
-          
-          The sandbox judges the name rather than the photographs, so a test
-          run submits as somebody fictional. A test run that looks exactly like
-          a real one is how a made-up name ends up in a support conversation.
+
+          The sandbox judges the name rather than the photographs, so a test run
+          submits as somebody fictional. A test run that looks exactly like a
+          real one is how a made-up name ends up in a support conversation.
         */}
         {config?.test_mode && (
           <div className="flex items-start gap-3 border-b border-gold/40 bg-gold/10 px-6 py-4 text-xs leading-relaxed text-navy">
@@ -836,23 +429,26 @@ export function SmileIdCapture({
             </p>
           )}
 
-          {step === "idle" && <CaptureGuidance />}
-
           {step === "idle" && (
-            <button
-              type="button"
-              onClick={() => void start()}
-              className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-navy px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-foreground transition-colors hover:bg-navy/90"
-            >
-              {outcome?.kind === "error" ? "Try again" : "Begin identity check"}
-            </button>
+            <>
+              <CaptureGuidance />
+
+              <button
+                type="button"
+                onClick={() => void start()}
+                className="mt-6 flex h-12 w-full items-center justify-center gap-2 rounded-full bg-navy px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-foreground transition-colors hover:bg-navy/90"
+              >
+                {outcome?.kind === "error" ? "Try again" : "Begin identity check"}
+              </button>
+            </>
           )}
 
           {/*
-            Their screens, mounted one at a time as the flow advances. Each is
-            rendered only on its own step: these elements read their attributes
-            on first render and do their own layout, so keeping a finished one
-            mounted would leave two of their screens on the page at once.
+            Their screens, mounted one at a time as the flow advances.
+
+            Each renders only on its own step. These elements read their
+            attributes on first render and do their own layout, so keeping a
+            finished one mounted would leave two of their screens on the page.
           */}
           {config && step === "consent" && (
             <smileid-consent
@@ -860,14 +456,16 @@ export function SmileIdCapture({
               partner-name={config.partner_details.name}
               partner-logo={config.partner_details.logo_url}
               policy-url={config.partner_details.policy_url}
+              consent-region="ng"
+
             />
           )}
 
           {config && step === "identity" && (
             <IdNumberStep
               types={config.id_types}
-              onChosen={(type, number) => {
-                identityRef.current = { id_type: type, id_number: number };
+              onChosen={(idType, idNumber) => {
+                identityRef.current = { id_type: idType, id_number: idNumber };
                 setStep("capture");
               }}
             />
@@ -877,15 +475,6 @@ export function SmileIdCapture({
             <smart-camera-web
               ref={cameraRef}
               theme-color={theme}
-              /*
-                No `capture-id`, and no nested document screens.
-
-                Biometric KYC has no document step: the client typed their ID
-                number, and the authority's own record is what the face is
-                matched against. `capture-id` is what used to turn a document
-                capture on — with it set, this element would walk them through
-                photographing a card that nothing is going to read.
-              */
               use-strict-mode={config.strict_liveness ? "true" : undefined}
             />
           )}

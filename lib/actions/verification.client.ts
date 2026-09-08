@@ -25,13 +25,12 @@ export type SmileIdConfig = {
   /**
    * Which check this is, decided server-side.
    *
-   * `document_verification` proves who somebody is, once.
+   * `biometric_kyc` proves who somebody is, once, by matching a selfie against
+   * the record an issuing authority holds for a typed ID number.
    * `smart_selfie_authentication` asks only whether the face in front of the
-   * camera is the identity already proved — no document, no second ID check.
+   * camera is the identity already proved — no ID number, no second check.
    */
-  product: string;
-  /** Required by the authentication endpoint, which matches against this id. */
-  user_id: string;
+  product: "biometric_kyc" | "smart_selfie_authentication";
   /**
    * The enrolment to submit alongside a first verification, or null.
    *
@@ -46,13 +45,19 @@ export type SmileIdConfig = {
   callback_url: string;
   country: string;
   /**
-   * How a verdict finds its attempt.
+   * How a verdict finds its attempt, and — on a recheck — who the face is
+   * compared against.
    *
    * Smile ID generate `job_id` and `user_id` themselves and return them in the
-   * 202, so — unlike the hosted modal, where we chose the job id — this is what
-   * travels with the submission and comes back on the webhook verbatim.
+   * 202, so this is what travels with the submission and comes back on the
+   * webhook verbatim.
+   *
+   * `user_id` is here rather than beside it because their payload reference
+   * puts it here: `/v3/authentication` "requires `user_id` in `partner_params`"
+   * and "rejects the job without it". Absent on a first check, which names no
+   * enrolled user. Passed through as the server composed it.
    */
-  partner_params: { attempt_id: string };
+  partner_params: { attempt_id: string; user_id?: string };
   consent: { notice_language: string; notice_privacy_policy_url: string };
   /**
    * Who this is, from our own records.
@@ -60,14 +65,7 @@ export type SmileIdConfig = {
    * Required on every V3 job — but the element that collects it is not, since
    * we already hold all of it.
    */
-  user_details: {
-    given_names?: string;
-    last_name?: string;
-    email?: string;
-    phone_number?: string;
-  };
-  /** `camera,upload` — set on `<smart-camera-web>`, which is the only element that reads it. */
-  document_capture_modes: string;
+  user_details: Record<string, string | undefined>;
   /**
    * Enhanced SmartSelfie™ active liveness — the capture that gives directions.
    *
@@ -108,9 +106,7 @@ export type SmileIdConfig = {
   };
 };
 
-export async function startVerificationAction(
-  documentType?: string | null,
-): Promise<
+export async function startVerificationAction(): Promise<
   | { status: "error"; message: string }
   | { status: "success"; attemptId: string; smileId: SmileIdConfig | null }
 > {
@@ -118,7 +114,7 @@ export async function startVerificationAction(
     data: { attempt_id: string; smile_id?: SmileIdConfig | null };
   }>("/verification/start", {
     method: "POST",
-    body: documentType ? { document_type: documentType } : {},
+    body: {},
   });
 
   if (!result.ok) {

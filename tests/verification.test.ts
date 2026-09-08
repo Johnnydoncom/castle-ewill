@@ -21,7 +21,7 @@ vi.mock("@/lib/api/browser", () => ({ api }));
 
 const CONFIG = {
   token: "sid.web.token",
-  product: "doc_verification",
+  product: "biometric_kyc",
   environment: "sandbox" as const,
   partner_details: {
     partner_id: "9055",
@@ -43,7 +43,7 @@ describe("starting an attempt", () => {
       data: { data: { attempt_id: "attempt-1", smile_id: CONFIG } },
     });
 
-    const result = await startVerificationAction("national_id");
+    const result = await startVerificationAction();
 
     expect(result.status).toBe("success");
 
@@ -55,12 +55,14 @@ describe("starting an attempt", () => {
     }
 
     /*
-     * No `flow`: this is the web-component integration, which is what the API
-     * answers by default. The hosted modal named itself; nothing else has to.
+     * Nothing is asked for. There is one integration now — the web components
+     * — so there is no `flow` to name, and no `document_type` either: the
+     * hosted modal chose a document to photograph, and Biometric KYC asks an
+     * authority about a number the client types on our own screen.
      */
     expect(api).toHaveBeenCalledWith("/verification/start", {
       method: "POST",
-      body: { document_type: "national_id" },
+      body: {},
     });
   });
 
