@@ -143,3 +143,40 @@ describe("the document capture, when nested", () => {
     );
   });
 });
+
+describe("the capture-id attribute, as React renders it", () => {
+  /*
+   * `capture-id` is presence-checked by the element (`hasAttribute`), not read
+   * for a value. So the document step is switched on with an **empty string**
+   * and off with `undefined` — which reads oddly enough that somebody could
+   * reasonably try to "fix" it to a boolean or to `"false"`.
+   *
+   * Both of those would be wrong in the same direction: React renders the
+   * string `"false"` as `capture-id="false"`, an attribute that is *present*,
+   * so a recheck would be walked through photographing an ID for a job with no
+   * field to carry it. This pins the two halves together — what React emits,
+   * and what the element does with it.
+   */
+  const render = async (value: string | undefined) => {
+    const { renderToStaticMarkup } = await import("react-dom/server");
+    const { createElement } = await import("react");
+
+    return renderToStaticMarkup(
+      createElement("smart-camera-web", { "capture-id": value }),
+    );
+  };
+
+  it("emits the attribute for an empty string, which is what turns it on", async () => {
+    expect(await render("")).toContain("capture-id=\"\"");
+  });
+
+  it("omits it entirely for undefined, which is what a recheck sends", async () => {
+    expect(await render(undefined)).not.toContain("capture-id");
+  });
+
+  it("would emit a present attribute for \"false\" — which is why we never send one", async () => {
+    // Not how we call it; asserted so the footgun is documented rather than
+    // discovered. `hasAttribute` would read this as "yes, capture a document".
+    expect(await render("false")).toContain("capture-id=\"false\"");
+  });
+});
