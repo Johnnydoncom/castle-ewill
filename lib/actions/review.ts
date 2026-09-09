@@ -538,12 +538,29 @@ export async function savePostAction(
   const slug = String(formData.get("slug") ?? "").trim();
   const editingSlug = String(formData.get("editingSlug") ?? "").trim();
 
+  const publishedAt = String(formData.get("publishedAt") ?? "").trim();
+
   const body = {
     title: String(formData.get("title") ?? "").trim(),
-    category: String(formData.get("category") ?? "").trim(),
     excerpt: String(formData.get("excerpt") ?? "").trim(),
     body: String(formData.get("body") ?? ""),
-    is_published: formData.get("isPublished") === "on",
+    status: String(formData.get("status") ?? "draft"),
+    post_category_id: String(formData.get("postCategoryId") ?? "") || null,
+    /*
+     * `getAll`, not `get`. Each tag is its own field — a comma-joined string
+     * would have to be split somewhere, and that somewhere would eventually
+     * disagree with the server about a comma inside a tag.
+     */
+    tags: formData.getAll("tags").map((tag) => String(tag)),
+    cover_image_url: String(formData.get("coverImageUrl") ?? "").trim() || null,
+    seo_title: String(formData.get("seoTitle") ?? "").trim() || null,
+    seo_description: String(formData.get("seoDescription") ?? "").trim() || null,
+    /*
+     * `datetime-local` gives local wall-clock with no zone. Sent through a
+     * `Date` so the server receives a real instant — a Lagos afternoon posted
+     * as a bare string would be read as UTC and go live an hour early.
+     */
+    ...(publishedAt ? { published_at: new Date(publishedAt).toISOString() } : {}),
     ...(slug ? { slug } : {}),
   };
 
@@ -590,7 +607,52 @@ export async function setPostPublishedAction(
 
   return apiMutation(`/admin/posts/${encodeURIComponent(slug)}/publication`, {
     method: "POST",
-    body: { is_published: formData.get("isPublished") === "on" },
+    body: { status: String(formData.get("status") ?? "draft") },
+  });
+}
+
+/* -------------------------------------------------------------------------- */
+/*  Blog categories                                                            */
+/* -------------------------------------------------------------------------- */
+
+export async function savePostCategoryAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const editingSlug = String(formData.get("editingSlug") ?? "").trim();
+  const slug = String(formData.get("slug") ?? "").trim();
+
+  const body = {
+    name: String(formData.get("name") ?? "").trim(),
+    description: String(formData.get("description") ?? "").trim() || null,
+    sort_order: Number(formData.get("sortOrder") ?? 0),
+    ...(slug ? { slug } : {}),
+  };
+
+  return apiMutation(
+    editingSlug
+      ? `/admin/post-categories/${encodeURIComponent(editingSlug)}`
+      : "/admin/post-categories",
+    { method: editingSlug ? "PUT" : "POST", body },
+  );
+}
+
+/**
+ * Deletes a category.
+ *
+ * Its articles are left behind, uncategorised — the foreign key is
+ * `nullOnDelete`. An article is somebody's afternoon; a category is a label.
+ */
+export async function deletePostCategoryAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const slug = String(formData.get("slug") ?? "").trim();
+
+  if (!slug) return errorState("That category could not be identified.");
+
+  return apiMutation(`/admin/post-categories/${encodeURIComponent(slug)}`, {
+    method: "DELETE",
   });
 }
 

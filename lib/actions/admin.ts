@@ -537,21 +537,55 @@ export async function getSettingGroups(): Promise<SettingGroup[]> {
 /*  The blog                                                                   */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * The four states an article is in. A boolean could express one of them.
+ *
+ * A union type, not an exported array: this module is `"use server"`, and such
+ * a file may only export async functions — a runtime constant here fails the
+ * build with "a 'use server' file can only export async functions". Types are
+ * erased, so they are fine.
+ */
+export type PostStatus = "draft" | "scheduled" | "published" | "archived";
+
+export type PostCategory = {
+  id: string;
+  name: string;
+  slug: string;
+  description: string | null;
+  sort_order: number;
+  posts_count: number;
+};
+
+export type PostTag = { id: string; name: string; slug: string };
+
 /** An article as the console lists it — everything but the body. */
 export type AdminPost = {
   id: string;
   slug: string;
   title: string;
-  category: string;
   excerpt: string;
+  status: PostStatus;
+  /**
+   * Whether it is readable by the public *now*.
+   *
+   * Derived server-side, not stored: "scheduled" and "live" are the same
+   * status either side of an hour, and the screen has to say which.
+   */
+  is_live: boolean;
+  category: Pick<PostCategory, "id" | "name" | "slug"> | null;
+  tags: PostTag[];
+  cover_image_url: string | null;
   reading_minutes: number;
-  is_published: boolean;
   published_at: string | null;
   updated_at: string | null;
 };
 
 /** The same, opened for editing. */
-export type AdminPostDetail = AdminPost & { body: string };
+export type AdminPostDetail = AdminPost & {
+  body: string;
+  seo_title: string | null;
+  seo_description: string | null;
+};
 
 /**
  * Every article, drafts included.
@@ -562,10 +596,15 @@ export type AdminPostDetail = AdminPost & { body: string };
  */
 export async function listAdminPosts(options: {
   search?: string;
-  status?: "published" | "draft";
+  status?: PostStatus;
+  category?: string;
 } = {}): Promise<AdminPost[]> {
   return apiData<AdminPost[]>("/admin/posts", [], {
-    query: { search: options.search, status: options.status },
+    query: {
+      search: options.search,
+      status: options.status,
+      category: options.category,
+    },
   });
 }
 
@@ -576,4 +615,9 @@ export async function getAdminPost(slug: string): Promise<AdminPostDetail | null
   );
 
   return result.ok ? result.data.data : null;
+}
+
+/** Every category, with how much is filed under each. */
+export async function listPostCategories(): Promise<PostCategory[]> {
+  return apiData<PostCategory[]>("/admin/post-categories", []);
 }

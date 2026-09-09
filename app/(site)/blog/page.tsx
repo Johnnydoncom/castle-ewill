@@ -61,7 +61,7 @@ export default async function ResourcesPage() {
                 className="group block border-t-2 border-gold pt-8"
               >
                 <span className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">
-                  {lead.category}
+                  {lead.category?.name ?? "Estate planning"}
                 </span>
                 <h2 className="mt-4 max-w-3xl font-serif text-3xl leading-tight text-navy transition-colors group-hover:text-primary sm:text-4xl">
                   {lead.title}
@@ -84,7 +84,7 @@ export default async function ResourcesPage() {
                     className="group block"
                   >
                     <span className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">
-                      {post.category}
+                      {post.category?.name ?? "Estate planning"}
                     </span>
                     <h3 className="mt-3 font-serif text-xl leading-snug text-navy transition-colors group-hover:text-primary">
                       {post.title}

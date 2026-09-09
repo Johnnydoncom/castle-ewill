@@ -71,7 +71,7 @@ export default async function ArticlePage({
         <div className="mb-6 flex items-center gap-4">
           <span className="h-px w-10 bg-gold" />
           <span className="font-serif text-[10px] uppercase tracking-[0.35em] text-gold">
-            {post.category}
+            {post.category?.name ?? "Estate planning"}
           </span>
         </div>
 
@@ -92,16 +92,36 @@ export default async function ArticlePage({
           })}
         </p>
 
-        <div className="mt-10 space-y-6">
-          {(post.body ?? "").split("\n\n").map((paragraph, index) => (
-            <p
-              key={index}
-              className="font-serif text-lg leading-[1.75] text-navy/90"
-            >
-              {paragraph}
-            </p>
-          ))}
-        </div>
+        {/*
+          The article, as HTML.
+
+          It used to be split on blank lines into paragraphs, which meant a
+          heading, a list or a link could not be expressed at all — an article
+          was one long run of prose whatever the writer intended.
+
+          `dangerouslySetInnerHTML` is safe *here specifically*: this markup is
+          sanitised on the way in by `ArticleHtml` on the backend, against a
+          strict allow-list, and stored clean. Sanitising on the way out
+          instead would mean the dangerous version is what sits in the database
+          and every future reader of that column has to remember.
+        */}
+        <div
+          className="prose-article mt-10"
+          dangerouslySetInnerHTML={{ __html: post.body ?? "" }}
+        />
+
+        {post.tags.length > 0 && (
+          <ul className="mt-12 flex flex-wrap gap-2 border-t border-border pt-6">
+            {post.tags.map((tag) => (
+              <li
+                key={tag.slug}
+                className="border border-border px-3 py-1 text-[11px] uppercase tracking-[0.15em] text-muted-foreground"
+              >
+                {tag.name}
+              </li>
+            ))}
+          </ul>
+        )}
 
         <div className="mt-14 border-t border-border pt-8">
           <Link

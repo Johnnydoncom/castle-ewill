@@ -7,7 +7,9 @@ import { AlertCircle, Eye, Save } from "lucide-react";
 
 import { useFormAction } from "@/hooks/use-api-form";
 import { savePostAction } from "@/lib/actions/review";
-import type { AdminPostDetail } from "@/lib/actions/admin";
+import type { AdminPostDetail, PostCategory } from "@/lib/actions/admin";
+import { RichTextEditor } from "./RichTextEditor";
+import { TagField } from "./TagField";
 
 /**
  * Writing an article.
@@ -20,11 +22,18 @@ import type { AdminPostDetail } from "@/lib/actions/admin";
  * address, and moving it breaks every link anybody has shared. On a new piece
  * it is left blank and derived from the title server-side; on an existing one
  * it is revealed only behind a deliberate click, with a note saying what it
- * costs. The backend keeps the existing slug when the field is not sent.
+ * costs.
  */
-export function PostEditor({ post }: { post?: AdminPostDetail }) {
+export function PostEditor({
+  post,
+  categories,
+}: {
+  post?: AdminPostDetail;
+  categories: PostCategory[];
+}) {
   const [state, action] = useFormAction(savePostAction);
   const [showSlug, setShowSlug] = useState(false);
+  const [status, setStatus] = useState(post?.status ?? "draft");
 
   const editing = post !== undefined;
 
@@ -35,6 +44,23 @@ export function PostEditor({ post }: { post?: AdminPostDetail }) {
       : fallback;
 
   const fieldError = (name: string) => state.fieldErrors?.[name]?.[0];
+
+  /*
+   * The date input wants `YYYY-MM-DDTHH:mm` in local time; the API speaks
+   * ISO 8601 in UTC. Converting through the epoch keeps the offset right —
+   * slicing the ISO string would silently shift a Lagos afternoon by an hour.
+   */
+  const publishedAtLocal = (() => {
+    const iso = post?.published_at;
+
+    if (!iso) return "";
+
+    const date = new Date(iso);
+
+    return new Date(date.getTime() - date.getTimezoneOffset() * 60_000)
+      .toISOString()
+      .slice(0, 16);
+  })();
 
   return (
     <form action={action} className="space-y-8">
@@ -50,7 +76,7 @@ export function PostEditor({ post }: { post?: AdminPostDetail }) {
         </p>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem] lg:items-start">
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_20rem] lg:items-start">
         <div className="space-y-6">
           <Field
             label="Headline"
@@ -73,50 +99,119 @@ export function PostEditor({ post }: { post?: AdminPostDetail }) {
             required
           />
 
-          <Field
-            label="Article"
-            name="body"
-            defaultValue={value("body", post?.body ?? "")}
-            error={fieldError("body")}
-            hint="Plain paragraphs, separated by a blank line."
-            textarea
-            rows={22}
-            required
-            mono
-          />
+          <div>
+            <span className="font-serif text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+              Article
+            </span>
+
+            <div className="mt-2">
+              <RichTextEditor
+                name="body"
+                defaultValue={value("body", post?.body ?? "")}
+                ariaLabel="Article body"
+              />
+            </div>
+
+            {fieldError("body") && (
+              <span className="mt-1.5 block text-xs text-destructive">
+                {fieldError("body")}
+              </span>
+            )}
+          </div>
         </div>
 
         <aside className="space-y-6 lg:sticky lg:top-6">
-          <div className="space-y-6 border border-border bg-background p-5">
-            <Field
-              label="Category"
-              name="category"
-              defaultValue={value("category", post?.category ?? "")}
-              error={fieldError("category")}
-              placeholder="Wills"
-              required
-            />
+          <div className="space-y-5 border border-border bg-background p-5">
+            <label className="block">
+              <span className="font-serif text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                Status
+              </span>
+              <select
+                name="status"
+                value={status}
+                onChange={(event) => setStatus(event.target.value as typeof status)}
+                className="mt-2 w-full border border-border bg-background px-3 py-2.5 text-sm text-navy focus:border-gold focus:outline-none"
+              >
+                <option value="draft">Draft — nobody can see it</option>
+                <option value="scheduled">Scheduled — goes live on its date</option>
+                <option value="published">Published — live now</option>
+                <option value="archived">Archived — taken down, kept</option>
+              </select>
+            </label>
 
-            <label className="flex items-start gap-3">
+            <label className="block">
+              <span className="font-serif text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                {status === "scheduled" ? "Goes live" : "Publication date"}
+              </span>
               <input
-                type="checkbox"
-                name="isPublished"
-                defaultChecked={post?.is_published ?? false}
-                className="mt-0.5 h-4 w-4 shrink-0 accent-navy"
+                type="datetime-local"
+                name="publishedAt"
+                defaultValue={publishedAtLocal}
+                className="mt-2 w-full border border-border bg-background px-3 py-2.5 text-sm text-navy focus:border-gold focus:outline-none"
               />
-              <span className="text-sm leading-relaxed text-navy">
-                Published
-                <span className="mt-0.5 block text-xs text-muted-foreground">
-                  Unticked, it is saved as a draft and is visible only here.
-                </span>
+              <span className="mt-1.5 block text-xs text-muted-foreground">
+                {status === "scheduled"
+                  ? "The article appears by itself at this hour. Nothing has to be running."
+                  : "Where it sits in the archive. Leave it alone to keep the date it has."}
               </span>
             </label>
 
-            {/*
-              Reading time is not offered. It is estimated from the article
-              server-side at 200 words a minute — an estimate nobody has to
-              maintain beats an accurate number nobody remembers to update.
-            */}
+            <label className="block">
+              <span className="font-serif text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                Category
+              </span>
+              <select
+                name="postCategoryId"
+                defaultValue={post?.category?.id ?? ""}
+                className="mt-2 w-full border border-border bg-background px-3 py-2.5 text-sm text-navy focus:border-gold focus:outline-none"
+              >
+                <option value="">Uncategorised</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+              <Link
+                href="/admin/posts/categories"
+                className="mt-1.5 inline-block text-xs text-muted-foreground underline underline-offset-4 hover:text-navy"
+              >
+                Manage categories
+              </Link>
+            </label>
+
+            <TagField defaultTags={post?.tags.map((tag) => tag.name) ?? []} />
+          </div>
+
+          <div className="space-y-5 border border-border bg-background p-5">
+            <Field
+              label="Cover image"
+              name="coverImageUrl"
+              defaultValue={value("coverImageUrl", post?.cover_image_url ?? "")}
+              error={fieldError("coverImageUrl")}
+              hint="A full web address. Shown on the card and at the head of the article."
+              placeholder="https://…"
+            />
+
+            <Field
+              label="Search title"
+              name="seoTitle"
+              defaultValue={value("seoTitle", post?.seo_title ?? "")}
+              error={fieldError("seoTitle")}
+              hint="Only if the headline is not what should appear in a result."
+              maxLength={191}
+            />
+
+            <Field
+              label="Search description"
+              name="seoDescription"
+              defaultValue={value("seoDescription", post?.seo_description ?? "")}
+              error={fieldError("seoDescription")}
+              hint="Falls back to the summary."
+              textarea
+              rows={2}
+              maxLength={320}
+            />
           </div>
 
           {editing && (
@@ -157,7 +252,7 @@ export function PostEditor({ post }: { post?: AdminPostDetail }) {
             </div>
           )}
 
-          {editing && post.is_published && (
+          {editing && post.is_live && (
             <Link
               href={`/blog/${post.slug}`}
               target="_blank"
@@ -211,7 +306,6 @@ function Field({
   rows,
   maxLength,
   required,
-  mono,
 }: {
   label: string;
   name: string;
@@ -223,11 +317,10 @@ function Field({
   rows?: number;
   maxLength?: number;
   required?: boolean;
-  mono?: boolean;
 }) {
   const className = `mt-2 w-full border bg-background px-3.5 py-2.5 text-sm text-navy focus:border-gold focus:outline-none ${
     error ? "border-destructive" : "border-border"
-  } ${mono ? "font-mono text-[13px] leading-relaxed" : ""}`;
+  }`;
 
   return (
     <label className="block">

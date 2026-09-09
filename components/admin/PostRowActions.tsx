@@ -6,14 +6,14 @@ import { Trash2 } from "lucide-react";
 
 import { useFormAction } from "@/hooks/use-api-form";
 import { deletePostAction, setPostPublishedAction } from "@/lib/actions/review";
-import type { AdminPost } from "@/lib/actions/admin";
+import type { AdminPost, PostStatus } from "@/lib/actions/admin";
 
 /**
- * Publish, withdraw, delete — from the row, without opening the editor.
+ * Publish, take down, delete — from the row, without opening the editor.
  *
- * Withdrawing is the reversible act and is one click. Deleting is not, so it
- * asks first: an article is referenced by nothing and really is removed, and
- * "are you sure" is cheap next to a piece somebody spent an afternoon on.
+ * Taking something down is reversible and is one click. Deleting is not, so it
+ * asks first: an article really is removed, and "are you sure" is cheap next
+ * to a piece somebody spent an afternoon on.
  */
 export function PostRowActions({ post }: { post: AdminPost }) {
   return (
@@ -24,29 +24,41 @@ export function PostRowActions({ post }: { post: AdminPost }) {
   );
 }
 
+/**
+ * The one move worth offering on a row.
+ *
+ * Anything visible can be archived; anything not visible can be published. The
+ * *other* transitions — scheduling, returning to draft — need a date or a
+ * decision, and belong in the editor where there is room to make one.
+ */
 function PublicationToggle({ post }: { post: AdminPost }) {
   const [state, action] = useFormAction(setPostPublishedAction);
+
+  const next: PostStatus = post.is_live ? "archived" : "published";
 
   return (
     <form action={action}>
       <input type="hidden" name="slug" value={post.slug} />
-      {/*
-        The checkbox convention the rest of the console uses: present means on.
-        Rendered only when publishing, so withdrawing sends nothing at all.
-      */}
-      {!post.is_published && (
-        <input type="hidden" name="isPublished" value="on" />
-      )}
+      <input type="hidden" name="status" value={next} />
 
       <ToggleButton
-        publish={!post.is_published}
+        label={post.is_live ? "Take down" : "Publish"}
+        publish={!post.is_live}
         failed={state.status === "error"}
       />
     </form>
   );
 }
 
-function ToggleButton({ publish, failed }: { publish: boolean; failed: boolean }) {
+function ToggleButton({
+  label,
+  publish,
+  failed,
+}: {
+  label: string;
+  publish: boolean;
+  failed: boolean;
+}) {
   const { pending } = useFormStatus();
 
   return (
@@ -62,7 +74,7 @@ function ToggleButton({ publish, failed }: { publish: boolean; failed: boolean }
             : "border-border text-muted-foreground hover:border-navy hover:text-navy"
       }`}
     >
-      {pending ? "…" : publish ? "Publish" : "Withdraw"}
+      {pending ? "…" : label}
     </button>
   );
 }

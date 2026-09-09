@@ -18,10 +18,22 @@ export type Post = {
   id: string;
   slug: string;
   title: string;
-  category: string;
+  /**
+   * A row now, not a free-text string — so the blog can filter by it and two
+   * spellings cannot become two categories.
+   */
+  category: { name: string; slug: string } | null;
+  tags: Array<{ name: string; slug: string }>;
   excerpt: string;
-  /** Absent from the index listing — only the single-post read carries it. */
+  /**
+   * **HTML**, sanitised server-side on the way in — see `ArticleHtml` in the
+   * backend. Absent from the index listing; only the single-post read carries
+   * it, because a listing that ships every article in full is a slow listing.
+   */
   body?: string;
+  cover_image_url: string | null;
+  seo_title?: string | null;
+  seo_description?: string | null;
   reading_minutes: number;
   published_at: string;
 };
