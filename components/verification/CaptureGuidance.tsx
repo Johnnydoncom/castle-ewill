@@ -15,8 +15,17 @@
  *    the flow itself asks for it before opening a camera on anybody's face.
  *
  * We cannot edit their screens. We can say what they are looking for.
+ *
+ * `withDocument` is false for a client who has already been proved: their
+ * check is a selfie and nothing else, and telling somebody to fetch a passport
+ * they will never be asked for is worse than saying nothing — they go and get
+ * it, and then distrust the rest of the list.
  */
-export function CaptureGuidance() {
+export function CaptureGuidance({
+  withDocument = true,
+}: {
+  withDocument?: boolean;
+}) {
   return (
     <div className="border border-border bg-surface px-5 py-4 text-left">
       <p className="text-[10px] uppercase tracking-[0.18em] text-gold">
@@ -24,14 +33,19 @@ export function CaptureGuidance() {
       </p>
 
       <ul className="mt-3 space-y-2 text-sm leading-relaxed text-muted-foreground">
+        {withDocument && (
+          <li>
+            <span className="text-navy">Have a government ID to hand</span> —
+            your NIN slip, passport, driver&apos;s licence or voter&apos;s card.
+            This comes first: you will photograph it, or attach a photo you
+            already have, before the camera turns to you.
+          </li>
+        )}
         <li>
-          <span className="text-navy">Have a government ID to hand</span> — your
-          NIN slip, passport, driver&apos;s licence or voter&apos;s card. This
-          comes first: you will photograph it, or attach a photo you already
-          have, before the camera turns to you.
-        </li>
-        <li>
-          <span className="text-navy">Then fill the oval.</span> Your face needs to
+          <span className="text-navy">
+            {withDocument ? "Then fill the oval." : "Fill the oval."}
+          </span>{" "}
+          Your face needs to
           take up most of it — closer than feels natural on a laptop, about an
           arm&apos;s length on a phone.
         </li>

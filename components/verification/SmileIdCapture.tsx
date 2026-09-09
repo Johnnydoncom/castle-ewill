@@ -80,13 +80,34 @@ export function SmileIdCapture({
   description,
   footerNote,
   onVerified,
+  autoStart = false,
+  withDocument = true,
 }: {
   title: string;
   description: string;
   footerNote: string;
   onVerified: () => void;
+  /**
+   * Open straight into Smile ID's own first screen, with no intro of ours.
+   *
+   * For a check the client has *already* asked for — pressing "Save &
+   * continue" on an amendment is the request, and making them press "Begin
+   * identity check" as well asks them to confirm a decision they have just
+   * taken.
+   */
+  autoStart?: boolean;
+  /** False once a client is proved: their check has no document step. */
+  withDocument?: boolean;
 }) {
-  const [step, setStep] = useState<Step>("idle");
+  /*
+   * Auto-starting begins in `loading`, not `idle`.
+   *
+   * The effect below kicks the check off on mount; if the first paint were
+   * `idle` the client would see our intro for one frame before it vanished.
+   * Starting where the flow is actually going removes that, and with it the
+   * cascading render the effect would otherwise cause.
+   */
+  const [step, setStep] = useState<Step>(autoStart ? "loading" : "idle");
   const [outcome, setOutcome] = useState<Outcome>(null);
   const [config, setConfig] = useState<SmileIdConfig | null>(null);
 
@@ -102,6 +123,9 @@ export function SmileIdCapture({
   const attemptRef = useRef<string | null>(null);
   const configRef = useRef<SmileIdConfig | null>(null);
   const consentRef = useRef<ConsentDetail | null>(null);
+
+  /** Kicked off once. A remount must not open a second attempt. */
+  const started = useRef(false);
 
   /*
    * The document frames, held between the two publishes.
@@ -443,7 +467,36 @@ export function SmileIdCapture({
   }, [fail, finish]);
 
   const theme = config?.partner_details.theme_color ?? "#0f1e3d";
-  const showsIntro = step === "idle" || step === "loading";
+  /*
+   * Started on mount when the caller asked for it, so the first thing the
+   * client sees is Smile ID's consent screen rather than a page of ours asking
+   * whether they meant it.
+   */
+  useEffect(() => {
+    if (autoStart && !started.current) {
+      started.current = true;
+
+      /*
+       * The other thing effects are for: starting an external operation on
+       * mount — loading Smile ID's elements and opening an attempt against the
+       * API. Nothing here is state that could be derived during render.
+       */
+      void start();
+    }
+    /*
+     * Deliberately keyed on `autoStart` alone. Including `step` or `outcome`
+     * would restart a failed check the instant it failed, looping instead of
+     * leaving the retry to the client.
+     */
+    /*
+     * Keyed on `autoStart` alone, with `started` guarding re-entry: depending
+     * on `step` or `outcome` would restart a failed check the instant it
+     * failed, looping instead of leaving the retry to the client.
+     */
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoStart]);
+
+  const showsIntro = !autoStart && (step === "idle" || step === "loading");
 
   return (
     <div className="mx-auto w-full max-w-md">
@@ -501,9 +554,9 @@ export function SmileIdCapture({
             </p>
           )}
 
-          {step === "idle" && (
+          {step === "idle" && !autoStart && (
             <div className="p-6 sm:p-8 !pt-0">
-              <CaptureGuidance />
+              <CaptureGuidance withDocument={withDocument} />
 
               <button
                 type="button"

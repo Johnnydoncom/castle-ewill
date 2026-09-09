@@ -1064,10 +1064,48 @@ export function ReviewStep({
    */
   const formRef = useRef<HTMLFormElement>(null);
 
+  /**
+   * An amendment to a Will that has already been produced needs the client to
+   * confirm it is them. Null for a first draft, a first submission and every
+   * print — the server decides, this does not re-derive it.
+   */
   const needsIdentity = will.journey?.update_blocked_by === "liveness_required";
 
+  const [checking, setChecking] = useState(false);
+
+  /*
+   * A ref, not state: it is read inside the submit handler in the same tick
+   * that `requestSubmit()` is called, and a state update would not have landed.
+   */
+  const confirmed = useRef(false);
+
   return (
-    <form ref={formRef} action={action} className="space-y-8" noValidate>
+    <>
+      <form
+        ref={formRef}
+        action={action}
+        className="space-y-8"
+        noValidate
+        /*
+          The submit button stays, and it is what opens the check.
+
+          Hiding it while a check was outstanding left the client on a page
+          whose only control had vanished, with a panel they had not asked for
+          in its place. Pressing "Save & continue" *is* the request; this
+          intercepts it once, runs the check over the page, and lets the second
+          submit — the one the check itself fires — straight through.
+
+          React 19 runs `onSubmit` before the action and honours
+          `preventDefault()`, so this cancels the submission rather than racing
+          it.
+        */
+        onSubmit={(event) => {
+          if (needsIdentity && !confirmed.current) {
+            event.preventDefault();
+            setChecking(true);
+          }
+        }}
+      >
       <WillId id={will.id} />
       <StepBanner state={state} />
       <HelpPanel>{help}</HelpPanel>
@@ -1099,37 +1137,6 @@ export function ReviewStep({
         liveness pass expires within the hour, so doing it early is doing it
         twice.
       */}
-      {needsIdentity && (
-        <div className="space-y-4 border border-accent/40 bg-accent/5 p-6">
-          <div className="space-y-1">
-            <p className="font-serif text-lg text-foreground">
-              Confirm it is you before this update is saved
-            </p>
-            <p className="text-sm text-muted-foreground">
-              You are changing a Will that has already been produced. A short
-              camera check confirms the change is being made by you — no
-              documents, and it takes a few seconds.
-            </p>
-          </div>
-
-          {/*
-            Taken here, not on the KYC page.
-
-            This was a link away. A client part-way through confirming an
-            amendment was sent to a different screen, did the check there, and
-            was left on it with nothing saying the thing they were actually
-            doing was still waiting. Most of the way through a task is the
-            worst moment to be moved somewhere else.
-
-            On a passing verdict this submits the form itself, so the check is
-            a step in the flow rather than an errand.
-          */}
-          <AmendmentIdentityCheck
-            onVerified={() => formRef.current?.requestSubmit()}
-          />
-        </div>
-      )}
-
       {will.journey?.update_blocked_by === "subscription_required" && (
         <div className="border border-border bg-muted/30 p-6">
           <p className="font-serif text-lg text-foreground">
@@ -1155,11 +1162,34 @@ export function ReviewStep({
         default. What the button actually does is commit the answers and move
         on to payment.
 
-        Hidden while the identity check is outstanding: pressing it then can
-        only be refused, and a button whose one behaviour is to fail is worse
-        than no button. The check submits the form itself when it passes.
+        On an amendment this is also what opens the identity check — see the
+        `onSubmit` above. The button stays put either way: hiding it left the
+        client on a page whose only control had vanished.
       */}
-      {!needsIdentity && <WizardFooter backHref={backHref} label="Save & continue" />}
-    </form>
+      <WizardFooter backHref={backHref} label="Save & continue" />
+      </form>
+
+      {/*
+        Outside the form on purpose. A dialog nested inside it would put its
+        buttons in the form's submit scope, and a stray default-typed button
+        would post a half-finished amendment.
+      */}
+      {needsIdentity && (
+        <AmendmentIdentityCheck
+          open={checking}
+          onCancel={() => setChecking(false)}
+          onVerified={() => {
+            /*
+             * Let the next submit through, then fire it. `requestSubmit()`
+             * rather than `submit()`: the former runs validation and fires the
+             * submit event, which is what a React action listens for.
+             */
+            confirmed.current = true;
+            setChecking(false);
+            formRef.current?.requestSubmit();
+          }}
+        />
+      )}
+    </>
   );
 }
