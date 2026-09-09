@@ -229,7 +229,15 @@ export default async function WillEditorPage({
           <CompletionPill percent={percent} />
         </div>
 
-        <StepHeading step={definition} />
+        {/*
+          Every step but the last draws its heading here.
+
+          The review step draws its own, because it is the one step that can
+          replace it: when the identity check takes the page, "Review &
+          confirm - read it through" is no longer what the client is doing,
+          and leaving it above the camera put two headings on screen at once.
+        */}
+        {definition.slug !== "review" && <StepHeading step={definition} />}
 
         <div className="mt-10">
           {/*
@@ -250,7 +258,10 @@ export default async function WillEditorPage({
           {definition.slug === "funeral" && <FuneralStep {...stepProps} />}
           {definition.slug === "witnesses" && <WitnessesStep {...stepProps} />}
           {definition.slug === "review" && (
-            <ReviewStep {...stepProps}>
+            <ReviewStep
+              {...stepProps}
+              heading={<StepHeading step={definition} />}
+            >
               <ReviewSummary will={will} editBasePath={basePath} />
 
               {/*

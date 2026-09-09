@@ -102,41 +102,57 @@ export function AmendmentIdentityCheck({
   }, [phase, finish]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex flex-wrap items-start justify-between gap-4 border-b border-border pb-5">
-        <div>
+    <div className="space-y-10">
+      {/*
+        This is the page's heading while the check is up, not a second one
+        under it — the review step hands its own heading to `ReviewStep` and
+        that goes away with the review. So this matches `StepHeading` beat for
+        beat: same rule, same eyebrow, same scale, an `h1` because it is the
+        only one on the page.
+      */}
+      <header className="border-b border-border pb-8">
+        <div className="mb-4 flex items-center gap-3">
+          <span className="h-px w-10 shrink-0 bg-gold" />
           <p className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">
             Last step
           </p>
-          <h2 className="mt-2 font-serif text-2xl text-navy">Confirm it is you</h2>
-          <p className="mt-1 max-w-lg text-sm text-muted-foreground">
-            You are changing a Will that has already been produced. Your answers
-            are saved — this confirms the change is being made by you, and then
-            submits it.
-          </p>
         </div>
 
-        {/*
-          A way back, which a dialog's close button was not: this returns to
-          the review with everything still filled in, rather than dismissing
-          something and leaving the client to work out what happened.
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="font-serif text-3xl tracking-tight text-navy sm:text-4xl">
+              Confirm it is you
+            </h1>
+            <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+              You are changing a Will that has already been produced. Your
+              answers are saved — this confirms the change is being made by
+              you, and then submits it.
+            </p>
+          </div>
 
-          Hidden once the verdict is being waited on — going back then would
-          abandon a check that is already running, and it submits by itself
-          within seconds.
-        */}
-        {phase === "capture" && (
-          <button
-            type="button"
-            onClick={onBack}
-            className="flex shrink-0 items-center gap-2 border border-border px-4 py-2 text-[11px] uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:border-navy hover:text-navy"
-          >
-            <ArrowLeft className="h-3.5 w-3.5" />
-            Back to review
-          </button>
-        )}
-      </div>
+          {/*
+            A way back, which a dialog's close button was not: this returns to
+            the review with everything still filled in, rather than dismissing
+            something and leaving the client to work out what happened.
 
+            Hidden once the verdict is being waited on — going back then would
+            abandon a check that is already running, and it submits by itself
+            within seconds.
+          */}
+          {phase === "capture" && (
+            <button
+              type="button"
+              onClick={onBack}
+              className="flex shrink-0 items-center gap-2 border border-border px-4 py-2 text-[11px] uppercase tracking-[0.15em] text-muted-foreground transition-colors hover:border-navy hover:text-navy"
+            >
+              <ArrowLeft className="h-3.5 w-3.5" />
+              Back to review
+            </button>
+          )}
+        </div>
+      </header>
+
+      <div className="space-y-6">
       {phase === "done" && (
         <p className="flex items-center gap-2 border border-success/40 bg-success/5 px-5 py-4 text-sm text-success">
           <CheckCircle2 className="h-4 w-4 shrink-0" />
@@ -193,6 +209,7 @@ export function AmendmentIdentityCheck({
           onVerified={() => setPhase("waiting")}
         />
       )}
+      </div>
     </div>
   );
 }

@@ -1051,8 +1051,20 @@ export function ReviewStep({
   will,
   help,
   backHref,
+  heading,
   children,
-}: StepProps & { children: React.ReactNode }) {
+}: StepProps & {
+  /**
+   * The step's own heading, passed in rather than drawn by the page.
+   *
+   * It has to live inside this component because it is inside what the
+   * identity check replaces. Rendered above, it stayed on screen underneath
+   * the check's own heading - "Review & confirm" over "Confirm it is you",
+   * the same instruction twice.
+   */
+  heading: React.ReactNode;
+  children: React.ReactNode;
+}) {
   const [state, action] = useFormAction(submitWillAction);
 
   /*
@@ -1114,7 +1126,9 @@ export function ReviewStep({
           nothing. `hidden` takes it off the screen and leaves it in the
           submission.
         */}
-        <div hidden={checking} className="space-y-8">
+        <div hidden={checking} className="space-y-10">
+        {heading}
+        <div className="space-y-8">
         <WillId id={will.id} />
         <StepBanner state={state} />
         <HelpPanel>{help}</HelpPanel>
@@ -1176,6 +1190,7 @@ export function ReviewStep({
           on a page whose only control had vanished.
         */}
         <WizardFooter backHref={backHref} label="Save & continue" />
+        </div>
         </div>
       </form>
 
