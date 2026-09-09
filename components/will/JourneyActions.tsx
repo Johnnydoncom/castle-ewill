@@ -125,10 +125,25 @@ const BLOCKERS: Record<
    * review step, which has no witness panel of its own, and where the button
    * genuinely goes somewhere: the Will's page.
    */
+  /*
+   * Deliberately does not promise an email.
+   *
+   * It used to say "we are checking your witnesses — we will email you as soon
+   * as both are checked", which describes a process that is often not
+   * happening: a witness whose details changed on an amended Will has their
+   * verification withdrawn, so nothing is with the authority and nothing is
+   * coming. Telling somebody to wait for a result nobody is going to produce
+   * is how they end up refreshing a page forever — the same fault as the
+   * "queued for review" copy this product removed once already.
+   *
+   * The witness panel on the Will's own page says which of the two it is, per
+   * witness. This card's job is only to say that the door is shut and where to
+   * go.
+   */
   witnesses_required: {
     icon: ScanFace,
-    title: "We are checking your witnesses",
-    body: "Both witnesses' identification has to be confirmed before your Will can be released. We will email you as soon as both are checked.",
+    title: "Your witnesses need confirming",
+    body: "Both witnesses' identification has to be confirmed before your Will can be released. Open the Will to see where each one stands.",
     cta: { label: "Open this Will", href: null },
   },
   /*
