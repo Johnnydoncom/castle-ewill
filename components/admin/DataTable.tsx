@@ -57,14 +57,21 @@ export function Table({
               <th
                 key={header}
                 scope="col"
-                className="px-5 py-3 font-serif text-[10px] font-normal uppercase tracking-[0.25em] text-muted-foreground"
+                className="bg-muted/30 px-5 py-3.5 font-serif text-[10px] font-normal uppercase tracking-[0.25em] text-muted-foreground"
               >
                 {header}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody className="divide-y divide-border">{children}</tbody>
+        {/*
+          `[&>tr]:` rather than a wrapper on each row: every caller writes its
+          own `<tr>`, and a hover state is not worth touching eleven pages for.
+          It is what makes a row trackable across a wide table.
+        */}
+        <tbody className="divide-y divide-border [&>tr]:transition-colors [&>tr:hover]:bg-muted/40">
+          {children}
+        </tbody>
       </table>
     </div>
   );

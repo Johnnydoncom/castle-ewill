@@ -408,7 +408,17 @@ export function DashboardShell({
 
         {/* Scrollable Main Content */}
         <main className="flex-1 px-4 py-8 sm:px-6 lg:px-10 lg:py-10">
-          {children}
+          {/*
+            A measure, rather than the full width of the window.
+
+            The console had none, so on a wide monitor every table and every
+            paragraph ran the whole 2560px: rows became impossible to track
+            across, and prose hit line lengths nobody can read without losing
+            their place. 1400px is wide enough for the widest table here and
+            narrow enough to stay legible; it centres once the window exceeds
+            it and is inert below.
+          */}
+          <div className="mx-auto w-full max-w-[1400px]">{children}</div>
         </main>
       </div>
     </div>
