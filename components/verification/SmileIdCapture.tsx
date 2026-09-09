@@ -556,7 +556,7 @@ export function SmileIdCapture({
             <smart-camera-web
               ref={cameraRef}
               theme-color={theme}
-              use-strict-mode={config.strict_liveness ? "true" : undefined}
+              use-strict-mode={config.strict_liveness ? "true" : "false"}
             />
           )}
         </div>
