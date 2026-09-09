@@ -3,20 +3,21 @@ import Link from "next/link";
 
 import { PageHead } from "@/components/dashboard/PageHead";
 import {
+  AttentionPanel,
+  Funnel,
+  MonthlyChart,
+  TrendCard,
+} from "@/components/admin/Analytics";
+import {
   Cell,
-  StatCard,
   StatusBadge,
   Table,
   formatDate,
   formatNaira,
   willStatusTone,
 } from "@/components/admin/DataTable";
-import {
-  getAdminStats,
-  getReviewQueue,
-  getWillTrend,
-  listRecentAudit,
-} from "@/lib/actions/admin";
+import { getAdminStats, getReviewQueue } from "@/lib/actions/admin";
+import { activityLabel, activityTone } from "@/lib/admin-activity";
 import { WILL_STATUS_LABELS } from "@/lib/will/reference";
 
 export const metadata: Metadata = {
@@ -24,82 +25,125 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
-export default async function AdminOverviewPage() {
-  const [stats, queue, trend, audit] = await Promise.all([
-    getAdminStats(),
-    getReviewQueue(8),
-    getWillTrend(),
-    listRecentAudit(12),
-  ]);
+/** Counts change constantly; this is never a cached view. */
+export const dynamic = "force-dynamic";
 
-  const peak = Math.max(...trend.map((t) => t.total), 1);
+/**
+ * The console's front page.
+ *
+ * Ordered by what somebody opening it needs, in that order:
+ *
+ *  1. **What is waiting on me** — previously spread across four screens, so
+ *     the only way to know whether anything needed doing was to visit them all.
+ *  2. **Is the business growing** — four headline figures, each with its own
+ *     six-month shape. A lifetime total answers "how much" and never "and is
+ *     that getting better".
+ *  3. **Where do people stop** — the funnel, which a table of status counts
+ *     cannot show.
+ *  4. **The queue, and what has been happening.**
+ */
+export default async function AdminOverviewPage() {
+  const [stats, queue] = await Promise.all([getAdminStats(), getReviewQueue(6)]);
+
+  const naira = (kobo: number) => formatNaira(kobo);
 
   return (
-    <div className="space-y-10">
+    <div className="space-y-8">
       <PageHead
         kicker="Registry · Overview"
         title="Overview"
-        blurb="The state of the house — clients, drafts in flight, and matters awaiting counsel."
+        blurb="What needs a decision, how the practice is trending, and where clients stop."
       />
 
-      <dl className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <StatCard
-          numeral="I"
-          value={stats.total_clients.toLocaleString()}
-          label="Registered clients"
-          hint={
-            stats.new_clients_this_month > 0
-              ? `+${stats.new_clients_this_month} this month`
-              : "No new clients this month"
-          }
-        />
-        <StatCard
-          numeral="II"
-          value={stats.total_wills.toLocaleString()}
-          label="Wills created"
-          hint={`${stats.wills_executed.toLocaleString()} executed`}
-        />
-        <StatCard
-          numeral="III"
-          value={formatNaira(stats.revenue_kobo)}
-          label="Fees collected"
-        />
-        <StatCard
-          numeral="IV"
-          value={stats.wills_awaiting_review.toLocaleString()}
-          label="Awaiting review"
-          hint={
-            stats.open_messages > 0
-              ? `${stats.open_messages} unread message(s)`
-              : undefined
-          }
-        />
-      </dl>
+      <AttentionPanel
+        items={[
+          {
+            label: "Wills awaiting review",
+            count: stats.attention.wills_awaiting_review,
+            href: "/admin/wills?status=submitted",
+          },
+          {
+            label: "Identities to decide",
+            count: stats.attention.verifications_pending,
+            href: "/admin/verifications",
+          },
+          {
+            label: "Transfers to confirm",
+            count: stats.attention.transfers_pending,
+            href: "/admin/payments",
+          },
+          {
+            label: "Unread messages",
+            count: stats.attention.open_messages,
+            href: "/admin/messages",
+          },
+          {
+            label: "Draft articles",
+            count: stats.attention.draft_articles,
+            href: "/admin/posts",
+          },
+        ]}
+      />
 
-      {/* Six-month trend, drawn as a plain bar chart so the page ships no
-          charting library for four dozen data points. */}
-      <section className="border border-border bg-background p-8">
-        <h2 className="font-serif text-lg text-navy">Wills created</h2>
-        <p className="mt-1 text-xs uppercase tracking-wider text-muted-foreground">
-          Last six months
-        </p>
-        <div className="mt-8 flex items-end gap-3" style={{ height: 140 }}>
-          {trend.map((point) => (
-            <div key={point.month} className="flex flex-1 flex-col items-center gap-2">
-              <span className="font-serif text-xs text-navy">{point.total}</span>
-              <div
-                className="w-full bg-gold/70 transition-all"
-                style={{ height: `${Math.max((point.total / peak) * 100, 2)}%` }}
-                role="img"
-                aria-label={`${point.total} Wills in ${point.month}`}
-              />
-              <span className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                {point.month.slice(5)}/{point.month.slice(2, 4)}
-              </span>
-            </div>
-          ))}
-        </div>
-      </section>
+      <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <TrendCard
+          label="Fees collected"
+          value={stats.revenue_formatted}
+          points={stats.revenue_trend}
+          format={naira}
+        />
+        <TrendCard
+          label="Registered clients"
+          value={stats.total_clients.toLocaleString()}
+          points={stats.client_trend}
+          href="/admin/users"
+        />
+        <TrendCard
+          label="Wills created"
+          value={stats.total_wills.toLocaleString()}
+          points={stats.will_trend}
+          href="/admin/wills"
+        />
+        <TrendCard
+          label="Wills executed"
+          value={stats.wills_executed.toLocaleString()}
+          points={[]}
+        />
+      </div>
+
+      <div className="grid gap-6 lg:grid-cols-2">
+        <MonthlyChart
+          title="Fees collected"
+          subtitle="Last six months"
+          points={stats.revenue_trend}
+          format={naira}
+        />
+
+        <Funnel
+          steps={[
+            {
+              label: "Started a Will",
+              value: stats.funnel.drafted,
+              hint: "Opened the wizard and saved something.",
+            },
+            {
+              label: "Confirmed their answers",
+              value: stats.funnel.confirmed,
+              hint: "Finished all nine steps and confirmed.",
+            },
+            {
+              label: "Paid",
+              value: stats.funnel.paid,
+              hint: "A settled payment against that Will.",
+            },
+            {
+              label: "Printed",
+              value: stats.funnel.printed,
+              hint: "Identity and witnesses cleared, document released.",
+            },
+          ]}
+        />
+      </div>
 
       <section className="space-y-4">
         <div className="flex items-end justify-between gap-4">
@@ -155,21 +199,59 @@ export default async function AdminOverviewPage() {
 
       <section className="space-y-4">
         <h2 className="font-serif text-xl text-navy">Recent activity</h2>
+
         <Table
-          headers={["Action", "Entity", "When"]}
-          isEmpty={audit.length === 0}
+          headers={["What happened", "Who", "When"]}
+          isEmpty={stats.recent_audit.length === 0}
           empty="No activity recorded yet."
         >
-          {audit.map((entry) => (
-            <tr key={entry.id}>
-              <Cell>{entry.action}</Cell>
-              <Cell muted>
-                {entry.entity_type ?? "—"}
-                {entry.entity_id ? ` · ${entry.entity_id.slice(0, 8)}` : ""}
-              </Cell>
-              <Cell muted>{formatDate(entry.created_at)}</Cell>
-            </tr>
-          ))}
+          {stats.recent_audit.slice(0, 12).map((entry) => {
+            const tone = activityTone(entry.action);
+
+            return (
+              <tr key={entry.id}>
+                <Cell>
+                  {/*
+                    The action in English, not the raw key. The entity id used
+                    to sit beside it as the first eight characters of a UUID,
+                    which identified nothing to a person and cost a column.
+                  */}
+                  <span
+                    className={
+                      tone === "danger"
+                        ? "text-destructive"
+                        : tone === "warn"
+                          ? "text-navy"
+                          : "text-navy/80"
+                    }
+                  >
+                    {activityLabel(entry.action)}
+                  </span>
+                  {entry.entity_type && (
+                    <span className="ml-2 text-xs text-muted-foreground">
+                      {entry.entity_type.replace(/_/g, " ")}
+                    </span>
+                  )}
+                </Cell>
+
+                <Cell muted>
+                  {entry.actor ? (
+                    <>
+                      {entry.actor.name}
+                      <span className="block text-xs text-muted-foreground/70">
+                        {entry.actor.email}
+                      </span>
+                    </>
+                  ) : (
+                    // A signed-out action — a failed sign-in, a webhook.
+                    <span className="italic">Not signed in</span>
+                  )}
+                </Cell>
+
+                <Cell muted>{formatDate(entry.created_at)}</Cell>
+              </tr>
+            );
+          })}
         </Table>
       </section>
     </div>

@@ -59,9 +59,32 @@ export type AdminStats = {
   revenue_kobo: number;
   revenue_formatted: string;
   open_messages: number;
-  will_trend: Array<{ month: string; total: number }>;
+  will_trend: TrendPoint[];
+  /** Settled money per month, in kobo. Empty months are present and zero. */
+  revenue_trend: TrendPoint[];
+  client_trend: TrendPoint[];
+  /**
+   * Where Wills stop. Each step is a subset of the one before, so the drop
+   * between two numbers is a real attrition rate.
+   */
+  funnel: {
+    drafted: number;
+    confirmed: number;
+    paid: number;
+    printed: number;
+  };
+  /** Everything waiting on a person, gathered from four different screens. */
+  attention: {
+    wills_awaiting_review: number;
+    verifications_pending: number;
+    transfers_pending: number;
+    open_messages: number;
+    draft_articles: number;
+  };
   recent_audit: AuditEntry[];
 };
+
+export type TrendPoint = { month: string; total: number };
 
 const emptyStats: AdminStats = {
   total_clients: 0,
@@ -74,6 +97,16 @@ const emptyStats: AdminStats = {
   revenue_formatted: "₦0.00",
   open_messages: 0,
   will_trend: [],
+  revenue_trend: [],
+  client_trend: [],
+  funnel: { drafted: 0, confirmed: 0, paid: 0, printed: 0 },
+  attention: {
+    wills_awaiting_review: 0,
+    verifications_pending: 0,
+    transfers_pending: 0,
+    open_messages: 0,
+    draft_articles: 0,
+  },
   recent_audit: [],
 };
 
@@ -81,18 +114,11 @@ export async function getAdminStats(): Promise<AdminStats> {
   return apiData<AdminStats>("/admin/overview", emptyStats);
 }
 
-/** Recent audit entries. Carried on the overview, so no second round trip. */
-export async function listRecentAudit(limit = 20): Promise<AuditEntry[]> {
-  const stats = await getAdminStats();
-
-  return stats.recent_audit.slice(0, limit);
-}
-
-export async function getWillTrend(): Promise<
-  Array<{ month: string; total: number }>
-> {
-  return (await getAdminStats()).will_trend;
-}
+/*
+ * `listRecentAudit()` and `getWillTrend()` used to live here. Both re-fetched
+ * the whole overview to slice one field out of it, and the page now reads
+ * those fields off the single `getAdminStats()` call it already makes.
+ */
 
 /* -------------------------------------------------------------------------- */
 /*  Health                                                                     */
