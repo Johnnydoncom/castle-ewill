@@ -1089,10 +1089,9 @@ export function ReviewStep({
         /*
           The submit button stays, and it is what opens the check.
 
-          Hiding it while a check was outstanding left the client on a page
-          whose only control had vanished, with a panel they had not asked for
-          in its place. Pressing "Save & continue" *is* the request; this
-          intercepts it once, runs the check over the page, and lets the second
+          Pressing "Save & continue" *is* the request to submit, so it is also
+          the request to confirm. This intercepts that press once, puts the
+          check on the page in place of the review, and then lets the second
           submit — the one the check itself fires — straight through.
 
           React 19 runs `onSubmit` before the action and honours
@@ -1106,78 +1105,89 @@ export function ReviewStep({
           }
         }}
       >
-      <WillId id={will.id} />
-      <StepBanner state={state} />
-      <HelpPanel>{help}</HelpPanel>
+        {/*
+          Hidden, not unmounted.
 
-      {children}
+          The review has to stay in the DOM while the check runs: the fields
+          in it — the accuracy confirmation above all — are what gets posted
+          when the check passes, and a form with nothing in it submits
+          nothing. `hidden` takes it off the screen and leaves it in the
+          submission.
+        */}
+        <div hidden={checking} className="space-y-8">
+        <WillId id={will.id} />
+        <StepBanner state={state} />
+        <HelpPanel>{help}</HelpPanel>
 
-      <div className="border border-border bg-background p-6">
-        <CheckboxField
-          name="confirmedAccurate"
-          defaultChecked={fieldChecked(state, "confirmedAccurate", will.confirmed_accurate)}
-          errors={state.fieldErrors?.confirmedAccurate}
-        >
-          I confirm that the information recorded in this Will is accurate and
-          reflects my wishes.
-        </CheckboxField>
-      </div>
+        {children}
 
-      {/*
-        The one camera check in the journey, and only for an amendment.
-
-        `update_blocked_by` is the server's answer, not a rule re-derived here:
-        it is null for a first draft, null for a first submission and null for
-        every print, and is only `liveness_required` when this Will has been
-        produced once already and the plan covers amending it.
-
-        Here rather than on each step because this is where the change is
-        committed. Guarding every save stopped somebody at the first field they
-        touched and sent them for a camera between two sentences — and a
-        liveness pass expires within the hour, so doing it early is doing it
-        twice.
-      */}
-      {will.journey?.update_blocked_by === "subscription_required" && (
-        <div className="border border-border bg-muted/30 p-6">
-          <p className="font-serif text-lg text-foreground">
-            Updating this Will needs an active subscription
-          </p>
-          <p className="mt-1 text-sm text-muted-foreground">
-            Writing your Will was a one-off purchase. Keeping it current as your
-            life changes is what the subscription covers.
-          </p>
-          <Link
-            href="/dashboard/billing"
-            className="mt-4 inline-block text-sm font-semibold text-foreground underline underline-offset-4"
+        <div className="border border-border bg-background p-6">
+          <CheckboxField
+            name="confirmedAccurate"
+            defaultChecked={fieldChecked(state, "confirmedAccurate", will.confirmed_accurate)}
+            errors={state.fieldErrors?.confirmedAccurate}
           >
-            See the plans
-          </Link>
+            I confirm that the information recorded in this Will is accurate and
+            reflects my wishes.
+          </CheckboxField>
         </div>
-      )}
 
-      {/*
-        Not "Submit for review". Review is the *optional* stage, and most
-        clients skip it — labelling the only way out of the form as though it
-        summoned a solicitor promised something the platform does not do by
-        default. What the button actually does is commit the answers and move
-        on to payment.
+        {/*
+          The one camera check in the journey, and only for an amendment.
 
-        On an amendment this is also what opens the identity check — see the
-        `onSubmit` above. The button stays put either way: hiding it left the
-        client on a page whose only control had vanished.
-      */}
-      <WizardFooter backHref={backHref} label="Save & continue" />
+          `update_blocked_by` is the server's answer, not a rule re-derived here:
+          it is null for a first draft, null for a first submission and null for
+          every print, and is only `liveness_required` when this Will has been
+          produced once already and the plan covers amending it.
+
+          Here rather than on each step because this is where the change is
+          committed. Guarding every save stopped somebody at the first field they
+          touched and sent them for a camera between two sentences — and a
+          liveness pass expires within the hour, so doing it early is doing it
+          twice.
+        */}
+        {will.journey?.update_blocked_by === "subscription_required" && (
+          <div className="border border-border bg-muted/30 p-6">
+            <p className="font-serif text-lg text-foreground">
+              Updating this Will needs an active subscription
+            </p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Writing your Will was a one-off purchase. Keeping it current as your
+              life changes is what the subscription covers.
+            </p>
+            <Link
+              href="/dashboard/billing"
+              className="mt-4 inline-block text-sm font-semibold text-foreground underline underline-offset-4"
+            >
+              See the plans
+            </Link>
+          </div>
+        )}
+
+        {/*
+          Not "Submit for review". Review is the *optional* stage, and most
+          clients skip it — labelling the only way out of the form as though it
+          summoned a solicitor promised something the platform does not do by
+          default. What the button actually does is commit the answers and move
+          on to payment.
+
+          On an amendment this is also what opens the identity check — see the
+          `onSubmit` above. It stays put either way: hiding it left the client
+          on a page whose only control had vanished.
+        */}
+        <WizardFooter backHref={backHref} label="Save & continue" />
+        </div>
       </form>
 
       {/*
-        Outside the form on purpose. A dialog nested inside it would put its
-        buttons in the form's submit scope, and a stray default-typed button
-        would post a half-finished amendment.
+        The check takes the page rather than floating over it, and it is
+        outside the form on purpose: nested, its buttons would fall inside the
+        form's submit scope and a default-typed one would post a
+        half-finished amendment.
       */}
-      {needsIdentity && (
+      {checking && (
         <AmendmentIdentityCheck
-          open={checking}
-          onCancel={() => setChecking(false)}
+          onBack={() => setChecking(false)}
           onVerified={() => {
             /*
              * Let the next submit through, then fire it. `requestSubmit()`
