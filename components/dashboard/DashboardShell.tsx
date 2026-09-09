@@ -4,21 +4,22 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useState, useEffect } from "react";
 import {
-  LayoutDashboard,
-  Scroll,
-  FolderLock,
-  Users,
-  ShieldCheck,
   CreditCard,
-  Tags,
-  MessageSquare,
-  Settings,
+  FolderLock,
+  KeyRound,
+  LayoutDashboard,
   Menu,
-  X,
+  MessageSquare,
+  Newspaper,
   PanelLeftClose,
   PanelLeftOpen,
   Scale,
-  KeyRound,
+  Scroll,
+  Settings,
+  ShieldCheck,
+  Tags,
+  Users,
+  X,
 } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
 import { useFormAction } from "@/hooks/use-api-form";
@@ -38,6 +39,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   payments: CreditCard,
   pricing: Tags,
   messages: MessageSquare,
+  posts: Newspaper,
   settings: Settings,
   admins: KeyRound,
 };

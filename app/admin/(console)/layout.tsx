@@ -29,6 +29,9 @@ export const adminNav = [
   // are the money surface, and delegating one implies delegating the other.
   { href: "/admin/pricing", label: "Pricing", icon: "pricing", permission: "manage_payments" },
   { href: "/admin/messages", label: "Messages", icon: "messages", permission: "manage_messages" },
+  // Its own permission, not `manage_settings`: writing for the public site
+  // and holding the payment credentials are different jobs.
+  { href: "/admin/posts", label: "Blog", icon: "posts", permission: "manage_content" },
   { href: "/admin/settings", label: "Settings", icon: "settings", permission: "manage_settings" },
   { href: "/admin/admins", label: "Admins", icon: "admins", permission: null },
 ] as const;

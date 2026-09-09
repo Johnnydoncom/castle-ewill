@@ -477,3 +477,48 @@ export async function getSettingGroups(): Promise<SettingGroup[]> {
 
   return data.groups;
 }
+
+/* -------------------------------------------------------------------------- */
+/*  The blog                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/** An article as the console lists it — everything but the body. */
+export type AdminPost = {
+  id: string;
+  slug: string;
+  title: string;
+  category: string;
+  excerpt: string;
+  reading_minutes: number;
+  is_published: boolean;
+  published_at: string | null;
+  updated_at: string | null;
+};
+
+/** The same, opened for editing. */
+export type AdminPostDetail = AdminPost & { body: string };
+
+/**
+ * Every article, drafts included.
+ *
+ * The public `/posts` filters on `is_published`; this deliberately does not.
+ * A console that hides half the articles is how two people write the same
+ * piece.
+ */
+export async function listAdminPosts(options: {
+  search?: string;
+  status?: "published" | "draft";
+} = {}): Promise<AdminPost[]> {
+  return apiData<AdminPost[]>("/admin/posts", [], {
+    query: { search: options.search, status: options.status },
+  });
+}
+
+/** One article in full. Null when it is gone, or the caller is not an admin. */
+export async function getAdminPost(slug: string): Promise<AdminPostDetail | null> {
+  const result = await api<{ data: AdminPostDetail }>(
+    `/admin/posts/${encodeURIComponent(slug)}`,
+  );
+
+  return result.ok ? result.data.data : null;
+}

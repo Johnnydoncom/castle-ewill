@@ -15,6 +15,7 @@ export const ADMIN_PERMISSIONS = [
   { value: "manage_verifications", label: "Identity", description: "Approve or reject identity/KYC verification attempts." },
   { value: "manage_payments", label: "Payments", description: "View payments, confirm bank transfers, edit the bank account." },
   { value: "manage_messages", label: "Messages", description: "View and resolve contact-form submissions." },
+  { value: "manage_content", label: "Blog", description: "Write, edit, publish and withdraw articles on the public site." },
   { value: "manage_settings", label: "Settings", description: "View dependency health and edit the bank account." },
 ] as const;
 

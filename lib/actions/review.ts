@@ -517,3 +517,99 @@ export async function saveSettingsGroupAction(
     successMessage: "Settings saved.",
   });
 }
+
+/* -------------------------------------------------------------------------- */
+/*  The blog                                                                   */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Writes a new article, or saves an existing one.
+ *
+ * The slug is sent only when somebody typed one. Sending it back unchanged on
+ * every save would be harmless today, but it invites the next person to wire
+ * it to the title — and a slug that follows the title breaks every link to a
+ * published article the moment a headline is corrected. The backend keeps the
+ * existing slug when this field is absent.
+ */
+export async function savePostAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const slug = String(formData.get("slug") ?? "").trim();
+  const editingSlug = String(formData.get("editingSlug") ?? "").trim();
+
+  const body = {
+    title: String(formData.get("title") ?? "").trim(),
+    category: String(formData.get("category") ?? "").trim(),
+    excerpt: String(formData.get("excerpt") ?? "").trim(),
+    body: String(formData.get("body") ?? ""),
+    is_published: formData.get("isPublished") === "on",
+    ...(slug ? { slug } : {}),
+  };
+
+  return apiMutation(
+    editingSlug ? `/admin/posts/${encodeURIComponent(editingSlug)}` : "/admin/posts",
+    {
+      method: editingSlug ? "PUT" : "POST",
+      body,
+      /*
+       * Back to the list either way. An editor who has just published wants to
+       * see it in the run of articles, not sit on the form wondering whether
+       * it saved.
+       */
+      redirect: "/admin/posts",
+      onError: (result) => ({
+        status: "error",
+        message: result.message,
+        fieldErrors: result.fieldErrors
+          ? Object.fromEntries(
+            Object.entries(result.fieldErrors).map(([key, messages]) => [
+              key.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase()),
+              messages,
+            ]),
+          )
+          : undefined,
+      }),
+    },
+  );
+}
+
+/**
+ * Publishes an article, or takes it down.
+ *
+ * Its own endpoint rather than a save: pulling something that is wrong should
+ * not require re-submitting a valid title, excerpt and body first.
+ */
+export async function setPostPublishedAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const slug = String(formData.get("slug") ?? "").trim();
+
+  if (!slug) return errorState("That article could not be identified.");
+
+  return apiMutation(`/admin/posts/${encodeURIComponent(slug)}/publication`, {
+    method: "POST",
+    body: { is_published: formData.get("isPublished") === "on" },
+  });
+}
+
+/**
+ * Deletes an article.
+ *
+ * Offered, unlike a plan — a plan is referenced by every payment made against
+ * it, an article is referenced by nothing. Withdrawing is the reversible act
+ * and is one click away; this is for a piece written in error.
+ */
+export async function deletePostAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const slug = String(formData.get("slug") ?? "").trim();
+
+  if (!slug) return errorState("That article could not be identified.");
+
+  return apiMutation(`/admin/posts/${encodeURIComponent(slug)}`, {
+    method: "DELETE",
+  });
+}
