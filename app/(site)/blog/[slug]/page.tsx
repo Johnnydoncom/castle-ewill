@@ -2,10 +2,28 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { getPostBySlug } from "@/lib/actions/content";
+import { getPostBySlug, listPublishedPosts } from "@/lib/actions/content";
 
-/** Articles are database-backed; see the note in the pricing page. */
-export const dynamic = "force-dynamic";
+/** Reused for five minutes — see the note on the homepage. */
+export const revalidate = 300;
+
+/**
+ * Every published article, pre-rendered at build.
+ *
+ * Without this the route is only ever rendered on demand: the first visitor to
+ * each article — very often a crawler — waits on the origin and a round trip
+ * to Laravel, and that is the request search engines time. With it, the whole
+ * blog is HTML at the edge, and a post published later is picked up on the
+ * next revalidation rather than needing a deploy.
+ *
+ * An unreachable backend at build time yields an empty list rather than a
+ * failed build; those routes then render on demand exactly as they do today.
+ */
+export async function generateStaticParams() {
+  const posts = await listPublishedPosts();
+
+  return posts.map((post) => ({ slug: post.slug }));
+}
 
 export async function generateMetadata({
   params,
@@ -20,7 +38,19 @@ export async function generateMetadata({
   return {
     title: post.title,
     description: post.excerpt,
-    openGraph: { title: post.title, description: post.excerpt, type: "article" },
+    // Per slug, so each article is its own canonical rather than inheriting
+    // one — see the note in the root layout.
+    alternates: { canonical: `/blog/${post.slug}` },
+    openGraph: {
+      title: post.title,
+      description: post.excerpt,
+      type: "article",
+      url: `/blog/${post.slug}`,
+      publishedTime: post.published_at,
+      // Restated because a page's `openGraph` replaces the layout's outright —
+      // without this an article previews with no image at all.
+      images: [{ url: "/images/hero-family.jpg", width: 1200, height: 630 }],
+    },
   };
 }
 

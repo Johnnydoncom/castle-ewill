@@ -36,8 +36,21 @@ export type Post = {
  * the precomposed totals.
  */
 
+/**
+ * How long an article may be reused for.
+ *
+ * Articles are edited in the console and read by everybody; five minutes is
+ * far inside the time it takes anyone to notice, and it is the difference
+ * between the blog rendering at the edge and rendering on the origin behind a
+ * call to Laravel.
+ */
+export const POST_TTL_SECONDS = 300;
+
 export async function listPublishedPosts(limit = 24): Promise<Post[]> {
-  const posts = await apiData<Post[]>("/posts", [], { authenticated: false });
+  const posts = await apiData<Post[]>("/posts", [], {
+    authenticated: false,
+    revalidate: POST_TTL_SECONDS,
+  });
 
   return posts.slice(0, limit);
 }
@@ -45,6 +58,7 @@ export async function listPublishedPosts(limit = 24): Promise<Post[]> {
 export async function getPostBySlug(slug: string): Promise<Post | null> {
   return apiData<Post | null>(`/posts/${encodeURIComponent(slug)}`, null, {
     authenticated: false,
+    revalidate: POST_TTL_SECONDS,
   });
 }
 

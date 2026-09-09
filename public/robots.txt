@@ -12,3 +12,13 @@ Allow: /
 
 User-agent: *
 Allow: /
+
+# Nothing behind a session is worth a crawl — these all answer a redirect.
+User-agent: *
+Disallow: /dashboard
+Disallow: /admin
+Disallow: /payments/callback
+Disallow: /verify-email
+Disallow: /reset-password
+
+Sitemap: https://castlewilltrust.com/sitemap.xml

@@ -4,10 +4,15 @@ import Link from "next/link";
 import { listPublishedPosts } from "@/lib/actions/content";
 import { REVIEW_TRIGGERS } from "@/lib/company";
 
-/** Articles are database-backed; see the note in the pricing page. */
-export const dynamic = "force-dynamic";
+/**
+ * Reused for five minutes. Articles are database-backed but change rarely, and
+ * rendering the list on the origin for every anonymous visitor is the reason
+ * the blog was slow — see the note on the homepage.
+ */
+export const revalidate = 300;
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/blog" },
   title: "Estate planning resources",
   description:
     "Plain-English guidance on Wills, executors, guardianship and probate in Nigeria.",

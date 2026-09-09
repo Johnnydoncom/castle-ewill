@@ -8,15 +8,11 @@ import { CheckoutButton } from "@/components/payments/CheckoutButton";
 import { COMPANY } from "@/lib/company";
 import { currentUser } from "@/lib/actions/guards";
 
-/**
- * Prices come from the API, which reads the `plans` table. Rendering per request
- * rather than at build keeps a price change live immediately — and stops a build
- * run without a reachable backend from baking in an empty pricing page, since
- * `getPriceList()` degrades to an empty list rather than throwing.
- */
-export const dynamic = "force-dynamic";
+/** Reused for five minutes — see the note on the homepage. */
+export const revalidate = 300;
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/pricing" },
   title: "Pricing",
   description:
     "Charged once per Will. Basic ₦40,000; Premium ₦125,000 with a solicitor's review and Probate Registry lodging included; Platinum ₦150,000, which adds a recording of you reading your signed Will. Lodging is optional and charged separately. Lawyers drafting for clients pay ₦10,000 per Will.",

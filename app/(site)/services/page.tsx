@@ -6,6 +6,7 @@ import { COMPANY, REVIEW_TRIGGERS } from "@/lib/company";
 import { WILL_STEPS } from "@/lib/will/steps";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/services" },
   title: "Services",
   description:
     "A guided Will builder, an encrypted document vault, identity verification and probate lodging. You write the Will yourself; a solicitor's review is an optional extra.",

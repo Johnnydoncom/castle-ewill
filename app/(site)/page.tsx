@@ -6,26 +6,58 @@ import { Button } from "@/components/ui/button";
 import { HeroSlides } from "@/components/site/HeroSlides";
 import { PlanCard, PricingFootnotes } from "@/components/pricing/PlanCard";
 import { ProfessionalBand } from "@/components/pricing/ProfessionalBand";
+import { COMPANY } from "@/lib/company";
 import { getPriceList } from "@/lib/pricing";
 
 export const metadata: Metadata = {
-  title: "Castle eWill & Trust — Nigeria's Premium Online Will Platform",
+  alternates: { canonical: "/" },
+  /*
+   * `absolute`, so the layout's `%s — Castle eWill & Trust` template is not
+   * appended to a title that already ends in the brand. It was, and the
+   * homepage shipped 96 characters reading "Castle eWill & Trust — Nigeria's
+   * Premium Online Will Platform — Castle eWill & Trust" — truncated in every
+   * result page it appeared in, with the brand repeated inside the truncation.
+   */
+  title: {
+    absolute: "Castle eWill & Trust — Nigeria's Premium Online Will Platform",
+  },
   description:
     "Write your own Will online, in compliance with Nigerian law. Draft it, print it, and have a solicitor review it only if you want one.",
+  /*
+   * `images` and `url` restated here, not inherited.
+   *
+   * A page's `openGraph` *replaces* the layout's rather than merging into it,
+   * so defining one without an image silently removed the image — and this is
+   * the most-shared page on the site. Every link to the homepage on WhatsApp,
+   * Facebook or LinkedIn previewed as a bare title with no picture.
+   */
   openGraph: {
     title: "Castle eWill & Trust — Nigeria's Premium Online Will Platform",
     description:
       "Write your own Will online, in compliance with Nigerian law. Draft it, print it, and have a solicitor review it only if you want one.",
     type: "website",
+    url: "/",
+    siteName: COMPANY.name,
+    images: [
+      { url: "/images/hero-family.jpg", width: 1200, height: 630, alt: COMPANY.name },
+    ],
   },
 };
 
 /**
- * Prices are read per request, so a change in the admin console is live on the
- * homepage immediately — and a build run without a reachable backend cannot
- * bake a stale price into static HTML.
+ * Rendered once and reused for five minutes, not rebuilt per visitor.
+ *
+ * This was `force-dynamic`, so that a price edited in the console was live
+ * immediately and a build with an unreachable backend could not bake a stale
+ * price into static HTML. Both concerns survive revalidation — a price is live
+ * within five minutes, and `getPriceList()` already degrades to an empty list
+ * rather than throwing, so a bad build self-corrects on the next window.
+ *
+ * What it cost was the whole point of a marketing page: every visit re-rendered
+ * on the origin and waited on a round trip to Laravel, and the CDN was told
+ * `no-store`, so nothing was ever served from an edge.
  */
-export const dynamic = "force-dynamic";
+export const revalidate = 300;
 
 export default function HomePage() {
   return (
@@ -138,10 +170,20 @@ function Proof() {
 
         <div className="relative">
           <div className="overflow-hidden rounded-[2rem] shadow-elegant">
-            <img
+            {/*
+              `next/image`, like every other image on this page — these two
+              were the only raw `<img>` left, and between them they shipped
+              442KB of untouched JPEG to every visitor. Served through the
+              optimiser they come down as AVIF or WebP at the size the layout
+              actually uses, which `next.config.ts` has been configured for all
+              along.
+            */}
+            <Image
               src="/images/office-interior.jpg"
               alt=""
-              loading="lazy"
+              width={1200}
+              height={1120}
+              sizes="(min-width: 1024px) 50vw, 100vw"
               className="h-[420px] w-full object-cover sm:h-[560px]"
             />
           </div>
@@ -442,12 +484,12 @@ function WhyCastle() {
     <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
       <div className="grid gap-12 lg:grid-cols-2 lg:items-center lg:gap-20">
         <div className="relative order-2 overflow-hidden rounded-[2rem] shadow-elegant lg:order-1">
-          <img
+          <Image
             src="/images/father-daughter.jpg"
             alt="A Nigerian father and daughter reading together"
-            loading="lazy"
-            width={600}
-            height={600}
+            width={1200}
+            height={1120}
+            sizes="(min-width: 1024px) 50vw, 100vw"
             className="h-[420px] w-full object-cover sm:h-[560px]"
           />
         </div>

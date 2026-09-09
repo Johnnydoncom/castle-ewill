@@ -66,6 +66,21 @@ type RequestOptions = {
   authenticated?: boolean;
   /** Query string parameters; `undefined` values are dropped. */
   query?: Record<string, string | number | boolean | undefined>;
+  /**
+   * Seconds this response may be reused for, on **public reads only**.
+   *
+   * Omitted, the fetch is `no-store` — which is right for anything
+   * user-specific, and is also what keeps a route out of the static render.
+   * That default cost the public pages dearly: the marketing site, the pricing
+   * page and the blog each re-rendered on the origin and re-called Laravel on
+   * every single visit, so nothing was ever served from the CDN edge.
+   *
+   * **Ignored when `authenticated` is true.** A session-bearing response must
+   * never be cached, however tempting: the cached copy would eventually be
+   * served to somebody else. That is enforced below rather than left to the
+   * caller to remember.
+   */
+  revalidate?: number;
 };
 
 /**
@@ -111,7 +126,14 @@ export async function api<T = unknown>(
     formData,
     authenticated = true,
     query,
+    revalidate,
   } = options;
+
+  /*
+   * The one place the rule is applied, so no caller can cache a session by
+   * accident: a request that forwards a cookie is never reusable.
+   */
+  const cacheFor = authenticated || method !== "GET" ? undefined : revalidate;
 
   const headers: Record<string, string> = { Accept: "application/json" };
 
@@ -153,7 +175,14 @@ export async function api<T = unknown>(
         method,
         headers,
         body: requestBody,
-        cache: "no-store",
+        /*
+         * Cacheable only when the caller asked *and* the request carries no
+         * session. Everything else stays `no-store`, which is both the safe
+         * answer and the one that forces a dynamic render.
+         */
+        ...(cacheFor === undefined
+          ? { cache: "no-store" as const }
+          : { next: { revalidate: cacheFor } }),
         signal: AbortSignal.timeout(10000),
       });
       break;

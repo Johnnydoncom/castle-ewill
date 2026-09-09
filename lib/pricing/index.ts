@@ -26,11 +26,20 @@ const EMPTY: PriceList = {
  * leave the pricing page saying "our plans are being updated" beside a phone
  * number, not fail the render.
  */
+/** How long a published price may be reused for. */
+export const PRICE_TTL_SECONDS = 300;
+
 export async function getPriceList(): Promise<PriceList> {
   const result = await api<{
     data: Plan[];
     meta?: { quotes?: PriceList["quotes"]; providers?: PriceList["providers"] };
-  }>("/plans", { authenticated: false });
+    /*
+     * Five minutes. Prices change when an administrator edits them, which is
+     * rare and never urgent to the minute — and the alternative was every
+     * visitor to the homepage waiting on a round trip to Laravel before a
+     * single byte of it rendered.
+     */
+  }>("/plans", { authenticated: false, revalidate: PRICE_TTL_SECONDS });
 
   if (!result.ok) return EMPTY;
 

@@ -2,6 +2,7 @@ import { COMPANY } from "@/lib/company";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/terms" },
   title: "Terms of Service",
   description: "The terms and conditions that govern your use of Castle eWill & Trust.",
 };

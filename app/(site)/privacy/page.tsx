@@ -2,6 +2,7 @@ import { COMPANY } from "@/lib/company";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/privacy" },
   title: "Privacy Policy",
   description: "How Castle eWill & Trust collects, uses and safeguards your personal information.",
 };

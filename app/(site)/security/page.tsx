@@ -13,6 +13,7 @@ import {
 import { COMPANY } from "@/lib/company";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/security" },
   title: "Security & Identity Verification",
   description:
     "How Castle eWill & Trust verifies who is registering a Will — document authentication, liveness detection and face matching, before any document is written or stored.",

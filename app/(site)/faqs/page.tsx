@@ -4,6 +4,7 @@ import Link from "next/link";
 import { COMPANY } from "@/lib/company";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/faqs" },
   title: "FAQs",
   description:
     "Common questions about making a Will in Nigeria: legal validity, witnesses, executors, guardianship, cost, security and updates.",

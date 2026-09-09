@@ -14,6 +14,7 @@ import {
 } from "@/lib/company";
 
 export const metadata: Metadata = {
+  alternates: { canonical: "/about" },
   title: "About",
   description: `${COMPANY.legalName} — our vision, mission, values and the commitments we make to every client.`,
 };

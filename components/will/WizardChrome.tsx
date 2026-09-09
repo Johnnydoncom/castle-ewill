@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useFormStatus } from "react-dom";
 import { Check } from "lucide-react";
 
@@ -111,21 +112,29 @@ export function WizardFooter({
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-8">
+      {/*
+        `Link`, not `<a>`.
+
+        These two were raw anchors, so every "Back" and every "Save & exit" in
+        the nine-step wizard tore the whole application down and booted it
+        again — the slowest navigation in the product, in the place a client
+        spends the most time. `Link` prefetches the route and swaps the tree.
+      */}
       <div className="flex items-center gap-6">
         {backHref && (
-          <a
+          <Link
             href={backHref}
             className="text-sm uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-navy"
           >
             &larr; Back
-          </a>
+          </Link>
         )}
-        <a
+        <Link
           href="/dashboard"
           className="text-sm uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-navy"
         >
           Save &amp; exit
-        </a>
+        </Link>
       </div>
 
       <button
