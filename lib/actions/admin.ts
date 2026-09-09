@@ -110,8 +110,37 @@ const emptyStats: AdminStats = {
   recent_audit: [],
 };
 
+/**
+ * The overview, filled in against what this build expects.
+ *
+ * **The two apps deploy independently**, so the frontend regularly runs for a
+ * few minutes against a backend that predates it. `apiData` only substitutes
+ * its fallback when the *request* fails; a successful response in an older
+ * shape is passed through whole — and a page that reads
+ * `stats.attention.wills_awaiting_review` off it throws, taking the entire
+ * console to an error boundary. That is exactly what happened when `attention`,
+ * `funnel` and the two new trends shipped here before the API had them.
+ *
+ * So the response is merged over the empty shape rather than trusted: a field
+ * this build knows about and the server has not got yet reads as zero, which
+ * is wrong for a few minutes and right forever after. The nested objects are
+ * spread individually because a shallow merge would leave a half-populated
+ * `attention` from an intermediate deploy looking complete.
+ */
 export async function getAdminStats(): Promise<AdminStats> {
-  return apiData<AdminStats>("/admin/overview", emptyStats);
+  const stats = await apiData<Partial<AdminStats>>("/admin/overview", emptyStats);
+
+  return {
+    ...emptyStats,
+    ...stats,
+    funnel: { ...emptyStats.funnel, ...(stats.funnel ?? {}) },
+    attention: { ...emptyStats.attention, ...(stats.attention ?? {}) },
+    wills_by_status: stats.wills_by_status ?? {},
+    will_trend: stats.will_trend ?? [],
+    revenue_trend: stats.revenue_trend ?? [],
+    client_trend: stats.client_trend ?? [],
+    recent_audit: stats.recent_audit ?? [],
+  };
 }
 
 /*
