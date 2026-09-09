@@ -7,6 +7,7 @@ import { requireAdminPermission } from "@/lib/actions/guards";
 import { getWillForReview } from "@/lib/actions/admin";
 import { WILL_STATUS_LABELS } from "@/lib/will/reference";
 import { PageHead } from "@/components/dashboard/PageHead";
+import { RevisionHistory } from "@/components/admin/RevisionHistory";
 import { ReviewActions } from "@/components/admin/ReviewActions";
 import { ReviewSummary } from "@/components/will/ReviewSummary";
 import {
@@ -124,35 +125,7 @@ export default async function AdminWillDetailPage({
             </a>
           </div>
 
-          <div className="border border-border bg-background p-6">
-            <p className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">
-              Revision history
-            </p>
-            {revisions.length === 0 ? (
-              <p className="mt-3 text-xs italic text-muted-foreground">
-                No revisions recorded yet.
-              </p>
-            ) : (
-              <ol className="mt-4 space-y-3">
-                {revisions.map((revision) => (
-                  <li
-                    key={revision.version}
-                    className="border-l-2 border-border pl-4"
-                  >
-                    <p className="text-sm text-navy">
-                      Revision {revision.version}
-                    </p>
-                    <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                      {revision.summary ?? "—"}
-                    </p>
-                    <p className="mt-1 text-[10px] uppercase tracking-wider text-muted-foreground/70">
-                      {formatDate(revision.created_at)}
-                    </p>
-                  </li>
-                ))}
-              </ol>
-            )}
-          </div>
+          <RevisionHistory revisions={revisions} />
         </div>
       </div>
     </div>

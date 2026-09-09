@@ -290,10 +290,20 @@ export async function listWills(options: {
 export type AdminWillDetail = {
   will: ApiWill;
   client: { id: string; name: string | null; email: string; status: string };
+  /**
+   * The trail, newest first — a log of **events**, not of versions.
+   *
+   * One version carries several entries: an administrator requests changes,
+   * which is what sets the new version, and the client resubmits at that same
+   * one. So `version` is not a key and cannot order the list.
+   */
   revisions: Array<{
+    id: string;
     version: number;
     summary: string | null;
     created_at: string | null;
+    /** Which side did it. Null for anything the system did unattended. */
+    actor: { name: string | null; is_admin: boolean } | null;
   }>;
 };
 
