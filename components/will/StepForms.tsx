@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
+import { useRef, useState } from "react";
 
 import { useFormAction } from "@/hooks/use-api-form";
 import { type FormState } from "@/lib/actions/state";
@@ -29,6 +29,7 @@ import {
 } from "./Fields";
 import { PassportPhotoField } from "./PassportPhotoField";
 import { RepeatableList } from "./RepeatableList";
+import { AmendmentIdentityCheck } from "./AmendmentIdentityCheck";
 import { HelpPanel, StepBanner, WizardFooter } from "./WizardChrome";
 
 type StepProps = {
@@ -1054,8 +1055,19 @@ export function ReviewStep({
 }: StepProps & { children: React.ReactNode }) {
   const [state, action] = useFormAction(submitWillAction);
 
+  /*
+   * The form itself, so the identity check can submit it.
+   *
+   * `requestSubmit()` rather than `submit()`: the former runs validation and
+   * fires the submit event, which is what a React `action` is listening for.
+   * `submit()` bypasses both and the action would never run.
+   */
+  const formRef = useRef<HTMLFormElement>(null);
+
+  const needsIdentity = will.journey?.update_blocked_by === "liveness_required";
+
   return (
-    <form action={action} className="space-y-8" noValidate>
+    <form ref={formRef} action={action} className="space-y-8" noValidate>
       <WillId id={will.id} />
       <StepBanner state={state} />
       <HelpPanel>{help}</HelpPanel>
@@ -1087,24 +1099,34 @@ export function ReviewStep({
         liveness pass expires within the hour, so doing it early is doing it
         twice.
       */}
-      {will.journey?.update_blocked_by === "liveness_required" && (
-        <div className="flex flex-col gap-4 border border-accent/40 bg-accent/5 p-6 sm:flex-row sm:items-center sm:justify-between">
+      {needsIdentity && (
+        <div className="space-y-4 border border-accent/40 bg-accent/5 p-6">
           <div className="space-y-1">
             <p className="font-serif text-lg text-foreground">
               Confirm it is you before this update is saved
             </p>
             <p className="text-sm text-muted-foreground">
               You are changing a Will that has already been produced. A short
-              camera check confirms the change is being made by you. It takes
-              about a minute, and is only asked when you amend.
+              camera check confirms the change is being made by you — no
+              documents, and it takes a few seconds.
             </p>
           </div>
-          <Link
-            href="/dashboard/kyc"
-            className="shrink-0 border border-foreground px-5 py-2.5 text-center text-xs font-semibold uppercase tracking-[0.14em] text-foreground transition hover:bg-foreground hover:text-background"
-          >
-            Start the check
-          </Link>
+
+          {/*
+            Taken here, not on the KYC page.
+
+            This was a link away. A client part-way through confirming an
+            amendment was sent to a different screen, did the check there, and
+            was left on it with nothing saying the thing they were actually
+            doing was still waiting. Most of the way through a task is the
+            worst moment to be moved somewhere else.
+
+            On a passing verdict this submits the form itself, so the check is
+            a step in the flow rather than an errand.
+          */}
+          <AmendmentIdentityCheck
+            onVerified={() => formRef.current?.requestSubmit()}
+          />
         </div>
       )}
 
@@ -1132,8 +1154,12 @@ export function ReviewStep({
         summoned a solicitor promised something the platform does not do by
         default. What the button actually does is commit the answers and move
         on to payment.
+
+        Hidden while the identity check is outstanding: pressing it then can
+        only be refused, and a button whose one behaviour is to fail is worse
+        than no button. The check submits the form itself when it passes.
       */}
-      <WizardFooter backHref={backHref} label="Save & continue" />
+      {!needsIdentity && <WizardFooter backHref={backHref} label="Save & continue" />}
     </form>
   );
 }

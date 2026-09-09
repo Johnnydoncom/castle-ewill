@@ -222,6 +222,8 @@ export function SmileIdCapture({
         userDetails: current.user_details,
         callbackUrl: current.callback_url,
         partnerParams: current.partner_params,
+        // Present only on an authentication; the server decides.
+        userId: current.user_id,
       };
 
       /*

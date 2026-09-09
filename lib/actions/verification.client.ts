@@ -53,12 +53,23 @@ export type SmileIdConfig = {
    * 202, so this is what travels with the submission and comes back on the
    * webhook verbatim.
    *
-   * `user_id` is here rather than beside it because their payload reference
-   * puts it here: `/v3/authentication` "requires `user_id` in `partner_params`"
-   * and "rejects the job without it". Absent on a first check, which names no
-   * enrolled user. Passed through as the server composed it.
+   * Passed through exactly as the server composed it.
    */
-  partner_params: { attempt_id: string; user_id?: string };
+  partner_params: { attempt_id: string };
+
+  /**
+   * The enrolled identity a recheck is matched against — **a top-level field**,
+   * not part of `partner_params`.
+   *
+   * Their payload reference says the opposite, and following it returned
+   * `400 Required field 'user_id' is missing or invalid` on every recheck.
+   * Settled against the sandbox: in `partner_params` alone → 400, top-level →
+   * 202.
+   *
+   * Absent unless this is a SmartSelfie *authentication*. A registration
+   * creates the enrolled user and Smile ID names it.
+   */
+  user_id?: string;
   consent: { notice_language: string; notice_privacy_policy_url: string };
   /**
    * Who this is, from our own records.

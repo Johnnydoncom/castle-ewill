@@ -39,6 +39,15 @@ export type JobBasics = {
   userDetails: Record<string, string | undefined>;
   callbackUrl: string;
   partnerParams: Record<string, string>;
+  /**
+   * The enrolled identity, for a SmartSelfie authentication only.
+   *
+   * A **top-level field**. Their payload reference puts it in
+   * `partner_params`; doing that returns `400 Required field 'user_id' is
+   * missing or invalid`. Confirmed against the sandbox — see the note in the
+   * backend's `webComponentConfig()`.
+   */
+  userId?: string;
 };
 
 /**
@@ -111,6 +120,10 @@ export function buildJobBody(
    * echoes it verbatim. The backend decides what goes in it.
    */
   body.append("partner_params", JSON.stringify(basics.partnerParams));
+
+  if (basics.userId) {
+    body.append("user_id", basics.userId);
+  }
 
   if (document) {
     body.append("country", document.country);
