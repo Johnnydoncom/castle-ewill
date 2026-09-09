@@ -102,13 +102,26 @@ export default async function AdminWillDetailPage({
             <p className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">
               Document
             </p>
-            <Link
-              href={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${will.id}/pdf`}
+            {/*
+              The *admin* endpoint, not the client's.
+
+              This pointed at `/wills/{id}/pdf`, which authorises ownership and
+              then refuses anything the client has not yet paid for or been
+              verified for. An administrator is neither the owner nor subject to
+              that gate, so the button returned a JSON refusal — and the one
+              person who has to read a Will before approving it was the one
+              person who could not.
+
+              A plain `<a>`, not a `Link`: this is a download from another
+              origin, and Next's client router has no business intercepting it.
+            */}
+            <a
+              href={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/admin/wills/${will.id}/pdf`}
               className="mt-4 inline-flex items-center gap-2 border border-border px-5 py-2.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy transition-colors hover:border-gold hover:text-gold"
             >
               <Download className="h-3.5 w-3.5" />
               Download PDF
-            </Link>
+            </a>
           </div>
 
           <div className="border border-border bg-background p-6">
