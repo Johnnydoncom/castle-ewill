@@ -1051,20 +1051,8 @@ export function ReviewStep({
   will,
   help,
   backHref,
-  heading,
   children,
-}: StepProps & {
-  /**
-   * The step's own heading, passed in rather than drawn by the page.
-   *
-   * It has to live inside this component because it is inside what the
-   * identity check replaces. Rendered above, it stayed on screen underneath
-   * the check's own heading - "Review & confirm" over "Confirm it is you",
-   * the same instruction twice.
-   */
-  heading: React.ReactNode;
-  children: React.ReactNode;
-}) {
+}: StepProps & { children: React.ReactNode }) {
   const [state, action] = useFormAction(submitWillAction);
 
   /*
@@ -1102,9 +1090,9 @@ export function ReviewStep({
           The submit button stays, and it is what opens the check.
 
           Pressing "Save & continue" *is* the request to submit, so it is also
-          the request to confirm. This intercepts that press once, puts the
-          check on the page in place of the review, and then lets the second
-          submit — the one the check itself fires — straight through.
+          the request to confirm. This intercepts that press once, opens the
+          check over the whole screen, and then lets the second submit — the
+          one the check itself fires — straight through.
 
           React 19 runs `onSubmit` before the action and honours
           `preventDefault()`, so this cancels the submission rather than racing
@@ -1117,18 +1105,6 @@ export function ReviewStep({
           }
         }}
       >
-        {/*
-          Hidden, not unmounted.
-
-          The review has to stay in the DOM while the check runs: the fields
-          in it — the accuracy confirmation above all — are what gets posted
-          when the check passes, and a form with nothing in it submits
-          nothing. `hidden` takes it off the screen and leaves it in the
-          submission.
-        */}
-        <div hidden={checking} className="space-y-10">
-        {heading}
-        <div className="space-y-8">
         <WillId id={will.id} />
         <StepBanner state={state} />
         <HelpPanel>{help}</HelpPanel>
@@ -1190,28 +1166,35 @@ export function ReviewStep({
           on a page whose only control had vanished.
         */}
         <WizardFooter backHref={backHref} label="Save & continue" />
-        </div>
-        </div>
       </form>
 
       {/*
-        The check takes the page rather than floating over it, and it is
-        outside the form on purpose: nested, its buttons would fall inside the
-        form's submit scope and a default-typed one would post a
+        Outside the form on purpose. Nested, the check's own buttons would fall
+        inside the form's submit scope, and a default-typed one would post a
         half-finished amendment.
+
+        The form stays mounted underneath: its fields — the accuracy
+        confirmation above all — are what gets posted once the check passes,
+        and a form that has been unmounted submits nothing.
       */}
       {checking && (
         <AmendmentIdentityCheck
           onBack={() => setChecking(false)}
           onVerified={() => {
-            /*
-             * Let the next submit through, then fire it. `requestSubmit()`
-             * rather than `submit()`: the former runs validation and fires the
-             * submit event, which is what a React action listens for.
-             */
             confirmed.current = true;
             setChecking(false);
-            formRef.current?.requestSubmit();
+
+            /*
+             * Next tick, so the modal is out of the DOM before the form is
+             * submitted rather than submitting from underneath one — the
+             * order the client sees, and the order they asked for.
+             *
+             * `requestSubmit()` rather than `submit()`: the former runs
+             * validation and fires the submit event, which is what a React
+             * action listens for. `submit()` bypasses both and the action
+             * would never run.
+             */
+            window.setTimeout(() => formRef.current?.requestSubmit(), 0);
           }}
         />
       )}
