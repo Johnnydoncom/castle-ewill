@@ -281,7 +281,7 @@ export function AboutYouStep({
           <TextField
             label="First name"
             name="firstName"
-            placeholder="Ada"
+            placeholder="Stephen"
             hint={nameIsTheirs ? "From your account" : "As on their ID"}
             required
             readOnly={nameIsTheirs}
@@ -482,7 +482,7 @@ function ExecutorsFields({ will, state }: FieldsProps) {
 
         return (
           <div className="grid gap-5 sm:grid-cols-2">
-            <NameFields name={name} row={row} state={state} placeholder="Emeka Okafor" />
+            <NameFields name={name} row={row} state={state} placeholder="Stephen Hugges" />
             <TextField
               label="Relationship"
               name={name("relationship")}
@@ -509,7 +509,7 @@ function ExecutorsFields({ will, state }: FieldsProps) {
               name={name("email")}
               type="email"
               required
-              placeholder="emeka@example.com"
+              placeholder="examp@example.com"
               defaultValue={fieldValue(state, name("email"), row?.email ?? "")}
               errors={state.fieldErrors?.[name("email")]}
             />
@@ -614,7 +614,7 @@ function BeneficiaryRow({
       */}
       {row?.id && <input type="hidden" name={name("id")} value={row.id} />}
 
-      <NameFields name={name} row={row} state={state} placeholder="Zara Okafor" />
+      <NameFields name={name} row={row} state={state} placeholder="Zara Kingsman" />
       <TextField
         label="Relationship"
         name={name("relationship")}
@@ -666,7 +666,7 @@ function BeneficiaryRow({
           )}
 
           <div className="grid gap-5 sm:grid-cols-2">
-            <NameFields name={guardianName} row={guardian} state={state} placeholder="Chidi Nwosu" />
+            <NameFields name={guardianName} row={guardian} state={state} placeholder="Clement Sam" />
             <TextField
               label="Relationship to the child"
               name={guardianName("relationship")}
@@ -752,7 +752,7 @@ function TrusteesFields({ will, state }: FieldsProps) {
 
             return (
               <div className="grid gap-5 sm:grid-cols-2">
-                <NameFields name={name} row={row} state={state} placeholder="Amaka Nwosu" />
+                <NameFields name={name} row={row} state={state} placeholder="John Doe" />
                 <TextField
                   label="Relationship"
                   name={name("relationship")}
@@ -934,7 +934,7 @@ function BequestsFields({ will, state }: FieldsProps) {
                 label="Recipient"
                 name={name("recipientName")}
                 required
-                placeholder="Kene Okafor"
+                placeholder="Kenneth Duke"
                 defaultValue={fieldValue(state, name("recipientName"), row?.recipient_name ?? "")}
                 errors={state.fieldErrors?.[name("recipientName")]}
               />
@@ -1112,9 +1112,8 @@ function ResidueFields({ will, state }: FieldsProps) {
                     )
                   }
                   aria-invalid={Boolean(errors?.length)}
-                  className={`w-20 border-0 border-b bg-transparent px-0 py-1.5 text-right font-serif text-lg text-navy focus:outline-none focus:ring-0 ${
-                    errors?.length ? "border-destructive" : "border-border focus:border-gold"
-                  }`}
+                  className={`w-20 border-0 border-b bg-transparent px-0 py-1.5 text-right font-serif text-lg text-navy focus:outline-none focus:ring-0 ${errors?.length ? "border-destructive" : "border-border focus:border-gold"
+                    }`}
                 />
                 <span className="font-serif text-navy">%</span>
               </label>
