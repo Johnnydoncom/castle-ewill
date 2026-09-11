@@ -69,11 +69,21 @@ function readCookie(name: string): string | undefined {
   return match ? decodeURIComponent(match[1]) : undefined;
 }
 
+/** Asks Sanctum for a fresh `XSRF-TOKEN` cookie, whatever is already set. */
+async function primeCsrfCookie(): Promise<void> {
+  if (typeof document === "undefined") return;
+
+  await fetch(`${apiRoot()}/sanctum/csrf-cookie`, {
+    credentials: "include",
+    cache: "no-store",
+  });
+}
+
 async function ensureCsrfCookie(): Promise<void> {
   if (typeof document === "undefined") return;
   if (readCookie("XSRF-TOKEN")) return;
 
-  await fetch(`${apiRoot()}/sanctum/csrf-cookie`, { credentials: "include" });
+  await primeCsrfCookie();
 }
 
 const MUTATING_METHODS = new Set(["POST", "PUT", "PATCH", "DELETE"]);
@@ -104,45 +114,73 @@ export async function api<T = unknown>(
 ): Promise<ApiResult<T>> {
   const { method = "GET", body, formData, query } = options;
 
-  if (MUTATING_METHODS.has(method)) await ensureCsrfCookie();
+  const mutating = MUTATING_METHODS.has(method);
 
-  const headers: Record<string, string> = { Accept: "application/json" };
-
-  if (MUTATING_METHODS.has(method)) {
-    const xsrf = readCookie("XSRF-TOKEN");
-    if (xsrf) headers["X-XSRF-TOKEN"] = xsrf;
-  }
-
-  // Let the runtime set the multipart boundary; setting Content-Type by hand
-  // on a FormData body produces a request the server cannot parse.
-  if (body !== undefined && !formData) {
-    headers["Content-Type"] = "application/json";
-  }
-
-  let response: Response | undefined;
-  let lastError: unknown;
+  if (mutating) await ensureCsrfCookie();
 
   const url = buildUrl(path, query);
   const requestBody = formData ?? (body === undefined ? undefined : JSON.stringify(body));
 
-  for (let attempt = 0; attempt < 2; attempt++) {
-    try {
-      response = await fetch(url, {
-        method,
-        headers,
-        body: requestBody,
-        credentials: "include",
-        cache: "no-store",
-        signal: AbortSignal.timeout(15000),
-      });
-      break;
-    } catch (error) {
-      lastError = error;
-      if (attempt === 0) {
-        // Short pause before 1 retry to allow PHP worker pool to free up.
-        await new Promise((resolve) => setTimeout(resolve, 150));
+  /*
+   * Headers are built per send, not once: a retry after a 419 has to carry the
+   * token the re-prime just issued, not the one that was refused.
+   */
+  const send = async (): Promise<{ response?: Response; error?: unknown }> => {
+    const headers: Record<string, string> = { Accept: "application/json" };
+
+    if (mutating) {
+      const xsrf = readCookie("XSRF-TOKEN");
+      if (xsrf) headers["X-XSRF-TOKEN"] = xsrf;
+    }
+
+    // Let the runtime set the multipart boundary; setting Content-Type by hand
+    // on a FormData body produces a request the server cannot parse.
+    if (body !== undefined && !formData) {
+      headers["Content-Type"] = "application/json";
+    }
+
+    let error: unknown;
+
+    for (let attempt = 0; attempt < 2; attempt++) {
+      try {
+        return {
+          response: await fetch(url, {
+            method,
+            headers,
+            body: requestBody,
+            credentials: "include",
+            cache: "no-store",
+            signal: AbortSignal.timeout(15000),
+          }),
+        };
+      } catch (caught) {
+        error = caught;
+        if (attempt === 0) {
+          // Short pause before 1 retry to allow PHP worker pool to free up.
+          await new Promise((resolve) => setTimeout(resolve, 150));
+        }
       }
     }
+
+    return { error };
+  };
+
+  let { response, error: lastError } = await send();
+
+  /*
+   * A refused CSRF token, re-primed once.
+   *
+   * `ensureCsrfCookie()` only fetches a token when there is none. But a token
+   * can outlive the server session it belongs to — the session expires, or is
+   * cleared — and Laravel's 419 then issues a new session cookie *without* a new
+   * `XSRF-TOKEN`. Left alone, the browser sends the same stale token on every
+   * attempt and nobody can sign in or register until that cookie expires. So a
+   * 419 on a mutation fetches a fresh token and sends the request once more.
+   */
+  if (response?.status === 419 && mutating && typeof document !== "undefined") {
+    await primeCsrfCookie();
+
+    ({ response, error: lastError } = await send());
   }
 
   if (!response) {
