@@ -22,7 +22,7 @@ export function StepProgress({
   return (
     <nav aria-label="Progress" className="border-b border-border bg-background">
       <div className="mx-auto max-w-5xl px-4 py-5 sm:px-6">
-        <ol className="flex items-center gap-1.5">
+        <ol className="flex items-start gap-1.5">
           {steps.map((step) => {
             const isDone = done.has(step.step);
             const isCurrent = step.step === current;
@@ -34,11 +34,11 @@ export function StepProgress({
                     }`}
                 />
                 <p
-                  className={`mt-2 hidden truncate text-[10px] uppercase tracking-[0.18em] sm:block ${isCurrent
-                      ? "text-gold"
-                      : isDone
-                        ? "text-navy"
-                        : "text-muted-foreground/60"
+                  className={`mt-2 hidden max-w-[250px] text-[10px] uppercase tracking-[0.18em] sm:block ${isCurrent
+                    ? "text-gold"
+                    : isDone
+                      ? "text-navy"
+                      : "text-muted-foreground/60"
                     }`}
                 >
                   {step.title}
