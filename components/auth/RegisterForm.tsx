@@ -20,17 +20,17 @@ const ACCOUNT_TYPES: ReadonlyArray<{
   label: string;
   blurb: string;
 }> = [
-  {
-    value: "individual",
-    label: "Individual",
-    blurb: "I am writing my own Will.",
-  },
-  {
-    value: "lawyer",
-    label: "Lawyer",
-    blurb: "I draft Wills for my clients.",
-  },
-];
+    {
+      value: "individual",
+      label: "Individual",
+      blurb: "I am writing my own Will.",
+    },
+    {
+      value: "lawyer",
+      label: "Lawyer",
+      blurb: "I draft Wills for my clients.",
+    },
+  ];
 
 export function RegisterForm({
   initialAccountType = "individual",
@@ -90,11 +90,10 @@ export function RegisterForm({
             return (
               <label
                 key={option.value}
-                className={`cursor-pointer border p-4 transition-colors ${
-                  selected
+                className={`cursor-pointer border p-4 transition-colors ${selected
                     ? "border-gold bg-gold/5"
                     : "border-border hover:border-navy/40"
-                }`}
+                  }`}
               >
                 <span className="flex items-center gap-3">
                   <input
@@ -153,7 +152,7 @@ export function RegisterForm({
           label="First name"
           name="firstName"
           autoComplete="given-name"
-          placeholder="Ada"
+          placeholder="Harry"
           required
           errors={state.fieldErrors?.firstName}
         />
@@ -161,7 +160,7 @@ export function RegisterForm({
           label="Surname"
           name="lastName"
           autoComplete="family-name"
-          placeholder="Okafor"
+          placeholder="Doe"
           required
           errors={state.fieldErrors?.lastName}
         />
