@@ -222,8 +222,6 @@ export type VerificationRequirements = {
 export type VerificationSettings = {
   provider: VerificationProviderName;
   requirements: VerificationRequirements;
-  /** Which generation of Smile ID's integration runs. Absent reads as the current one. */
-  smile_id_version?: "v3" | "legacy";
 };
 
 /**

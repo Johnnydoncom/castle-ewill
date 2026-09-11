@@ -86,7 +86,6 @@ export default async function KycPage() {
            * no document, no second identity check.
            */
           recheckOnly={kycDone}
-          smileIdVersion={verification.smile_id_version}
           rejectionReason={
             verification.latest?.status === "failed"
               ? verification.latest.failure_reason

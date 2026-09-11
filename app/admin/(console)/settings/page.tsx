@@ -5,7 +5,6 @@ import { CheckCircle2, XCircle } from "lucide-react";
 import { PageHead } from "@/components/dashboard/PageHead";
 import { StatusBadge } from "@/components/admin/DataTable";
 import { BankAccountForm } from "@/components/admin/BankAccountForm";
-import { SmileIdVersionForm } from "@/components/admin/SmileIdVersionForm";
 import { VerificationProviderForm } from "@/components/admin/VerificationProviderForm";
 import { VerificationRequirementsForm } from "@/components/admin/VerificationRequirementsForm";
 import {
@@ -193,17 +192,6 @@ export default async function AdminSettingsPage() {
 
         <div className="border border-border bg-background p-6 sm:p-8">
           <VerificationProviderForm current={verification.provider} />
-        </div>
-
-        <div className="border border-border bg-background p-6 sm:p-8">
-          <h3 className="font-serif text-lg text-navy">Smile ID integration</h3>
-          <p className="mb-5 mt-1 text-sm leading-relaxed text-muted-foreground">
-            Which generation of Smile ID&apos;s integration the check runs on,
-            while Smile ID is the vendor above. A change applies to the next
-            check anybody starts; a check already with Smile ID finishes the way
-            it was submitted.
-          </p>
-          <SmileIdVersionForm current={verification.smile_id_version ?? "v3"} />
         </div>
       </section>
 

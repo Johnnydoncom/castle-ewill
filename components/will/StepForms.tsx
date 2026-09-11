@@ -1388,7 +1388,6 @@ export function ReviewStep({
       */}
       {checking && (
         <AmendmentIdentityCheck
-          smileIdVersion={will.journey?.smile_id_version}
           onBack={() => setChecking(false)}
           onVerified={() => {
             confirmed.current = true;

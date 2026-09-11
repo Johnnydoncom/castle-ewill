@@ -373,21 +373,6 @@ export async function setVerificationProviderAction(
   });
 }
 
-/**
- * Switches which generation of Smile ID's integration runs — the current V3
- * web components, or the legacy JavaScript SDK with server-to-server
- * submission. Applies to the next check anybody starts.
- */
-export async function setSmileIdVersionAction(
-  _previous: FormState,
-  formData: FormData,
-): Promise<FormState> {
-  return apiMutation("/admin/settings/smile-id-version", {
-    method: "PUT",
-    body: { version: String(formData.get("version") ?? "") },
-  });
-}
-
 /* -------------------------------------------------------------------------- */
 /*  Admin accounts — superadmin only                                          */
 /* -------------------------------------------------------------------------- */

@@ -1,139 +1,34 @@
 import { api } from "@/lib/api/browser";
 import {
-  legacyImages,
-  readLegacyStart,
-  type LegacyCapturedImage,
-  type LegacySmileIdConfig,
-} from "@/lib/smile-id/legacy";
+  imagesForSubmission,
+  readStart,
+  type CapturedImage,
+  type SmileIdCaptureConfig,
+} from "@/lib/smile-id/capture";
 import { errorState, successState, type FormState } from "./state";
 import type { WitnessIdentityRecord } from "./verification";
 
 /**
  * Identity verification's mutations, called directly from the browser.
  *
- * No image passes through here. We own the flow now — the screens are mounted
- * in our own page from `@smileid/web-sdk` — but the job still goes from the
- * client's browser straight to Smile ID's V3 API. This module opens an
- * attempt, receives the token that authorises that post, and afterwards
- * records the job id their 202 returned.
+ * Smile ID's JavaScript SDK captures in the browser; the images come to our
+ * API, and the backend submits them to Smile ID server to server. This module
+ * opens an attempt, sends a capture, and reads the standing a verdict leaves.
  */
 
 /**
- * Everything `window.SmileIdentity()` is called with, decided by the server.
+ * Opens an attempt, and learns what the capture should do.
  *
- * None of it is the browser's to choose: the product follows from whether this
- * is a first verification or a recheck, the branding is company identity, and
- * the token seals the job id so a result cannot be pointed at somebody else.
+ * `config` is null when no vendor is automated — a person decides the attempt,
+ * which is a real answer and not a failure. See `readStart` for why any other
+ * answer is refused rather than mounted.
  */
-export type SmileIdConfig = {
-  /** Short-lived v3 token, minted by our backend. The API key never leaves it. */
-  token: string;
-  /**
-   * Which check this is, decided server-side.
-   *
-   * `document_verification` proves who somebody is, once: they photograph a
-   * government ID, Smile ID reads it, and the portrait on it is matched to a
-   * selfie and liveness sequence. `smart_selfie_authentication` asks only
-   * whether the face in front of the camera is the identity already proved —
-   * no document, no second check.
-   */
-  product: "document_verification" | "smart_selfie_authentication";
-  /**
-   * The enrolment to submit alongside a first verification, or null.
-   *
-   * Null on a recheck and once the client is already enrolled. Enrolment is
-   * what makes every later SmartSelfie check possible — without it,
-   * `/v3/authentication` can only answer "no enrolled user found".
-   */
-  enrolment: { endpoint: string; token: string } | null;
-  /** Where the browser posts the job — follows the configured environment. */
-  endpoint: string;
-  environment: "sandbox" | "production";
-  callback_url: string;
-  country: string;
-  /**
-   * How a verdict finds its attempt, and — on a recheck — who the face is
-   * compared against.
-   *
-   * Smile ID generate `job_id` and `user_id` themselves and return them in the
-   * 202, so this is what travels with the submission and comes back on the
-   * webhook verbatim.
-   *
-   * Passed through exactly as the server composed it.
-   */
-  partner_params: { attempt_id: string };
-
-  /**
-   * The enrolled identity a recheck is matched against — **a top-level field**,
-   * not part of `partner_params`.
-   *
-   * Their payload reference says the opposite, and following it returned
-   * `400 Required field 'user_id' is missing or invalid` on every recheck.
-   * Settled against the sandbox: in `partner_params` alone → 400, top-level →
-   * 202.
-   *
-   * Absent unless this is a SmartSelfie *authentication*. A registration
-   * creates the enrolled user and Smile ID names it.
-   */
-  user_id?: string;
-  consent: { notice_language: string; notice_privacy_policy_url: string };
-  /**
-   * Who this is, from our own records.
-   *
-   * Required on every V3 job — but the element that collects it is not, since
-   * we already hold all of it.
-   */
-  user_details: Record<string, string | undefined>;
-  /**
-   * Enhanced SmartSelfie™ active liveness — the capture that gives directions.
-   *
-   * True renders `use-strict-mode` on `<smart-camera-web>`, which forwards it
-   * to the selfie screens: randomised head-turn prompts, one at a time, with
-   * the capture gated on following them. False leaves the default, which is
-   * gated on a smile and tells the client very little.
-   */
-  strict_liveness: boolean;
-  /**
-   * The document step, or null when there is not one.
-   *
-   * Null on a recheck, which photographs nothing. Otherwise `modes` goes on
-   * `<smart-camera-web>` as `document-capture-modes` — never on a nested
-   * `<document-capture-screens>`, which the wrapper renders itself and never
-   * reads a child's attributes from.
-   *
-   * No ID types travel with it: `id_type` is optional for this product and is
-   * omitted so their server auto-classifies, and there is no `id_number` field
-   * at all — identity comes off the card.
-   */
-  document_capture: { modes: string } | null;
-  /**
-   * Sandbox test mode, or null.
-   *
-   * The sandbox matches name and email against a fixed table and ignores the
-   * photographs, so a real name is refused there. Non-null means the job is
-   * being submitted as somebody fictional, and the screen says so.
-   */
-  test_mode: {
-    key: string;
-    status: string;
-    describes: string;
-    user_details: Record<string, string>;
-  } | null;
-  partner_details: {
-    partner_id: string;
-    name: string;
-    logo_url: string;
-    policy_url: string;
-    theme_color: string;
-  };
-};
-
 export async function startVerificationAction(): Promise<
   | { status: "error"; message: string }
-  | { status: "success"; attemptId: string; smileId: SmileIdConfig | null }
+  | { status: "success"; attemptId: string; config: SmileIdCaptureConfig | null }
 > {
   const result = await api<{
-    data: { attempt_id: string; smile_id?: SmileIdConfig | null };
+    data: { attempt_id: string; smile_id?: unknown; smile_id_legacy?: unknown };
   }>("/verification/start", {
     method: "POST",
     body: {},
@@ -143,92 +38,37 @@ export async function startVerificationAction(): Promise<
     return { status: "error", message: result.message };
   }
 
-  const payload = result.data.data;
-
-  /*
-   * `null` and *absent* are different answers, and conflating them is what
-   * turned a stale deployment into "can't access property token of undefined".
-   *
-   * Null is a real answer from a current server: no vendor is configured, so a
-   * person will decide this attempt. An absent key means the API answering us
-   * predates the hosted flow — there is no token coming, and opening the SDK
-   * with `undefined` would throw inside their script where we cannot explain
-   * it. Refused here instead, with something the client can act on.
-   */
-  if (!("smile_id" in payload)) {
-    return {
-      status: "error",
-      message:
-        "The identity check is unavailable just now. Please try again shortly.",
-    };
-  }
-
-  return {
-    status: "success",
-    attemptId: payload.attempt_id,
-    smileId: payload.smile_id ?? null,
-  };
-}
-
-/**
- * Opens an attempt on Smile ID's **legacy** integration.
- *
- * The same endpoint as `startVerificationAction`, read differently: the server
- * answers a legacy capture under `smile_id_legacy`, with no token — the v11 SDK
- * only captures, and the job is submitted by our backend. See `readLegacyStart`
- * for the three answers and why none may be mistaken for another.
- */
-export async function startLegacyVerificationAction(): Promise<
-  | { status: "error"; message: string }
-  | { status: "success"; attemptId: string; config: LegacySmileIdConfig | null }
-> {
-  const result = await api<{
-    data: {
-      attempt_id: string;
-      smile_id?: unknown;
-      smile_id_legacy?: LegacySmileIdConfig | null;
-    };
-  }>("/verification/start", {
-    method: "POST",
-    body: {},
-  });
-
-  if (!result.ok) {
-    return { status: "error", message: result.message };
-  }
-
-  const read = readLegacyStart(result.data.data);
+  const read = readStart(result.data.data);
 
   switch (read.kind) {
     case "capture":
       return { status: "success", attemptId: read.attemptId, config: read.config };
     case "manual":
       return { status: "success", attemptId: read.attemptId, config: null };
-    case "changed":
+    case "unavailable":
       return {
         status: "error",
         message:
-          "The identity check was updated while this page was open. Please reload the page and try again.",
+          "The identity check is unavailable just now. Please try again shortly.",
       };
   }
 }
 
 /**
- * Sends a legacy capture to our backend, which submits it to Smile ID.
+ * Sends a capture to our backend, which submits it to Smile ID.
  *
- * The one place images leave the browser for our API rather than for Smile ID
- * directly — the legacy API is server to server. The backend holds them in
- * memory for the request and writes them nowhere.
+ * The backend holds the images in memory for the request and writes them
+ * nowhere. The route keeps the `legacy` path it was published under.
  */
-export async function submitLegacyVerificationAction(
+export async function submitCaptureAction(
   attemptId: string,
-  images: readonly LegacyCapturedImage[],
+  images: readonly CapturedImage[],
 ): Promise<
   { status: "error"; message: string } | { status: "success"; message: string }
 > {
   const result = await api<{ message: string }>("/verification/legacy/submit", {
     method: "POST",
-    body: { attempt_id: attemptId, images: legacyImages(images) },
+    body: { attempt_id: attemptId, images: imagesForSubmission(images) },
   });
 
   if (!result.ok) {
@@ -239,40 +79,11 @@ export async function submitLegacyVerificationAction(
 }
 
 /**
- * Records that this account's face has been enrolled with Smile ID.
+ * Records that an attempt was handed over, when no vendor is automated.
  *
- * Reported from their `202`, like a job id. It says the enrolment was
- * accepted, not that it passed — the verdict comes on the webhook — and that
- * is enough, because an accepted enrolment is one `/v3/authentication` can be
- * asked about.
- */
-export async function enrolledAction(
-  jobId: string | null,
-  /**
-   * The identity Smile ID enrolled.
-   *
-   * Ours if they honoured the `User-ID` header, theirs if they generated one —
-   * their documentation reserves both. Whichever it is, it is what a later
-   * SmartSelfie authentication is matched against, so it is reported rather
-   * than assumed.
-   */
-  smileUserId: string | null = null,
-  /** Why it did not happen, when it did not — recorded, not shown. */
-  error: string | null = null,
-): Promise<void> {
-  await api("/verification/enrolled", {
-    method: "POST",
-    body: { job_id: jobId, user_id: smileUserId, error },
-  });
-}
-
-/**
- * Records that Smile ID accepted the job.
- *
- * Not a verdict: the browser posted the captures to Smile ID directly and read
- * `job_id` from their 202. This records that, so the client's own dashboard
- * stops offering a retry for a check that is already running, and so anyone
- * looking later can find the job.
+ * The manual-review path: there is no capture and no Smile ID job, so this is
+ * what stops the client's own dashboard offering a retry for an attempt a
+ * person is already deciding.
  */
 export async function submittedVerificationAction(
   attemptId: string,
@@ -280,8 +91,6 @@ export async function submittedVerificationAction(
 ): Promise<FormState> {
   const result = await api<{ message: string }>("/verification/submitted", {
     method: "POST",
-    // The job id is Smile ID's, read from their 202 by the browser that
-    // submitted. Null on the manual path, where no vendor job exists.
     body: { attempt_id: attemptId, job_id: jobId },
   });
 
@@ -293,36 +102,12 @@ export async function submittedVerificationAction(
 }
 
 /**
- * Uploads one witness's identification.
- *
- * Its own endpoint rather than the vault's: these documents belong to people
- * who are not our clients, are read once by a reviewer, and are deleted when
- * the client's verification completes.
- */
-/**
- * Submits both witnesses' identity details for checking.
- *
- * Both at once, because the attestation has two signatories and a client is
- * looking at both IDs on the table in front of them. Asking for one and then
- * the other turns a single sitting into two, and is how the second witness
- * never gets entered at all.
- *
- * No file. Smile ID's Basic KYC asks the issuing authority whether the ID
- * number belongs to the name, so no third party's identity document is
- * uploaded, transmitted or held anywhere.
- */
-/**
  * The witnesses as they stand, read from the browser.
  *
- * Enhanced KYC answers on our webhook rather than in the response, so the
- * screen has to ask again to learn what happened. This asks for the *records*
- * — not the page.
- *
- * `router.refresh()` was tried first and was a bad idea: it re-runs the whole
- * route on the server, which re-renders the form underneath the person filling
- * it in. Every four seconds their half-typed witness vanished. Uncontrolled
- * inputs keep their value only until React replaces them, and a refresh
- * replaces them.
+ * This asks for the *records* — not the page. `router.refresh()` was tried
+ * first and was a bad idea: it re-runs the whole route on the server, which
+ * re-renders the form underneath the person filling it in, and their
+ * half-typed witness vanished every few seconds.
  */
 export async function fetchWitnessIdentitiesAction(): Promise<
   WitnessIdentityRecord[] | null
@@ -336,6 +121,13 @@ export async function fetchWitnessIdentitiesAction(): Promise<
   return result.ok ? result.data.data : null;
 }
 
+/**
+ * Submits the witnesses' identity details for checking.
+ *
+ * No file. Smile ID's Enhanced KYC asks the issuing authority whether the ID
+ * number belongs to the name, so no third party's identity document is
+ * uploaded, transmitted or held anywhere.
+ */
 export async function submitWitnessIdentitiesAction(
   _previous: FormState,
   formData: FormData,
@@ -361,11 +153,6 @@ export async function submitWitnessIdentitiesAction(
     first_name: String(formData.get(`witnesses.${index}.first_name`) ?? "").trim(),
     middle_name: String(formData.get(`witnesses.${index}.middle_name`) ?? "").trim(),
     last_name: String(formData.get(`witnesses.${index}.last_name`) ?? "").trim(),
-    /*
-     * Enhanced KYC asks for at least one contact method beside the name it
-     * puts to the authority. It is also what the sandbox matches a test
-     * identity on, so without it no witness check can be rehearsed at all.
-     */
     email: String(formData.get(`witnesses.${index}.email`) ?? "").trim(),
     id_type: String(formData.get(`witnesses.${index}.id_type`) ?? "").trim(),
     id_number: String(formData.get(`witnesses.${index}.id_number`) ?? "").trim(),
@@ -397,8 +184,8 @@ export async function submitWitnessIdentitiesAction(
  * The caller's current verification standing.
  *
  * A read, in a file of mutations, for one reason: the verdict arrives on a
- * webhook rather than in the response to anything the browser did, so a client
- * watching a submitted check has no other way to learn it settled.
+ * callback rather than in the response to anything the browser did, so a
+ * client watching a submitted check has no other way to learn it settled.
  */
 export async function getVerificationStatusAction(): Promise<
   | { status: "error"; message: string }

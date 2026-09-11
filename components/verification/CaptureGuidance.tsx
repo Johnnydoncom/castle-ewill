@@ -1,18 +1,16 @@
 /**
  * What the check will ask for, said before the camera opens.
  *
- * Two things it is worth knowing in advance, and neither is on Smile ID's own
+ * Two things worth knowing in advance, and neither is on Smile ID's own
  * screens:
  *
  *  - **The selfie step waits for a smile.** While it waits it issues framing
- *    hints — "move your device higher", "lower", "right" — which read as the
- *    thing being asked for. They are not. Somebody following them exactly can
- *    stand there indefinitely; somebody who shows their teeth is through in a
- *    second. That was reported as the check being stuck, three times, before
- *    the difference was understood.
- *  - **The document comes first.** Worth saying up front so the client fetches
- *    their ID before starting rather than halfway through — which is also why
- *    the flow itself asks for it before opening a camera on anybody's face.
+ *    hints — "move closer", "centre your face" — which read as the thing being
+ *    asked for. They are not. Somebody following them exactly can stand there
+ *    indefinitely; somebody who shows their teeth is through in a second.
+ *  - **The document comes after the selfie**, on a first check. Worth saying up
+ *    front so the client has their ID to hand before the camera opens, rather
+ *    than going to look for it halfway through.
  *
  * We cannot edit their screens. We can say what they are looking for.
  *
@@ -37,23 +35,19 @@ export function CaptureGuidance({
           <li>
             <span className="text-navy">Have a government ID to hand</span> —
             your NIN slip, passport, driver&apos;s licence or voter&apos;s card.
-            This comes first: you will photograph it, or attach a photo you
-            already have, before the camera turns to you.
+            After your selfie you will photograph it, or attach a photo you
+            already have.
           </li>
         )}
         <li>
-          <span className="text-navy">
-            {withDocument ? "Then fill the oval." : "Fill the oval."}
-          </span>{" "}
-          Your face needs to
+          <span className="text-navy">Fill the frame.</span> Your face needs to
           take up most of it — closer than feels natural on a laptop, about an
           arm&apos;s length on a phone.
         </li>
         <li>
-          <span className="text-navy">And smile, showing your teeth.</span> That
-          is what the camera is waiting for — it is how it tells a live person
-          from a photograph, and the check moves on the moment it sees one. It
-          will keep suggesting you move the device until then.
+          <span className="text-navy">Smile, showing your teeth, when asked.</span>{" "}
+          That is how the camera tells a live person from a photograph, and the
+          check moves on the moment it sees one.
         </li>
         <li>
           <span className="text-navy">Face a window or a lamp,</span> not away

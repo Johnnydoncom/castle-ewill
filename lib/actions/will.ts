@@ -145,8 +145,6 @@ export type WillJourney = {
    * this is true.
    */
   witness_verification_required?: boolean;
-  /** Which Smile ID integration the amendment's camera check loads. */
-  smile_id_version?: "v3" | "legacy";
   printed_at: string | null;
   executed_at: string | null;
   lodged_at: string | null;
