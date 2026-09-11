@@ -38,7 +38,7 @@ export const WILL_STEPS = [
     step: 2,
     slug: "estate",
     numeral: "II",
-    title: "Executors, Beneficiaries, Trustees & Assets",
+    title: "Executors, Trustees, Beneficiaries & Assets",
     eyebrow: "Who and what",
     intro:
       "The people who will act for you, the people who inherit, and what you own.",
