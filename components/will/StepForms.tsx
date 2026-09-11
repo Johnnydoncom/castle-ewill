@@ -922,7 +922,7 @@ function BequestsFields({ will, state }: FieldsProps) {
           return (
             <div className="grid gap-5 sm:grid-cols-2">
               <TextField
-                label="Item description"
+                label="Description"
                 name={name("itemDescription")}
                 required
                 placeholder="My father's gold wristwatch"
