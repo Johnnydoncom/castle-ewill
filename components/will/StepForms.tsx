@@ -1233,11 +1233,17 @@ export function WitnessesStep({ will, backHref }: StepProps) {
                   errors={state.fieldErrors?.[name("address")]}
                   className="sm:col-span-2"
                 />
+                {/*
+                  Required, both. A witness may have to be found years later to
+                  confirm the signing, and their identity check is made with
+                  this email address.
+                */}
                 <TextField
                   label="Email"
                   name={name("email")}
                   type="email"
-                  hint="Optional"
+                  required
+                  placeholder="tunde@example.com"
                   defaultValue={fieldValue(state, name("email"), row?.email ?? "")}
                   errors={state.fieldErrors?.[name("email")]}
                 />
@@ -1245,7 +1251,8 @@ export function WitnessesStep({ will, backHref }: StepProps) {
                   label="Phone"
                   name={name("phone")}
                   type="tel"
-                  hint="Optional"
+                  required
+                  placeholder="08111115547"
                   defaultValue={fieldValue(state, name("phone"), row?.phone ?? "")}
                   errors={state.fieldErrors?.[name("phone")]}
                 />
