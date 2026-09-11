@@ -104,7 +104,7 @@ export async function listWitnessIdentities(): Promise<WitnessIdentityRecord[]> 
 export type WitnessIdType = {
   type: string;
   label: string;
-  /** Undelimited, as `/v3/services/supported_id_types` publishes it. */
+  /** Undelimited, as Smile ID's `/v1/services` catalogue publishes it. */
   regex: string;
 };
 
