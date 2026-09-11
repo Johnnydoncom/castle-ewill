@@ -77,7 +77,7 @@ export const WILL_STEPS = [
       {
         slug: "bequests",
         title: "Specific gifts",
-        help: "Give particular items to particular people — or, if you would rather not name gifts item by item, leave the whole estate to your trustees to hold and manage for your beneficiaries on the shares you set below.",
+        help: "Give specific items to beneficiaries — or, if you would rather not name gifts item by item, leave the whole estate to your trustees to hold and manage for your beneficiaries on the shares you set below.",
       },
       {
         slug: "residue",
