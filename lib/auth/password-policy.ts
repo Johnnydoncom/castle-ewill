@@ -20,7 +20,7 @@ export const PASSWORD_COST = 12;
  */
 export const passwordSchema = z
   .string()
-  .min(10, "Password must be at least 10 characters")
+  .min(8, "Password must be at least 8 characters")
   .max(200, "Password must be at most 200 characters")
   .refine((v) => /[a-z]/.test(v), "Include at least one lowercase letter")
   .refine((v) => /[A-Z]/.test(v), "Include at least one uppercase letter")
@@ -29,7 +29,7 @@ export const passwordSchema = z
 /** 0–4 strength score used by the client-side meter. */
 export function scorePassword(value: string): number {
   let score = 0;
-  if (value.length >= 10) score++;
+  if (value.length >= 8) score++;
   if (value.length >= 14) score++;
   if (/[a-z]/.test(value) && /[A-Z]/.test(value)) score++;
   if (/[0-9]/.test(value) && /[^A-Za-z0-9]/.test(value)) score++;
