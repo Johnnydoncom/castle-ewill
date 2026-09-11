@@ -6,7 +6,11 @@ import { AlertCircle, CheckCircle2 } from "lucide-react";
 import { useFormAction } from "@/hooks/use-api-form";
 import { setVerificationRequirementsAction } from "@/lib/actions/review";
 
-export type VerificationRequirements = { email: boolean; phone: boolean };
+export type VerificationRequirements = {
+  email: boolean;
+  phone: boolean;
+  witnesses: boolean;
+};
 
 const OPTIONS: {
   key: keyof VerificationRequirements;
@@ -26,6 +30,11 @@ const OPTIONS: {
     label: "Confirm phone number",
     hint: "Clients are asked to confirm a phone number by one-time code. Nothing is ever blocked on it — it is a second channel, not a gate.",
   },
+  {
+    key: "witnesses",
+    label: "Verify witnesses' identity",
+    hint: "Both witnesses' identity is checked with Smile ID, and a Will cannot be printed until both are confirmed. Off: clients name their witnesses and print without a check, and the witness panel is hidden.",
+  },
 ];
 
 function Submit() {
@@ -43,7 +52,8 @@ function Submit() {
 }
 
 /**
- * Which contact details a client is asked to confirm.
+ * Which contact details a client is asked to confirm — and whether their
+ * witnesses are checked, which `WillJourney::printBlockedBy()` enforces.
  *
  * Enforced server-side by `EnsureEmailIsVerified`, which reads the setting at
  * the point of use — so turning email confirmation off opens every gated

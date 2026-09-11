@@ -94,8 +94,16 @@ export default async function WillDetailPage({
    * the part of a Will most likely to be challenged, and two approved
    * documents are what the record rests on.
    */
-  const [witnessIds, suggestedWitnessNames, witnessIdTypeOptions] =
-    await Promise.all([
+  /*
+   * Only while witness verification is switched on in the console — it is off
+   * by default. Off, there is no panel to fill and nothing to ask Smile ID for:
+   * the ID-type catalogue below is a live call to them.
+   */
+  const checksWitnesses = will.journey?.witness_verification_required === true;
+
+  const [witnessIds, suggestedWitnessNames, witnessIdTypeOptions] = !checksWitnesses
+    ? [[], [], []]
+    : await Promise.all([
       listWitnessIdentities(),
       // The names already given in the wizard, so nobody types them twice.
       suggestedWitnesses(),
@@ -209,11 +217,13 @@ export default async function WillDetailPage({
         </div>
       )}
 
-      <WitnessVerification
-        records={witnessIds}
-        suggested={suggestedWitnessNames}
-        idTypes={witnessIdTypeOptions}
-      />
+      {checksWitnesses && (
+        <WitnessVerification
+          records={witnessIds}
+          suggested={suggestedWitnessNames}
+          idTypes={witnessIdTypeOptions}
+        />
+      )}
 
       <ReviewSummary will={will} editBasePath={`/dashboard/wills/${will.id}/edit`} />
     </div>

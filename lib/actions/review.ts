@@ -358,6 +358,7 @@ export async function setVerificationRequirementsAction(
     body: {
       email: formData.get("email") === "on",
       phone: formData.get("phone") === "on",
+      witnesses: formData.get("witnesses") === "on",
     },
   });
 }

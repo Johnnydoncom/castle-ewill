@@ -139,6 +139,12 @@ export type WillJourney = {
   /** What the final step of an amendment still owes; null otherwise. */
   update_blocked_by: UpdateBlocker | null;
   can_update: boolean;
+  /**
+   * Whether the witnesses' identity is checked before printing — a console
+   * switch, off by default. The Will's page shows its witness panel only when
+   * this is true.
+   */
+  witness_verification_required?: boolean;
   printed_at: string | null;
   executed_at: string | null;
   lodged_at: string | null;

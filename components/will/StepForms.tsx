@@ -1235,8 +1235,8 @@ export function WitnessesStep({ will, backHref }: StepProps) {
                 />
                 {/*
                   Required, both. A witness may have to be found years later to
-                  confirm the signing, and their identity check is made with
-                  this email address.
+                  confirm the signing — and while witness verification is
+                  switched on, their identity check uses this email address.
                 */}
                 <TextField
                   label="Email"

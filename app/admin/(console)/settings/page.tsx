@@ -200,9 +200,8 @@ export default async function AdminSettingsPage() {
           What clients must confirm
         </h2>
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Identity verification (document, liveness and face match) is always
-          required before a Will can be started. These two are separate, and
-          each can be switched off.
+          The testator&apos;s own identity check is always required before a Will
+          is printed. Each of these is separate, and can be switched off.
         </p>
 
         <div className="border border-border bg-background p-6 sm:p-8">

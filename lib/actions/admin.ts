@@ -212,7 +212,12 @@ export async function listAllPlans(): Promise<Plan[]> {
 
 export type VerificationProviderName = "smile_id" | "manual_review";
 
-export type VerificationRequirements = { email: boolean; phone: boolean };
+export type VerificationRequirements = {
+  email: boolean;
+  phone: boolean;
+  /** Whether witnesses' identity is checked before printing. Off by default. */
+  witnesses: boolean;
+};
 
 export type VerificationSettings = {
   provider: VerificationProviderName;
@@ -233,7 +238,7 @@ export type VerificationSettings = {
 export async function getVerificationSettings(): Promise<VerificationSettings> {
   return apiData<VerificationSettings>("/admin/settings/verification-provider", {
     provider: "manual_review",
-    requirements: { email: true, phone: false },
+    requirements: { email: true, phone: false, witnesses: false },
   });
 }
 
