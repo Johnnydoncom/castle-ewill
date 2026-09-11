@@ -807,7 +807,7 @@ function FAQPreview() {
     ],
     [
       "How long does it take to create a Will?",
-      "There are nine sections, and they are designed to be finished in one sitting. Nothing is timed — you can save your progress and come back whenever you like.",
+      "There are four short steps and a final review, designed to be finished in one sitting. Nothing is timed — you can save your progress and come back whenever you like.",
     ],
     [
       "Can I update my Will later?",

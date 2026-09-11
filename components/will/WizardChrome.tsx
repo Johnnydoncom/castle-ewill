@@ -30,18 +30,16 @@ export function StepProgress({
             return (
               <li key={step.slug} className="flex-1">
                 <div
-                  className={`h-1 rounded-full transition-colors ${
-                    isCurrent ? "bg-gold" : isDone ? "bg-navy" : "bg-border"
-                  }`}
+                  className={`h-1 rounded-full transition-colors ${isCurrent ? "bg-gold" : isDone ? "bg-navy" : "bg-border"
+                    }`}
                 />
                 <p
-                  className={`mt-2 hidden truncate text-[10px] uppercase tracking-[0.18em] sm:block ${
-                    isCurrent
+                  className={`mt-2 hidden truncate text-[10px] uppercase tracking-[0.18em] sm:block ${isCurrent
                       ? "text-gold"
                       : isDone
                         ? "text-navy"
                         : "text-muted-foreground/60"
-                  }`}
+                    }`}
                 >
                   {step.title}
                 </p>
@@ -112,14 +110,6 @@ export function WizardFooter({
 
   return (
     <div className="flex flex-wrap items-center justify-between gap-4 border-t border-border pt-8">
-      {/*
-        `Link`, not `<a>`.
-
-        These two were raw anchors, so every "Back" and every "Save & exit" in
-        the nine-step wizard tore the whole application down and booted it
-        again — the slowest navigation in the product, in the place a client
-        spends the most time. `Link` prefetches the route and swaps the tree.
-      */}
       <div className="flex items-center gap-6">
         {backHref && (
           <Link

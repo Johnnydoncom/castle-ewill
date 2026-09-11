@@ -1,19 +1,18 @@
 import type { Metadata } from "next";
-import { redirect } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { FileText } from "lucide-react";
 
 import { JourneyActions } from "@/components/will/JourneyActions";
 import { JourneyBar } from "@/components/will/JourneyBar";
-import { notFound } from "next/navigation";
 import { getProfile } from "@/lib/actions/guards";
 import { listUserDocuments } from "@/lib/actions/documents";
 import { readWill } from "@/lib/actions/will";
 import {
-  applicableSteps,
   clampToReachable,
   previousStep,
   stepByNumber,
   TOTAL_STEPS,
+  WILL_STEPS,
 } from "@/lib/will/steps";
 import {
   CompletionPill,
@@ -22,16 +21,10 @@ import {
 } from "@/components/will/WizardChrome";
 import { ReviewSummary } from "@/components/will/ReviewSummary";
 import {
-  AssetsStep,
-  BeneficiariesStep,
-  BequestsStep,
-  DeclarationStep,
-  ExecutorsStep,
-  FuneralStep,
-  GuardianshipStep,
-  PersonalStep,
+  AboutYouStep,
+  EstateStep,
   ReviewStep,
-  TrusteesStep,
+  WishesStep,
   WitnessesStep,
 } from "@/components/will/StepForms";
 
@@ -53,22 +46,14 @@ export default async function WillEditorPage({
    * No identity gate here, deliberately.
    *
    * This used to redirect anyone without `is_kyc_verified` straight to the KYC
-   * flow, mirroring a `kyc.verified` middleware that guarded the backend's
-   * `wills` routes. That middleware was removed when identity proofing moved
-   * to *after payment and before printing* — but this redirect was left
-   * behind, so the wizard still bounced every new client to a document check
-   * before they had written a word. Anyone may draft; the gate is on releasing
-   * the finished instrument, and it lives in `WillJourney::printBlockedBy()`
-   * where the server can enforce it.
+   * flow. Identity proofing moved to *after payment and before printing*, so
+   * anyone may draft; the gate is on releasing the finished instrument, and it
+   * lives in `WillJourney::printBlockedBy()` where the server can enforce it.
    */
 
   /*
-   * The Will named in the URL, not "whichever one is in flight".
-   *
-   * The builder used to open `getOrCreateDraft()` and had no Will in its
-   * address at all, so with more than one Will every Edit link was a guess —
-   * pressing Edit on one Will could open another. The id is now part of the
-   * route, so a link, a bookmark and a back button all mean the same document.
+   * The Will named in the URL, not "whichever one is in flight". With more than
+   * one Will, every Edit link used to be a guess.
    */
   const read = await readWill(id);
 
@@ -94,31 +79,20 @@ export default async function WillEditorPage({
     Number.isInteger(requested) && requested >= 1 && requested <= TOTAL_STEPS;
 
   const current = hasValidStepParam
-    ? clampToReachable(requested, will.current_step, will.has_minor_children)
-    : will.current_step;
+    ? clampToReachable(requested, will.current_step)
+    : Math.min(Math.max(will.current_step, 1), TOTAL_STEPS);
 
   /*
-   * `?step=` is an unchecked query string — nothing stops someone from
-   * requesting a step past what they've actually reached (e.g. `?step=7`
-   * while Guardianship and Bequests are still blank). Only a draft has a
-   * step sequence to jump ahead of at all; the read-only summary below
-   * ignores `current_step` entirely, so there's nothing to enforce there.
-   * Redirecting rather than silently rendering the clamped step keeps the
-   * address bar an honest description of what actually loaded.
+   * `?step=` is an unchecked query string — nothing stops someone requesting a
+   * step past what they've actually reached. Only a draft has a step sequence
+   * to jump ahead of at all. Redirecting rather than silently rendering the
+   * clamped step keeps the address bar an honest description of what loaded.
    */
   if (will.status === "draft" && hasValidStepParam && current !== requested) {
     redirect(`${basePath}?step=${current}`);
   }
 
-  /*
-   * Only needed on the final step. Fetched here rather than inside the review
-   * component so the *server* decides what that screen may offer — and note
-   * that this only governs what is rendered: the submission endpoint enforces
-   * the same gate regardless of what this page shows.
-   */
-
-  const steps = applicableSteps(will.has_minor_children);
-  const definition = stepByNumber(current) ?? steps[0];
+  const definition = stepByNumber(current) ?? WILL_STEPS[0];
 
   /*
    * Progress comes from the API, computed by the same rules that gate
@@ -128,9 +102,8 @@ export default async function WillEditorPage({
   const completions = will.progress?.steps ?? [];
   const percent = will.progress?.percent ?? will.completion_percent;
 
-  const backStep = previousStep(current, will.has_minor_children);
   const backHref =
-    current > 1 ? `${basePath}?step=${backStep}` : undefined;
+    current > 1 ? `${basePath}?step=${previousStep(current)}` : undefined;
 
   /*
    * The photograph belongs to the account, not the Will, so it is read here
@@ -139,18 +112,15 @@ export default async function WillEditorPage({
   const documents = await listUserDocuments();
 
   /*
-   * Whether the name on this Will is this account holder's own.
-   *
-   * It is, for everybody but a lawyer: theirs is the identity checked against
-   * the name the account was opened in. The server settles it either way — the
-   * form only needs to know so it can show the name rather than ask for a
-   * spelling it is going to replace.
+   * Whether the name on this Will is this account holder's own. It is, for
+   * everybody but a lawyer. The server settles it either way — the form only
+   * needs to know so it can show the name rather than ask for a spelling it is
+   * going to replace.
    */
   const profile = await getProfile();
 
   const stepProps = {
     will,
-    help: definition.help,
     backHref,
     passportPhotoId:
       documents.find((record) => record.kind === "passport_photograph")?.id ??
@@ -166,16 +136,9 @@ export default async function WillEditorPage({
   /*
    * A submitted Will: no longer editable, but very much not finished.
    *
-   * This screen used to say "locked while it is with our review team, you will
-   * be notified when the review is complete" and offer a Download PDF button.
-   * All three were wrong once review became optional and payment moved ahead
-   * of printing: nobody is necessarily reviewing it, no notification is coming,
-   * and the download 402s until the Will is paid for and its owner identified.
-   *
-   * A client whose session expired during checkout landed here and found no
-   * way back to payment at all. So it now shows the journey and its next
-   * action — the same components the final wizard step uses — which is the
-   * route back to paying, verifying and printing.
+   * It shows the journey and its next action — the route back to paying,
+   * verifying and printing — so a client whose session expired during checkout
+   * is never left without a way back to payment.
    */
   if (will.status !== "draft") {
     return (
@@ -215,7 +178,7 @@ export default async function WillEditorPage({
   return (
     <div className="-mx-4 -mt-8 sm:-mx-6 lg:-mx-10 lg:-mt-10">
       <StepProgress
-        steps={steps}
+        steps={WILL_STEPS}
         current={current}
         completed={completions.filter((c) => c.complete).map((c) => c.step)}
       />
@@ -233,37 +196,23 @@ export default async function WillEditorPage({
 
         <div className="mt-10">
           {/*
-            Matched on the step's slug, not its number.
-            
-            The numbers moved twice and this list was updated late both times,
-            which put the wrong form under the right heading. `definition`
-            comes from the same table the backend mirrors.
+            Matched on the step's slug, not its number. The numbers moved and
+            this list was updated late, which put the wrong form under the
+            right heading. `definition` comes from the same table the backend
+            mirrors.
           */}
-          {definition.slug === "personal" && <PersonalStep {...stepProps} />}
-          {definition.slug === "declaration" && <DeclarationStep {...stepProps} />}
-          {definition.slug === "executors" && <ExecutorsStep {...stepProps} />}
-          {definition.slug === "beneficiaries" && <BeneficiariesStep {...stepProps} />}
-          {definition.slug === "assets" && <AssetsStep {...stepProps} />}
-          {definition.slug === "bequests" && <BequestsStep {...stepProps} />}
-          {definition.slug === "trustees" && <TrusteesStep {...stepProps} />}
-          {definition.slug === "guardianship" && <GuardianshipStep {...stepProps} />}
-          {definition.slug === "funeral" && <FuneralStep {...stepProps} />}
+          {definition.slug === "about-you" && <AboutYouStep {...stepProps} />}
+          {definition.slug === "estate" && <EstateStep {...stepProps} />}
+          {definition.slug === "wishes" && <WishesStep {...stepProps} />}
           {definition.slug === "witnesses" && <WitnessesStep {...stepProps} />}
           {definition.slug === "review" && (
             <ReviewStep {...stepProps}>
-              <ReviewSummary will={will} editBasePath={basePath} />
-
               {/*
-                Nothing about the journey here any more.
-
-                This step used to carry the journey bar and its next action —
-                a card saying payment was next, above a button that goes to
-                payment. "Save & continue" commits the answers and lands on the
-                Will's own page, which is that card's destination and where the
-                bar, the review question and the payment button all live. Shown
-                here as well, they were the same two things twice, a click
-                apart.
+                Nothing about the journey here. "Save & continue" commits the
+                answers and lands on the Will's own page, which is where the
+                journey bar, the review question and the payment button live.
               */}
+              <ReviewSummary will={will} editBasePath={basePath} />
             </ReviewStep>
           )}
         </div>

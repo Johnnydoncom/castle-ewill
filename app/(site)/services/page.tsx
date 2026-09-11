@@ -158,7 +158,7 @@ export default function ServicesPage() {
         </div>
       </section>
 
-      {/* The nine steps, sourced from the same definition the wizard uses. */}
+      {/* The steps, sourced from the same definition the wizard uses. */}
       <section className="border-y border-border bg-surface py-20">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="mb-12 max-w-2xl">
@@ -166,7 +166,7 @@ export default function ServicesPage() {
               The process
             </p>
             <h2 className="font-serif text-3xl text-navy sm:text-4xl">
-              Nine steps, <span className="italic text-primary">one sitting.</span>
+              Five stages, <span className="italic text-primary">one sitting.</span>
             </h2>
           </div>
           <ol className="grid gap-x-8 gap-y-6 sm:grid-cols-2 lg:grid-cols-3">

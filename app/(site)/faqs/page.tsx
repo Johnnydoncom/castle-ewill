@@ -31,7 +31,7 @@ const SECTIONS: Section[] = [
       },
       {
         q: "How long does it take?",
-        a: "There are nine sections, designed to be finished in one sitting. Nothing is timed — you can save your progress at any point and return later, and nothing is lost between sessions.",
+        a: "There are four short steps and a final review, designed to be finished in one sitting. Nothing is timed — you can save your progress at any point and return later, and nothing is lost between sessions.",
       },
       {
         q: "What if I own property outside Nigeria?",
@@ -65,7 +65,7 @@ const SECTIONS: Section[] = [
     faqs: [
       {
         q: "Do I need to appoint a guardian?",
-        a: "If you have children under eighteen, yes. Without an appointed guardian, a court decides who raises your children on whatever evidence is in front of it. If you have no minor children, our builder skips the section entirely.",
+        a: "If you have children under eighteen, or are leaving anything to someone who is, yes. Without an appointed guardian, a court decides who raises your children on whatever evidence is in front of it. Our builder asks for a guardian beside any beneficiary you mark as under eighteen, and asks nothing if none are.",
       },
       {
         q: "Should I tell the guardian I have named them?",

@@ -138,17 +138,32 @@ export function SelectField({
 }) {
   const id = useId();
   const invalid = Boolean(props.errors?.length);
-  const [value, setValue] = useFieldValue(props.defaultValue ?? "");
+  const seed = props.defaultValue ?? "";
 
   return (
     <div className={`space-y-2 ${props.className ?? ""}`}>
       <Label htmlFor={id} label={props.label} hint={props.hint} />
       <select
+        /*
+          Uncontrolled, and re-mounted whenever the value to show changes.
+
+          Not `useFieldValue`, unlike the text fields. React resets a form once
+          its action settles, and a controlled `<select>` does not survive it:
+          the reset puts the element back to its default while React's state
+          still holds the choice, so nothing re-renders to put it back and the
+          next submission posts an empty field. A client who chose a marital
+          status and state, then mistyped their NIN, saw both return to
+          "Select…" — and was refused for them on the next press.
+
+          The default *is* the last submission (callers pass `fieldValue`), so
+          the reset lands on what was chosen; the key re-mounts the element
+          when that changes, because a mounted select ignores a new default.
+        */
+        key={seed}
         id={id}
         name={props.name}
         required={props.required}
-        value={value}
-        onChange={(event) => setValue(event.target.value)}
+        defaultValue={seed}
         aria-invalid={invalid}
         className={inputClass(invalid)}
       >

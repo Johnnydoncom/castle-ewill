@@ -1,7 +1,7 @@
 import { api, apiData } from "@/lib/api/client";
 
 /**
- * The nine-step wizard's server-side reads.
+ * The Will wizard's server-side reads.
  *
  * Ownership, per-step validation, the beneficiary-share arithmetic, the
  * witness/beneficiary conflict rule and the submission gate all live in the
@@ -36,22 +36,39 @@ export type WillPerson = {
   phone?: string | null;
   address?: string | null;
   occupation?: string | null;
+  /** Free text naming a guardian's ward, from before guardians were tied to a beneficiary. */
   children_covered?: string | null;
+  /** A guardian's ward: the beneficiary they are appointed for. */
+  beneficiary_id?: string | null;
   notes?: string | null;
   item_description?: string;
   recipient_name?: string;
   recipient_relationship?: string | null;
   is_alternate?: boolean;
   is_contingent?: boolean;
-  share_percent?: number;
+  /** Under eighteen, with a guardian appointed for them. */
+  is_minor?: boolean;
+  /**
+   * Their share of the residuary estate. Null until the client has set it —
+   * shares are asked a step after the people, so a beneficiary added on the
+   * way back through has none yet, which is not the same as 0%.
+   */
+  share_percent?: number | null;
 };
 
 export type WillProgress = {
-  steps: Array<{ step: number; applicable: boolean; complete: boolean }>;
+  /** Each step, complete when every section on it is. */
+  steps: Array<{
+    step: number;
+    slug: string;
+    complete: boolean;
+    sections: Array<{ slug: string; complete: boolean }>;
+  }>;
   percent: number;
   next_incomplete_step: number;
   can_submit: boolean;
   outstanding_steps: number[];
+  outstanding_sections: string[];
 };
 
 export type WillStatus =

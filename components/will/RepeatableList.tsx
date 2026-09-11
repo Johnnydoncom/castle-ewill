@@ -4,18 +4,29 @@ import { useState } from "react";
 import { Plus, Trash2 } from "lucide-react";
 
 /**
- * Repeatable row builder for executors, beneficiaries, guardians, bequests and
- * witnesses.
+ * Repeatable row builder for executors, beneficiaries, trustees, assets,
+ * bequests and witnesses.
  *
  * Rows are keyed by a stable client id so that removing the first row does not
  * cause React to re-key — and therefore reset — the inputs below it. Field
- * names are indexed by *position* (`executors.0.fullName`) because that is what
- * the server action reassembles.
+ * names are indexed by *position* (`executors.0.firstName`) because that is
+ * what the action reassembles.
  */
 
 export type RowRenderer = (args: {
   index: number;
   name: (field: string) => string;
+  /**
+   * Which of the saved rows this one shows — its position when the page
+   * loaded — or null for a row added since.
+   *
+   * Not `index`. Looking saved data up by position meant removing the first
+   * of two rows left the second showing the *first* row's details, because it
+   * had moved into position 0. With beneficiary ids posted alongside, that
+   * would have kept the person the client removed and deleted the one they
+   * kept.
+   */
+  source: number | null;
 }) => React.ReactNode;
 
 let counter = 0;
@@ -39,10 +50,7 @@ export function RepeatableList({
    * inferred from the display text through a fixed map, so a legend nobody had
    * added to that map fell back to a singular guess: an "Asset" row posted
    * `asset.0.description` while the action collected `assets.…`, and the whole
-   * step saved nothing at all. Silently — the request succeeded, it just
-   * carried an empty list.
-   *
-   * A prop cannot be forgotten the way a map entry can.
+   * step saved nothing at all.
    */
   prefix: string;
   addLabel: string;
@@ -52,37 +60,41 @@ export function RepeatableList({
   initialCount: number;
   renderRow: RowRenderer;
 }) {
-  const [keys, setKeys] = useState<string[]>(() =>
-    Array.from({ length: Math.max(initialCount, min) }, nextKey),
+  const [rows, setRows] = useState<Array<{ key: string; source: number | null }>>(() =>
+    Array.from({ length: Math.max(initialCount, min) }, (_, index) => ({
+      key: nextKey(),
+      source: index,
+    })),
   );
 
-  const add = () => setKeys((k) => (k.length >= max ? k : [...k, nextKey()]));
+  const add = () =>
+    setRows((r) => (r.length >= max ? r : [...r, { key: nextKey(), source: null }]));
   const remove = (key: string) =>
-    setKeys((k) => (k.length <= min ? k : k.filter((item) => item !== key)));
+    setRows((r) => (r.length <= min ? r : r.filter((row) => row.key !== key)));
 
   return (
     <fieldset className="space-y-5">
       <legend className="sr-only">{legend}</legend>
 
-      {keys.length === 0 && emptyLabel && (
+      {rows.length === 0 && emptyLabel && (
         <p className="border border-dashed border-border px-5 py-8 text-center text-sm italic text-muted-foreground">
           {emptyLabel}
         </p>
       )}
 
-      {keys.map((key, index) => (
+      {rows.map((row, index) => (
         <div
-          key={key}
+          key={row.key}
           className="relative border border-border bg-background p-5 pt-6 sm:p-6"
         >
           <div className="mb-5 flex items-center justify-between gap-4">
             <span className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">
               {legend} {index + 1}
             </span>
-            {keys.length > min && (
+            {rows.length > min && (
               <button
                 type="button"
-                onClick={() => remove(key)}
+                onClick={() => remove(row.key)}
                 className="inline-flex items-center gap-1.5 text-xs text-muted-foreground transition-colors hover:text-destructive"
               >
                 <Trash2 className="h-3.5 w-3.5" />
@@ -94,11 +106,12 @@ export function RepeatableList({
           {renderRow({
             index,
             name: (field) => `${prefix}.${index}.${field}`,
+            source: row.source,
           })}
         </div>
       ))}
 
-      {keys.length < max && (
+      {rows.length < max && (
         <button
           type="button"
           onClick={add}

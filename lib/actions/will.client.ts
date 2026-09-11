@@ -1,89 +1,24 @@
 import { api, apiMutation } from "@/lib/api/browser";
+import { collectRows, mapFieldErrors } from "@/lib/will/rows";
+import { TOTAL_STEPS } from "@/lib/will/steps";
 import { errorState, redirectState, type FormState } from "./state";
 
 /**
- * The nine-step wizard's mutations, called directly from the browser.
+ * The Will wizard's mutations, called directly from the browser.
  *
- * Ownership, per-step validation, the beneficiary-share arithmetic, the
+ * Ownership, per-section validation, the residuary-share arithmetic, the
  * witness/beneficiary conflict rule and the submission gate all live in the
  * backend. What remains here is shape translation: the wizard posts repeatable
- * rows as `executors.0.fullName`, and the API takes a JSON array of snake_case
- * objects.
- *
- * The exported signatures are unchanged from the server-action versions, so
- * every form consuming them through `useActionState` still works untouched —
- * only the import path moved, from `./will` to here.
+ * rows as `executors.0.firstName`, and the API takes a JSON array of snake_case
+ * objects — see `lib/will/rows.ts`.
  */
 
-/* -------------------------------------------------------------------------- */
-/*  Row collection                                                             */
-/* -------------------------------------------------------------------------- */
-
 /**
- * Reassembles `executors.0.fullName` style fields into an ordered array.
+ * Saves one page of the wizard and advances to the next.
  *
- * Indices are read from the field names rather than assumed contiguous: the
- * wizard lets a middle row be removed without renumbering the ones below, so
- * `0, 2, 3` is a normal submission and collapsing it blindly would drop a row.
- * Keys are converted to snake_case on the way out to match the API.
- */
-function collectRows(
-  formData: FormData,
-  prefix: string,
-): Array<Record<string, unknown>> {
-  const rows = new Map<number, Record<string, unknown>>();
-
-  for (const [key, value] of formData.entries()) {
-    const match = key.match(new RegExp(`^${prefix}\\.(\\d+)\\.(.+)$`));
-    if (!match) continue;
-
-    const index = Number(match[1]);
-    const field = toSnakeCase(match[2]);
-    const row = rows.get(index) ?? {};
-
-    // Checkbox inputs post "on"; the API expects a real boolean.
-    row[field] = field.startsWith("is_")
-      ? value === "on" || value === "true"
-      : String(value);
-
-    rows.set(index, row);
-  }
-
-  return [...rows.entries()].sort(([a], [b]) => a - b).map(([, row]) => row);
-}
-
-function toSnakeCase(value: string): string {
-  return value.replace(/[A-Z]/g, (c) => `_${c.toLowerCase()}`);
-}
-
-/**
- * Translates the API's snake_case field errors back onto the wizard's field
- * names, so an error on `executors.0.full_name` highlights the right input.
- */
-function mapRowErrors(
-  errors: Record<string, string[]> | undefined,
-): Record<string, string[]> | undefined {
-  if (!errors) return undefined;
-
-  return Object.fromEntries(
-    Object.entries(errors).map(([key, messages]) => [
-      key.replace(/_([a-z])/g, (_, c: string) => c.toUpperCase()),
-      messages,
-    ]),
-  );
-}
-
-/**
- * Saves a step and advances the wizard.
- *
- * `WillStepController::finish()` already returns the Will's new
- * `current_step` in the same response that confirms the save — so this
- * navigates straight there instead of asking `useFormAction`'s default
- * `router.refresh()` to make a *second* round trip just to re-derive what
- * the first response already told us. That second round trip is what read
- * as "fill it in, submit, and nothing happens": against a backend on a
- * different host from the frontend, it could take long enough that the step
- * genuinely hadn't advanced yet by the time someone gave up watching.
+ * The response carries the Will's new `current_step`, so this navigates
+ * straight there rather than asking for a second round trip to re-derive what
+ * the first response already said.
  */
 async function saveStep(
   willId: string,
@@ -98,16 +33,21 @@ async function saveStep(
   );
 
   if (!result.ok) {
+    const messages = Object.values(result.fieldErrors ?? {});
+
     return {
       status: "error",
       /*
-       * The backend's first field message is the actionable one — "Primary
-       * beneficiary shares must total exactly 100%" rather than a generic
-       * "check the form". Falling back to the envelope message covers the
-       * cross-field rules, which have no single field to attach to.
+       * One problem is named outright — "Shares must total exactly 100%" is
+       * more use than "check the form". Several are counted instead, because a
+       * page asks up to four questions and naming only the first sends the
+       * client hunting for the rest; each is marked beside its field.
        */
-      message: Object.values(result.fieldErrors ?? {})[0]?.[0] ?? result.message,
-      fieldErrors: mapRowErrors(result.fieldErrors),
+      message:
+        messages.length > 1
+          ? `${messages.length} answers need attention — each is marked below.`
+          : (messages[0]?.[0] ?? result.message),
+      fieldErrors: mapFieldErrors(result.fieldErrors),
     };
   }
 
@@ -121,15 +61,19 @@ async function saveStep(
   );
 }
 
+function willIdOf(formData: FormData): string {
+  return String(formData.get("willId") ?? "");
+}
+
 /* -------------------------------------------------------------------------- */
-/*  Steps 1–8                                                                  */
+/*  Step 1 — about you                                                         */
 /* -------------------------------------------------------------------------- */
 
-export async function savePersonalAction(
+export async function saveAboutYouAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  return saveStep(String(formData.get("willId") ?? ""), "personal", {
+  return saveStep(willIdOf(formData), "about-you", {
     // The parts; `full_legal_name` is composed from them server-side.
     first_name: formData.get("firstName"),
     middle_name: formData.get("middleName"),
@@ -143,129 +87,95 @@ export async function savePersonalAction(
     address_line2: formData.get("addressLine2"),
     city: formData.get("city"),
     state: formData.get("state"),
-  });
-}
 
-export async function saveDeclarationAction(
-  _previous: FormState,
-  formData: FormData,
-): Promise<FormState> {
-  return saveStep(String(formData.get("willId") ?? ""), "declaration", {
     declared_last_will: formData.get("declaredLastWill") === "on",
     revokes_prior_wills: formData.get("revokesPriorWills") === "on",
     confirmed_sound_mind: formData.get("confirmedSoundMind") === "on",
   });
 }
 
-export async function saveExecutorsAction(
-  _previous: FormState,
-  formData: FormData,
-): Promise<FormState> {
-  return saveStep(String(formData.get("willId") ?? ""), "executors", {
-    executors: collectRows(formData, "executors"),
-  });
-}
+/* -------------------------------------------------------------------------- */
+/*  Step 2 — people and property                                               */
+/* -------------------------------------------------------------------------- */
 
-export async function saveBeneficiariesAction(
-  _previous: FormState,
-  formData: FormData,
-): Promise<FormState> {
-  return saveStep(String(formData.get("willId") ?? ""), "beneficiaries", {
-    beneficiaries: collectRows(formData, "beneficiaries"),
-    residuary_estate: formData.get("residuaryEstate"),
-  });
-}
-
-export async function saveGuardianshipAction(
-  _previous: FormState,
-  formData: FormData,
-): Promise<FormState> {
-  return saveStep(String(formData.get("willId") ?? ""), "guardianship", {
-    has_minor_children: formData.get("hasMinorChildren") === "yes",
-    guardians: collectRows(formData, "guardians"),
-  });
-}
-
-export async function saveBequestsAction(
+export async function saveEstateAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
   /*
-   * The other answer to "who gets what", not the absence of one.
-   *
-   * Naming gifts item by item is one instruction; leaving the whole estate to
-   * the trustees to hold for the beneficiaries on their existing shares is
-   * another. The server clears this the moment a gift is listed, so the two
-   * can never both be recorded.
+   * The trustee list is sent only when the executors are *not* acting, because
+   * the server clears it otherwise — a Will naming two sets of trustees is a
+   * Will nobody can act on.
    */
-  return saveStep(String(formData.get("willId") ?? ""), "bequests", {
-    bequests: collectRows(formData, "bequests"),
-    estate_in_trust: formData.get("estateInTrust") === "on",
-  });
-}
-
-/** Everything the testator owns, listed before any of it is given away. */
-export async function saveAssetsAction(
-  _previous: FormState,
-  formData: FormData,
-): Promise<FormState> {
-  return saveStep(String(formData.get("willId") ?? ""), "assets", {
-    assets: collectRows(formData, "assets"),
-    assets_declared_none: formData.get("assetsDeclaredNone") === "on",
-  });
-}
-
-/**
- * Who holds the estate in trust, and on what terms.
- *
- * The trustee list is sent only when the executors are *not* acting, because
- * the server clears it otherwise — a Will naming two sets of trustees is a
- * Will nobody can act on.
- */
-export async function saveTrusteesAction(
-  _previous: FormState,
-  formData: FormData,
-): Promise<FormState> {
   const executorsAreTrustees = formData.get("executorsAreTrustees") === "on";
 
-  return saveStep(String(formData.get("willId") ?? ""), "trustees", {
+  return saveStep(willIdOf(formData), "estate", {
+    executors: collectRows(formData, "executors"),
+
+    // Each with its `id` when it already exists, and its guardian nested when
+    // it is marked under eighteen.
+    beneficiaries: collectRows(formData, "beneficiaries"),
+
     executors_are_trustees: executorsAreTrustees,
     trustees: executorsAreTrustees ? [] : collectRows(formData, "trustees"),
     trust_bank_account: formData.get("trustBankAccount") === "on",
     distribution_frequency:
       String(formData.get("distributionFrequency") ?? "") || null,
+
+    assets: collectRows(formData, "assets"),
+    assets_declared_none: formData.get("assetsDeclaredNone") === "on",
   });
 }
 
-export async function saveFuneralAction(
+/* -------------------------------------------------------------------------- */
+/*  Step 3 — gifts and wishes                                                  */
+/* -------------------------------------------------------------------------- */
+
+export async function saveWishesAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  return saveStep(String(formData.get("willId") ?? ""), "funeral", {
+  return saveStep(willIdOf(formData), "wishes", {
+    /*
+     * Naming gifts item by item is one instruction; leaving the whole estate
+     * to the trustees is another. The server clears the second the moment a
+     * gift is listed, so the two can never both be recorded.
+     */
+    bequests: collectRows(formData, "bequests"),
+    estate_in_trust: formData.get("estateInTrust") === "on",
+
+    // One share per beneficiary, by id.
+    shares: collectRows(formData, "shares"),
+    residuary_estate: formData.get("residuaryEstate"),
+
     funeral_preference: formData.get("funeralPreference"),
     funeral_instructions: formData.get("funeralInstructions"),
     special_instructions: formData.get("specialInstructions"),
   });
 }
 
+/* -------------------------------------------------------------------------- */
+/*  Step 4 — witnesses                                                         */
+/* -------------------------------------------------------------------------- */
+
 export async function saveWitnessesAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  return saveStep(String(formData.get("willId") ?? ""), "witnesses", {
+  return saveStep(willIdOf(formData), "witnesses", {
     witnesses: collectRows(formData, "witnesses"),
   });
 }
 
 /* -------------------------------------------------------------------------- */
-/*  Step 9 — submit                                                            */
+/*  Review — submit                                                            */
 /* -------------------------------------------------------------------------- */
 
 export async function submitWillAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const willId = String(formData.get("willId") ?? "");
+  const willId = willIdOf(formData);
   if (!willId) return errorState("That Will could not be found.");
 
   return apiMutation(`/wills/${willId}/submit`, {
@@ -275,9 +185,7 @@ export async function submitWillAction(
      *
      * Committing the answers is not the end of anything the client cares
      * about — they want the document — so this lands them on the next thing
-     * owed rather than a "submitted, now what?" screen. It used to point at
-     * the global billing page, which no longer takes Will payments and could
-     * not have known which Will was meant anyway.
+     * owed rather than a "submitted, now what?" screen.
      */
     redirect: `/dashboard/wills/${willId}`,
     onError: (result) => ({
@@ -301,12 +209,12 @@ export async function goToStepAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const willId = String(formData.get("willId") ?? "");
+  const willId = willIdOf(formData);
   const step = Number(formData.get("step"));
 
   // An unowned Will or a nonsense step both land back on the wizard, which
   // reopens at whatever step the record itself says.
-  if (!willId || !Number.isInteger(step) || step < 1 || step > 9) {
+  if (!willId || !Number.isInteger(step) || step < 1 || step > TOTAL_STEPS) {
     return redirectState("/dashboard/will");
   }
 
@@ -316,12 +224,9 @@ export async function goToStepAction(
   );
 
   /*
-   * Back to *this* Will's editor, not to the entry route.
-   *
-   * Redirecting to `/dashboard/will` resolved whichever Will was in flight, so
-   * paging through the wizard on one Will could silently move a client onto
-   * another. The failure case keeps the id too — landing on the right document
-   * matters more when something has just gone wrong, not less.
+   * Back to *this* Will's editor, not to the entry route. The failure case
+   * keeps the id too — landing on the right document matters more when
+   * something has just gone wrong, not less.
    */
   const editor = `/dashboard/wills/${willId}/edit`;
 
@@ -349,7 +254,7 @@ export async function recordLifeEventAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const willId = String(formData.get("willId") ?? "");
+  const willId = willIdOf(formData);
   const eventType = String(formData.get("eventType") ?? "");
   const note = String(formData.get("note") ?? "").trim();
 
@@ -376,7 +281,7 @@ export async function chooseReviewAction(
   _previous: FormState,
   formData: FormData,
 ): Promise<FormState> {
-  const willId = String(formData.get("willId") ?? "");
+  const willId = willIdOf(formData);
   const choice = String(formData.get("choice") ?? "");
 
   if (!willId || (choice !== "requested" && choice !== "skipped")) {

@@ -1,13 +1,18 @@
 import Link from "next/link";
 
-import type { ApiWill } from "@/lib/actions/will";
+import type { ApiWill, WillPerson } from "@/lib/actions/will";
 import { WILL_STATUS_LABELS } from "@/lib/will/reference";
-import { GUARDIANSHIP_STEP, WILL_STEPS } from "@/lib/will/steps";
+import {
+  sectionBySlug,
+  stepByNumber,
+  type WillSectionSlug,
+} from "@/lib/will/steps";
 
 /**
- * Read-only summary rendered on step 9, with edit links back to each step.
+ * Read-only summary of every section, with an edit link to the page each is
+ * answered on.
  *
- * The per-step tick marks come from `will.progress`, computed by the API using
+ * The "Incomplete" marks come from `will.progress`, computed by the API using
  * the same rules that gate submission — so a section shown as complete here is
  * one the server agrees is complete.
  */
@@ -23,35 +28,31 @@ export function ReviewSummary({
   will: ApiWill;
   editBasePath?: string;
 }) {
-  const completions = new Map(
-    (will.progress?.steps ?? []).map((c) => [c.step, c]),
+  const verdicts = new Map<string, boolean>(
+    (will.progress?.steps ?? []).flatMap((step) =>
+      (step.sections ?? []).map((section) => [section.slug, section.complete] as const),
+    ),
   );
 
-  /**
-   * Each section, and the step its "edit" link goes to.
-   *
-   * The numbers are looked up by slug rather than written down. They were
-   * literals here and were not updated when the wizard was reordered, so
-   * "Guardianship" linked to step five — which had become the asset register.
-   * Clicking edit on an incomplete section opened the wrong form entirely.
-   */
-  const stepFor = (slug: string) =>
-    WILL_STEPS.find((s) => s.slug === slug)?.step ?? 1;
+  const guardianOf = (beneficiary: WillPerson) =>
+    will.guardians.find((g) => g.beneficiary_id === beneficiary.id);
 
-  const sections: Array<{ step: number; title: string; rows: string[] }> = [
+  // Appointed before guardians were tied to a beneficiary.
+  const unattachedGuardians = will.guardians.filter((g) => !g.beneficiary_id);
+
+  const sections: Array<{ slug: WillSectionSlug; rows: string[] }> = [
     {
-      step: stepFor('personal'),
-      title: "Personal details",
+      slug: "personal",
       rows: [
         will.personal.full_legal_name ?? "—",
         will.personal.date_of_birth ? `Born ${will.personal.date_of_birth}` : "Date of birth missing",
+        will.personal.national_id ? `NIN ${will.personal.national_id}` : "National Identification Number missing",
         [will.personal.address_line1, will.personal.city, will.personal.state].filter(Boolean).join(", ") ||
           "Address missing",
       ],
     },
     {
-      step: stepFor('declaration'),
-      title: "Declaration",
+      slug: "declaration",
       rows: [
         will.declaration.declared_last_will
           ? "Declared as Last Will and Testament"
@@ -65,51 +66,35 @@ export function ReviewSummary({
       ],
     },
     {
-      step: stepFor('executors'),
-      title: "Executors",
+      slug: "executors",
       rows: will.executors.length
         ? will.executors.map(
             (e) =>
-              `${e.full_name}${e.is_alternate ? " (alternate)" : ""} — ${e.address}`,
+              `${e.full_name}${e.is_alternate ? " (alternate)" : ""} — ${[e.email, e.phone].filter(Boolean).join(", ") || "no contact details"}`,
           )
         : ["No executors appointed"],
     },
     {
-      step: stepFor('beneficiaries'),
-      title: "Beneficiaries and their shares",
+      slug: "beneficiaries",
       rows: will.beneficiaries.length
-        ? will.beneficiaries.map(
-            (b) =>
-              `${b.full_name} (${b.relationship}) — ${Number(b.share_percent)}%${b.address ? ` — ${b.address}` : ""}`,
-          )
+        ? [
+            ...will.beneficiaries.map((b) => {
+              const guardian = guardianOf(b);
+
+              return `${b.full_name} (${b.relationship})${
+                b.is_minor
+                  ? ` — under 18, guardian ${guardian?.full_name ?? "not yet appointed"}`
+                  : ""
+              }`;
+            }),
+            ...unattachedGuardians.map(
+              (g) => `Guardian ${g.full_name}${g.children_covered ? ` for ${g.children_covered}` : ""}`,
+            ),
+          ]
         : ["No beneficiaries named"],
     },
     {
-      step: stepFor('assets'),
-      title: "Your assets",
-      rows: will.assets.length
-        ? will.assets.map(
-            (a) =>
-              `${a.description ?? "Unnamed asset"}${a.institution ? ` — ${a.institution}` : ""}`,
-          )
-        : will.assets_declared_none
-          ? ["Nothing listed separately"]
-          : ["Not yet answered"],
-    },
-    {
-      step: stepFor('bequests'),
-      title: "Specific gifts",
-      rows: will.bequests.length
-        ? will.bequests.map(
-            (b) => `${b.item_description} → ${b.recipient_name}`,
-          )
-        : will.estate_in_trust
-          ? ["The whole estate is left to the trustees to hold and manage"]
-          : ["Not yet answered"],
-    },
-    {
-      step: stepFor('trustees'),
-      title: "Trustees",
+      slug: "trustees",
       rows:
         will.executors_are_trustees === null
           ? ["Not yet answered"]
@@ -128,21 +113,44 @@ export function ReviewSummary({
             ],
     },
     {
-      step: stepFor('guardianship'),
-      title: "Guardianship",
-      rows:
-        will.has_minor_children === false
-          ? ["No minor children — section not applicable"]
-          : will.guardians.length
-            ? will.guardians.map(
-                (g) =>
-                  `${g.full_name}${g.is_alternate ? " (alternate)" : ""} — ${g.address}`,
-              )
-            : ["No guardian appointed"],
+      slug: "assets",
+      rows: will.assets.length
+        ? will.assets.map(
+            (a) =>
+              `${a.description ?? "Unnamed asset"}${a.institution ? ` — ${a.institution}` : ""}`,
+          )
+        : will.assets_declared_none
+          ? ["Nothing listed separately"]
+          : ["Not yet answered"],
     },
     {
-      step: stepFor('funeral'),
-      title: "Funeral wishes",
+      slug: "bequests",
+      rows: will.bequests.length
+        ? will.bequests.map(
+            (b) => `${b.item_description} → ${b.recipient_name}`,
+          )
+        : will.estate_in_trust
+          ? ["The whole estate is left to the trustees to hold and manage"]
+          : ["Not yet answered"],
+    },
+    {
+      slug: "residue",
+      rows: will.beneficiaries.length
+        ? [
+            ...will.beneficiaries.map(
+              (b) =>
+                `${b.full_name} — ${
+                  b.share_percent === null || b.share_percent === undefined
+                    ? "share not yet set"
+                    : `${Number(b.share_percent)}%`
+                }${b.is_contingent ? " (contingent)" : ""}`,
+            ),
+            ...(will.residuary_estate ? [will.residuary_estate] : []),
+          ]
+        : ["No beneficiaries to share the residue between"],
+    },
+    {
+      slug: "funeral",
       rows: [
         will.funeral_preference
           ? will.funeral_preference.charAt(0).toUpperCase() +
@@ -152,8 +160,7 @@ export function ReviewSummary({
       ].filter(Boolean),
     },
     {
-      step: stepFor('witnesses'),
-      title: "Witnesses",
+      slug: "witnesses",
       rows: will.witnesses.length
         ? will.witnesses.map((w) => `${w.full_name} — ${w.address}`)
         : ["No witnesses recorded"],
@@ -162,51 +169,43 @@ export function ReviewSummary({
 
   return (
     <div className="space-y-px border border-border bg-border">
-      {sections
-        .filter(
-          (section) =>
-            !(section.step === GUARDIANSHIP_STEP && will.has_minor_children === false && false),
-        )
-        .map((section) => {
-          const status = completions.get(section.step);
-          const stepMeta = WILL_STEPS.find((s) => s.step === section.step);
+      {sections.map(({ slug, rows }) => {
+        const section = sectionBySlug(slug);
 
-          return (
-            <section key={section.step} className="bg-background p-6">
-              <div className="mb-3 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-3">
-                  <span className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">
-                    {stepMeta?.numeral}
+        return (
+          <section key={slug} className="bg-background p-6">
+            <div className="mb-3 flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <span className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">
+                  {stepByNumber(section.step)?.numeral}
+                </span>
+                <h3 className="font-serif text-lg text-navy">{section.title}</h3>
+                {verdicts.get(slug) === false && (
+                  <span className="border border-destructive/40 px-2 py-0.5 text-[10px] uppercase tracking-wider text-destructive">
+                    Incomplete
                   </span>
-                  <h3 className="font-serif text-lg text-navy">
-                    {section.title}
-                  </h3>
-                  {status && !status.complete && status.applicable && (
-                    <span className="border border-destructive/40 px-2 py-0.5 text-[10px] uppercase tracking-wider text-destructive">
-                      Incomplete
-                    </span>
-                  )}
-                </div>
-                <Link
-                  href={`${editBasePath}?step=${section.step}`}
-                  className="shrink-0 text-xs uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-navy"
-                >
-                  Edit
-                </Link>
+                )}
               </div>
-              <ul className="space-y-1.5 pl-8">
-                {section.rows.map((row, i) => (
-                  <li
-                    key={i}
-                    className="text-sm leading-relaxed text-muted-foreground"
-                  >
-                    {row}
-                  </li>
-                ))}
-              </ul>
-            </section>
-          );
-        })}
+              <Link
+                href={`${editBasePath}?step=${section.step}`}
+                className="shrink-0 text-xs uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-navy"
+              >
+                Edit
+              </Link>
+            </div>
+            <ul className="space-y-1.5 pl-8">
+              {rows.map((row, i) => (
+                <li
+                  key={i}
+                  className="text-sm leading-relaxed text-muted-foreground"
+                >
+                  {row}
+                </li>
+              ))}
+            </ul>
+          </section>
+        );
+      })}
 
       <div className="bg-surface px-6 py-4">
         <p className="font-serif text-[10px] uppercase tracking-[0.3em] text-muted-foreground">
