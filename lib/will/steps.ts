@@ -56,7 +56,7 @@ export const WILL_STEPS = [
       {
         slug: "trustees",
         title: "Trustees",
-        help: "An executor winds your estate up and hands it over; a trustee keeps holding it, which is what a young beneficiary or a share paid out over time requires. You can also direct that a trust bank account be opened — that is where a guardian's money for your children comes from.",
+        help: "Direct my executors to open a trust bank account, from which my estate is generally administered and the appointed guardian is provided with what my children need.",
       },
       {
         slug: "assets",
