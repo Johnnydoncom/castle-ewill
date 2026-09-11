@@ -1,4 +1,10 @@
 import { api } from "@/lib/api/browser";
+import {
+  legacyImages,
+  readLegacyStart,
+  type LegacyCapturedImage,
+  type LegacySmileIdConfig,
+} from "@/lib/smile-id/legacy";
 import { errorState, successState, type FormState } from "./state";
 import type { WitnessIdentityRecord } from "./verification";
 
@@ -162,6 +168,74 @@ export async function startVerificationAction(): Promise<
     attemptId: payload.attempt_id,
     smileId: payload.smile_id ?? null,
   };
+}
+
+/**
+ * Opens an attempt on Smile ID's **legacy** integration.
+ *
+ * The same endpoint as `startVerificationAction`, read differently: the server
+ * answers a legacy capture under `smile_id_legacy`, with no token — the v11 SDK
+ * only captures, and the job is submitted by our backend. See `readLegacyStart`
+ * for the three answers and why none may be mistaken for another.
+ */
+export async function startLegacyVerificationAction(): Promise<
+  | { status: "error"; message: string }
+  | { status: "success"; attemptId: string; config: LegacySmileIdConfig | null }
+> {
+  const result = await api<{
+    data: {
+      attempt_id: string;
+      smile_id?: unknown;
+      smile_id_legacy?: LegacySmileIdConfig | null;
+    };
+  }>("/verification/start", {
+    method: "POST",
+    body: {},
+  });
+
+  if (!result.ok) {
+    return { status: "error", message: result.message };
+  }
+
+  const read = readLegacyStart(result.data.data);
+
+  switch (read.kind) {
+    case "capture":
+      return { status: "success", attemptId: read.attemptId, config: read.config };
+    case "manual":
+      return { status: "success", attemptId: read.attemptId, config: null };
+    case "changed":
+      return {
+        status: "error",
+        message:
+          "The identity check was updated while this page was open. Please reload the page and try again.",
+      };
+  }
+}
+
+/**
+ * Sends a legacy capture to our backend, which submits it to Smile ID.
+ *
+ * The one place images leave the browser for our API rather than for Smile ID
+ * directly — the legacy API is server to server. The backend holds them in
+ * memory for the request and writes them nowhere.
+ */
+export async function submitLegacyVerificationAction(
+  attemptId: string,
+  images: readonly LegacyCapturedImage[],
+): Promise<
+  { status: "error"; message: string } | { status: "success"; message: string }
+> {
+  const result = await api<{ message: string }>("/verification/legacy/submit", {
+    method: "POST",
+    body: { attempt_id: attemptId, images: legacyImages(images) },
+  });
+
+  if (!result.ok) {
+    return { status: "error", message: result.message };
+  }
+
+  return { status: "success", message: result.data.message };
 }
 
 /**

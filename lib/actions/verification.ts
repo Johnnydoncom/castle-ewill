@@ -32,6 +32,11 @@ export type VerificationStatus = {
   verified_until: string | null;
   provider: string;
   is_automated: boolean;
+  /**
+   * Which Smile ID integration a capture should load. Optional so a backend
+   * that predates the choice reads as the current integration.
+   */
+  smile_id_version?: "v3" | "legacy";
   latest: VerificationRecord | null;
 };
 

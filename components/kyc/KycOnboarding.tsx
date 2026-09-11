@@ -2,7 +2,8 @@
 
 import { AlertCircle } from "lucide-react";
 
-import { SmileIdCapture } from "@/components/verification/SmileIdCapture";
+import { IdentityCapture } from "@/components/verification/IdentityCapture";
+import type { SmileIdVersion } from "@/lib/smile-id/legacy";
 
 /**
  * The KYC flow: one Smile ID session that photographs the client's identity
@@ -35,6 +36,7 @@ function RejectionNotice({ reason }: { reason: string }) {
 export function KycOnboarding({
   recheckOnly = false,
   rejectionReason,
+  smileIdVersion,
 }: {
   /**
    * Whether this client has already proved who they are.
@@ -46,12 +48,15 @@ export function KycOnboarding({
   recheckOnly?: boolean;
   /** Set when the most recent attempt was rejected — surfaced so the client knows what to fix. */
   rejectionReason?: string | null;
+  /** Which Smile ID integration the console chose. Absent means the current one. */
+  smileIdVersion?: SmileIdVersion;
 }) {
   return (
     <div className="space-y-6">
       {rejectionReason && <RejectionNotice reason={rejectionReason} />}
 
-      <SmileIdCapture
+      <IdentityCapture
+        version={smileIdVersion}
         title={recheckOnly ? "One last check that it is you" : "Verify your identity"}
         description={
           recheckOnly

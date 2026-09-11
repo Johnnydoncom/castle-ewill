@@ -3,8 +3,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ArrowLeft, CheckCircle2, Loader2 } from "lucide-react";
 
-import { SmileIdCapture } from "@/components/verification/SmileIdCapture";
+import { IdentityCapture } from "@/components/verification/IdentityCapture";
 import { getVerificationStatusAction } from "@/lib/actions/verification.client";
+import type { SmileIdVersion } from "@/lib/smile-id/legacy";
 
 /**
  * The camera check for an amendment, over the whole screen.
@@ -42,9 +43,12 @@ import { getVerificationStatusAction } from "@/lib/actions/verification.client";
 export function AmendmentIdentityCheck({
   onBack,
   onVerified,
+  smileIdVersion,
 }: {
   onBack: () => void;
   onVerified: () => void;
+  /** Which Smile ID integration the console chose. Absent means the current one. */
+  smileIdVersion?: SmileIdVersion;
 }) {
   const dialogRef = useRef<HTMLDialogElement>(null);
 
@@ -246,7 +250,8 @@ export function AmendmentIdentityCheck({
           )}
 
           {phase === "capture" && (
-            <SmileIdCapture
+            <IdentityCapture
+              version={smileIdVersion}
               /*
                * Opens on Smile ID's consent screen. The client pressed "Save &
                * continue"; asking them to press "Begin identity check" as well
