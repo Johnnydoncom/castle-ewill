@@ -51,7 +51,7 @@ export const WILL_STEPS = [
       {
         slug: "beneficiaries",
         title: "Beneficiaries",
-        help: "Name everyone who should inherit and how you are related. If a beneficiary is under 18, appoint a guardian to look after them — someone you have actually asked. A witness must never be a beneficiary: the gift fails, though the Will stands.",
+        help: "Name everyone who should inherit and how you are related. If a beneficiary is under 18, appointment of a trusted guardian is desirable.",
       },
       {
         slug: "trustees",
