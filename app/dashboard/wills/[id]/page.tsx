@@ -158,6 +158,15 @@ export default async function WillDetailPage({
               "passport_photograph_required",
               "witnesses_required",
             ]}
+            // Renewing keeps the Will downloadable, and lets it be updated.
+            renewal={
+              prices.subscription
+                ? {
+                    planSlug: prices.subscription.slug,
+                    price: prices.subscription.price_formatted,
+                  }
+                : null
+            }
           />
         </div>
       )}

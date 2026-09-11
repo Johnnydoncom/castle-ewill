@@ -110,7 +110,9 @@ export type PrintBlocker =
   | "unpaid"
   | "kyc_required"
   | "passport_photograph_required"
-  | "witnesses_required";
+  | "witnesses_required"
+  /** A lapsed subscription whose month of grace is over: renew to download. */
+  | "subscription_required";
 
 /**
  * Why an *amendment* may not be committed.
@@ -119,6 +121,16 @@ export type PrintBlocker =
  * submission and every print return null.
  */
 export type UpdateBlocker = "subscription_required" | "liveness_required";
+
+/** The lodging fee offered with an update, priced server-side. */
+export type AmendmentLodging = {
+  plan_slug: string;
+  name: string;
+  price_kobo: number;
+  price_formatted: string;
+  /** Paid since the Will was last submitted — that is, for this update. */
+  is_paid: boolean;
+};
 
 export type WillJourney = {
   stage: JourneyStage;
@@ -136,8 +148,18 @@ export type WillJourney = {
   can_skip_review: boolean;
   can_print: boolean;
   print_blocked_by: PrintBlocker | null;
+  /**
+   * When downloading stops without a renewal — set only while a lapsed
+   * subscription is inside its month of grace.
+   */
+  download_access_ends_at?: string | null;
   /** What the final step of an amendment still owes; null otherwise. */
   update_blocked_by: UpdateBlocker | null;
+  /**
+   * Lodging the updated Will, offered as an optional extra on the final step
+   * of an update. Null for a first Will and for anyone who may not update.
+   */
+  amendment_lodging?: AmendmentLodging | null;
   can_update: boolean;
   /**
    * Whether the witnesses' identity is checked before printing — a console

@@ -38,9 +38,12 @@ export default async function WillEditorPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ step?: string }>;
+  searchParams: Promise<{ step?: string; lodging?: string }>;
 }) {
-  const [{ id }, { step: stepParam }] = await Promise.all([params, searchParams]);
+  const [{ id }, { step: stepParam, lodging: lodgingParam }] = await Promise.all([
+    params,
+    searchParams,
+  ]);
 
   /*
    * No identity gate here, deliberately.
@@ -206,7 +209,11 @@ export default async function WillEditorPage({
           {definition.slug === "wishes" && <WishesStep {...stepProps} />}
           {definition.slug === "witnesses" && <WitnessesStep {...stepProps} />}
           {definition.slug === "review" && (
-            <ReviewStep {...stepProps}>
+            <ReviewStep
+              {...stepProps}
+              // Back from paying the lodging fee for this update.
+              lodgingJustPaid={lodgingParam === "paid"}
+            >
               {/*
                 Nothing about the journey here. "Save & continue" commits the
                 answers and lands on the Will's own page, which is where the

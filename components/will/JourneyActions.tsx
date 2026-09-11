@@ -6,8 +6,75 @@ import { useFormStatus } from "react-dom";
 import { Check, CreditCard, Download, ScanFace, Scale } from "lucide-react";
 
 import { useFormAction } from "@/hooks/use-api-form";
+import { startSubscriptionRenewalCheckout } from "@/lib/actions/payments.client";
 import { chooseReviewAction } from "@/lib/actions/will.client";
 import type { PrintBlocker, WillJourney } from "@/lib/actions/will";
+
+/** The subscription a Will can be renewed on, priced server-side. */
+type Renewal = { planSlug: string; price: string };
+
+/**
+ * Renews this Will's subscription, straight to the gateway and back.
+ *
+ * A button rather than a link to a billing page: there is no page that sells a
+ * subscription for one Will, and a renewal belongs to the Will it keeps open.
+ */
+function RenewSubscription({
+  willId,
+  renewal,
+  label,
+}: {
+  willId: string;
+  renewal: Renewal;
+  label: string;
+}) {
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function renew() {
+    setError(null);
+    setPending(true);
+
+    const result = await startSubscriptionRenewalCheckout(willId, renewal.planSlug);
+
+    if (result.ok) {
+      window.location.assign(result.url);
+      return;
+    }
+
+    setPending(false);
+    setError(result.message);
+  }
+
+  return (
+    <div className="mt-5 space-y-3">
+      <button
+        type="button"
+        onClick={() => void renew()}
+        disabled={pending}
+        className="inline-flex h-11 items-center gap-2 bg-navy px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-foreground transition-colors hover:bg-navy/90 disabled:cursor-not-allowed disabled:opacity-60"
+      >
+        <CreditCard className="h-4 w-4" />
+        {pending ? "Redirecting…" : `${label} · ${renewal.price}`}
+      </button>
+      {error && (
+        <p role="alert" className="text-sm leading-relaxed text-destructive">
+          {error}
+        </p>
+      )}
+    </div>
+  );
+}
+
+/** A date as the client reads it, the same on the server and in the browser. */
+function readableDate(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    timeZone: "Africa/Lagos",
+  });
+}
 
 /**
  * One of two answers to a question, and it shows which one you gave.
@@ -147,6 +214,18 @@ const BLOCKERS: Record<
     cta: { label: "Open this Will", href: null },
   },
   /*
+   * A lapsed subscription, once its month of grace is over. Renewing is the way
+   * back and nothing was deleted, so the card says both. Where the price list
+   * is to hand the button renews on the spot; elsewhere it goes to the Will's
+   * page, which has it.
+   */
+  subscription_required: {
+    icon: CreditCard,
+    title: "Renew to download your Will",
+    body: "Your subscription has ended and its month of grace is over. Renew your subscription to download your Will again — nothing has been deleted, and renewing opens it straight away.",
+    cta: { label: "Renew on this Will's page", href: null },
+  },
+  /*
    * No `liveness_required` card.
    *
    * It used to appear here, on the Print stage, and asked a client who was
@@ -173,10 +252,16 @@ export function JourneyActions({
   journey,
   pdfUrl,
   resolvedHere = [],
+  renewal = null,
 }: {
   willId: string;
   journey: WillJourney;
   pdfUrl: string;
+  /**
+   * The subscription this Will can be renewed on, where the page has the price
+   * list. Without it, renewing is a link to the Will's own page.
+   */
+  renewal?: Renewal | null;
   /**
    * Blockers whose own panel is already on this page.
    *
@@ -378,6 +463,26 @@ export function JourneyActions({
             <Download className="h-4 w-4" />
             Download my Will
           </a>
+
+          {/*
+            The month of grace after a lapsed subscription, while it runs. Said
+            here, beside the button it will take away, rather than left to an
+            email.
+          */}
+          {journey.download_access_ends_at && (
+            <div className="mt-6 border-l-2 border-gold bg-gold/5 px-4 py-3 text-sm leading-relaxed text-navy">
+              <p>
+                Your subscription has ended. You can download your Will until{" "}
+                <span className="font-medium">
+                  {readableDate(journey.download_access_ends_at)}
+                </span>
+                ; after that, renew to keep access. Nothing is deleted.
+              </p>
+              {renewal && (
+                <RenewSubscription willId={willId} renewal={renewal} label="Renew subscription" />
+              )}
+            </div>
+          )}
         </section>
       ) : (
         blocker && (
@@ -389,13 +494,17 @@ export function JourneyActions({
                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
                   {blocker.body}
                 </p>
-                {blocker.cta && (
-                  <Link
-                    href={blocker.cta.href ?? `/dashboard/wills/${willId}`}
-                    className="mt-5 inline-flex h-11 items-center bg-navy px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-foreground transition-colors hover:bg-navy/90"
-                  >
-                    {blocker.cta.label}
-                  </Link>
+                {blocked === "subscription_required" && renewal ? (
+                  <RenewSubscription willId={willId} renewal={renewal} label="Renew subscription" />
+                ) : (
+                  blocker.cta && (
+                    <Link
+                      href={blocker.cta.href ?? `/dashboard/wills/${willId}`}
+                      className="mt-5 inline-flex h-11 items-center bg-navy px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-foreground transition-colors hover:bg-navy/90"
+                    >
+                      {blocker.cta.label}
+                    </Link>
+                  )
                 )}
               </div>
             </div>
@@ -405,21 +514,32 @@ export function JourneyActions({
 
       {/* Amending an issued Will is the subscriber feature. Someone still
           drafting is never shown this. */}
-      {journey.printed_at !== null && !journey.can_update && (
-        <section className="border border-border bg-surface p-6">
-          <h3 className="font-serif text-lg text-navy">Amendments</h3>
-          <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Your Will has been issued. To amend and re-issue it as life changes,
-            an annual subscription keeps updates free.
-          </p>
-          <Link
-            href="/dashboard/payments"
-            className="mt-5 inline-flex h-11 items-center border border-border px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy transition-colors hover:border-gold hover:text-gold"
-          >
-            See subscription
-          </Link>
-        </section>
-      )}
+      {/* Not beside the renewal card above, which already offers the same thing. */}
+      {journey.printed_at !== null &&
+        !journey.can_update &&
+        blocked !== "subscription_required" && (
+          <section className="border border-border bg-surface p-6">
+            <h3 className="font-serif text-lg text-navy">Amendments</h3>
+            <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+              Your Will has been issued. To amend and re-issue it as life changes,
+              an annual subscription keeps updates free.
+            </p>
+            {/*
+              It linked to the payments page, which sells no subscription for a
+              Will — so the button led somewhere nothing could be bought.
+            */}
+            {renewal ? (
+              <RenewSubscription willId={willId} renewal={renewal} label="Subscribe" />
+            ) : (
+              <Link
+                href={`/dashboard/wills/${willId}`}
+                className="mt-5 inline-flex h-11 items-center border border-border px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy transition-colors hover:border-gold hover:text-gold"
+              >
+                See subscription
+              </Link>
+            )}
+          </section>
+        )}
     </div>
   );
 }

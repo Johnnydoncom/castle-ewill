@@ -1,11 +1,16 @@
 "use client";
 
 import Link from "next/link";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 import { useFormAction } from "@/hooks/use-api-form";
+import { startAmendmentLodgingCheckout } from "@/lib/actions/payments.client";
 import { type FormState } from "@/lib/actions/state";
-import { type ApiWill, type WillPerson } from "@/lib/actions/will";
+import {
+  type AmendmentLodging,
+  type ApiWill,
+  type WillPerson,
+} from "@/lib/actions/will";
 import {
   saveAboutYouAction,
   saveEstateAction,
@@ -1270,7 +1275,16 @@ export function ReviewStep({
   will,
   backHref,
   children,
-}: StepProps & { children: React.ReactNode }) {
+  lodgingJustPaid = false,
+}: StepProps & {
+  children: React.ReactNode;
+  /**
+   * Back from paying the lodging fee for this update (`?lodging=paid`). The
+   * identity check — or, when one is already current, the submission itself —
+   * then starts without another press.
+   */
+  lodgingJustPaid?: boolean;
+}) {
   const [state, action] = useFormAction(submitWillAction);
 
   /*
@@ -1289,13 +1303,86 @@ export function ReviewStep({
    */
   const needsIdentity = will.journey?.update_blocked_by === "liveness_required";
 
-  const [checking, setChecking] = useState(false);
+  /*
+   * Lodging the updated Will — the optional extra offered before the submit
+   * button on an update. Null for a first Will (lodging is bought with its
+   * plan) and for anyone who may not update. The server decides.
+   */
+  const lodging = will.journey?.amendment_lodging ?? null;
+  const [wantsLodging, setWantsLodging] = useState(lodging?.is_paid ?? false);
+
+  /** Back from the gateway with the fee paid: carry on from where they left. */
+  const resuming = lodgingJustPaid && (lodging?.is_paid ?? false);
+
+  const [paying, setPaying] = useState(false);
+  const [payError, setPayError] = useState<string | null>(null);
+
+  /*
+   * Already open when the client is back from paying and still owes the
+   * camera: they pressed to pay-and-continue, and the payment was all that
+   * stood between that press and this check.
+   */
+  const [checking, setChecking] = useState(() => resuming && needsIdentity);
 
   /*
    * A ref, not state: it is read inside the submit handler in the same tick
    * that `requestSubmit()` is called, and a state update would not have landed.
    */
   const confirmed = useRef(false);
+
+  /*
+   * Once, on the way back from the gateway.
+   *
+   * The marker leaves the address first, so a refresh does not start it all
+   * again. With no camera owed — a check already passed this hour — the form
+   * is submitted just as it would have been had there been nothing to pay.
+   */
+  const resumed = useRef(false);
+
+  useEffect(() => {
+    if (!resuming || resumed.current) return;
+
+    resumed.current = true;
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("lodging");
+    window.history.replaceState(window.history.state, "", url);
+
+    if (!needsIdentity) formRef.current?.requestSubmit();
+  }, [resuming, needsIdentity]);
+
+  /*
+   * To the gateway for the lodging fee, and back to this step afterwards.
+   *
+   * The accuracy confirmation is asked for first: it is posted with the
+   * submission that follows the payment, and nobody should pay only to be
+   * stopped on a box they had not ticked.
+   */
+  async function payForLodging() {
+    if (!lodging) return;
+
+    const confirmation = formRef.current?.elements.namedItem("confirmedAccurate");
+
+    if (!(confirmation instanceof HTMLInputElement) || !confirmation.checked) {
+      setPayError(
+        "Confirm that the information in your Will is accurate first, so it can be submitted as soon as your payment clears.",
+      );
+      return;
+    }
+
+    setPayError(null);
+    setPaying(true);
+
+    const result = await startAmendmentLodgingCheckout(will.id, lodging.plan_slug);
+
+    if (result.ok) {
+      window.location.assign(result.url);
+      return;
+    }
+
+    setPaying(false);
+    setPayError(result.message);
+  }
 
   return (
     <>
@@ -1332,7 +1419,12 @@ export function ReviewStep({
         <div className="border border-border bg-background p-6">
           <CheckboxField
             name="confirmedAccurate"
-            defaultChecked={fieldChecked(state, "confirmedAccurate", will.confirmed_accurate)}
+            defaultChecked={fieldChecked(
+              state,
+              "confirmedAccurate",
+              // Ticked before paying for lodging, which is what sent them away.
+              will.confirmed_accurate || resuming,
+            )}
             errors={state.fieldErrors?.confirmedAccurate}
           >
             I confirm that the information recorded in this Will is accurate and
@@ -1354,11 +1446,12 @@ export function ReviewStep({
               Writing your Will was a one-off purchase. Keeping it current as your
               life changes is what the subscription covers.
             </p>
+            {/* The Will's own page sells the renewal; there is no billing page. */}
             <Link
-              href="/dashboard/billing"
+              href={`/dashboard/wills/${will.id}`}
               className="mt-4 inline-block text-sm font-semibold text-foreground underline underline-offset-4"
             >
-              See the plans
+              Renew on this Will&apos;s page
             </Link>
           </div>
         )}
@@ -1374,7 +1467,36 @@ export function ReviewStep({
           `onSubmit` above. It stays put either way: hiding it left the client
           on a page whose only control had vanished.
         */}
-        <WizardFooter backHref={backHref} label="Save & continue" />
+        {lodging && (
+          <LodgingOption
+            lodging={lodging}
+            wanted={wantsLodging}
+            onChange={(wanted) => {
+              setWantsLodging(wanted);
+              setPayError(null);
+            }}
+          />
+        )}
+
+        {/* Posted with the submission, so the server can hold back an unpaid one. */}
+        {lodging?.is_paid && <input type="hidden" name="lodgingRequested" value="on" />}
+
+        {/*
+          While lodging is ticked and unpaid, paying takes the submit button's
+          place. The update is then submitted by the identity check that starts
+          when the client comes back — so there is still exactly one way on.
+        */}
+        {lodging && wantsLodging && !lodging.is_paid ? (
+          <LodgingPaymentFooter
+            backHref={backHref}
+            amount={lodging.price_formatted}
+            paying={paying}
+            error={payError}
+            onPay={() => void payForLodging()}
+          />
+        ) : (
+          <WizardFooter backHref={backHref} label="Save & continue" />
+        )}
       </form>
 
       {/*
@@ -1408,5 +1530,130 @@ export function ReviewStep({
         />
       )}
     </>
+  );
+}
+
+/**
+ * The optional extra before the submit button on an update: lodging the new
+ * version with the Probate Registry.
+ */
+function LodgingOption({
+  lodging,
+  wanted,
+  onChange,
+}: {
+  lodging: AmendmentLodging;
+  wanted: boolean;
+  onChange: (wanted: boolean) => void;
+}) {
+  return (
+    <fieldset className="border border-border bg-background p-6">
+      <legend className="px-2 font-serif text-[10px] uppercase tracking-[0.28em] text-navy">
+        Optional extra
+      </legend>
+
+      {lodging.is_paid ? (
+        <div className="flex flex-wrap items-baseline justify-between gap-x-4 gap-y-1">
+          <p className="font-serif text-lg text-foreground">{lodging.name}</p>
+          <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-success">
+            Paid
+          </p>
+          <p className="basis-full text-sm leading-relaxed text-muted-foreground">
+            We will lodge this updated Will with the Probate Registry once it has
+            been signed and witnessed.
+          </p>
+        </div>
+      ) : (
+        <label className="flex cursor-pointer items-start gap-4">
+          <input
+            type="checkbox"
+            checked={wanted}
+            onChange={(event) => onChange(event.target.checked)}
+            className="mt-1.5 accent-gold"
+          />
+          <span className="min-w-0 flex-1">
+            <span className="flex flex-wrap items-baseline justify-between gap-x-4">
+              <span className="font-serif text-lg text-foreground">
+                Lodge my updated Will with the Probate Registry
+              </span>
+              <span className="text-sm text-navy">{lodging.price_formatted}</span>
+            </span>
+            <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">
+              Optional — you can lodge it yourself. A Will that has been reviewed
+              should always be lodged, so the registry holds the version that
+              counts.
+            </span>
+          </span>
+        </label>
+      )}
+    </fieldset>
+  );
+}
+
+/**
+ * The footer while lodging is ticked and unpaid: pay, rather than submit.
+ *
+ * A button rather than a nested form — this sits inside the review form, and a
+ * form cannot hold another.
+ */
+function LodgingPaymentFooter({
+  backHref,
+  amount,
+  paying,
+  error,
+  onPay,
+}: {
+  backHref?: string;
+  amount: string;
+  paying: boolean;
+  error: string | null;
+  onPay: () => void;
+}) {
+  return (
+    <div className="space-y-4 border-t border-border pt-8">
+      <div className="flex flex-wrap items-center justify-between gap-4">
+        <div className="flex items-center gap-6">
+          {backHref && (
+            <Link
+              href={backHref}
+              className="text-sm uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-navy"
+            >
+              &larr; Back
+            </Link>
+          )}
+          <Link
+            href="/dashboard"
+            className="text-sm uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-navy"
+          >
+            Save &amp; exit
+          </Link>
+        </div>
+
+        <button
+          type="button"
+          onClick={onPay}
+          disabled={paying}
+          className="flex h-13 items-center gap-3 bg-gold px-8 py-4 font-sans text-[12px] font-semibold uppercase tracking-[0.2em] text-navy transition-colors hover:bg-gold/90 disabled:cursor-not-allowed disabled:opacity-60"
+        >
+          {paying && (
+            <span
+              aria-hidden
+              className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-navy/30 border-t-navy"
+            />
+          )}
+          {paying ? "Redirecting…" : `Pay ${amount} and continue`}
+        </button>
+      </div>
+
+      <p className="text-sm leading-relaxed text-muted-foreground">
+        After payment you confirm it is you, and your updated Will is submitted.
+      </p>
+
+      {error && (
+        <p role="alert" className="text-sm leading-relaxed text-destructive">
+          {error}
+        </p>
+      )}
+    </div>
   );
 }

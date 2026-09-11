@@ -3,6 +3,7 @@ import { redirect } from "next/navigation";
 
 import { getProfile, requireUser } from "@/lib/actions/guards";
 import { settlePayment } from "@/lib/actions/payments";
+import { destinationAfterPayment } from "@/lib/payments/after-payment";
 
 export const metadata: Metadata = {
   title: "Confirming your payment",
@@ -87,11 +88,11 @@ export default async function PaymentCallbackPage({
   if (outcome === "success") {
     const profile = await getProfile();
 
-    redirect(
-      profile?.is_kyc_verified
-        ? "/dashboard/wills?payment=success"
-        : "/dashboard/kyc?payment=success",
-    );
+    /*
+     * The lodging fee for an update returns to that update instead, where the
+     * identity check picks up without another press.
+     */
+    redirect(destinationAfterPayment(state.data, profile?.is_kyc_verified ?? false));
   }
 
   redirect(`/dashboard?payment=${outcome}`);

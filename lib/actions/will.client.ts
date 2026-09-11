@@ -179,7 +179,12 @@ export async function submitWillAction(
   if (!willId) return errorState("That Will could not be found.");
 
   return apiMutation(`/wills/${willId}/submit`, {
-    body: { confirmed_accurate: formData.get("confirmedAccurate") === "on" },
+    body: {
+      confirmed_accurate: formData.get("confirmedAccurate") === "on",
+      // Present only once the lodging fee for this update is paid; the server
+      // refuses a requested lodging that is not.
+      lodging_requested: formData.get("lodgingRequested") === "on",
+    },
     /*
      * Straight on to this Will's own page, where payment now lives.
      *

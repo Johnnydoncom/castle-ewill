@@ -171,3 +171,42 @@ export async function startBankTransferAction(
     },
   };
 }
+
+/**
+ * A checkout for something bought on its own for one Will, returning to it.
+ *
+ * Not a form action: its buttons sit inside other forms and panels. Returns the
+ * gateway's address for the caller to leave for, or the reason it could not be
+ * opened. `return_to` is a name the server resolves, never an address.
+ */
+async function startWillCheckout(
+  willId: string,
+  planSlug: string,
+  returnTo: "will_update" | "will",
+): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
+  const result = await api<{ data: { checkout_url: string } }>("/payments/checkout", {
+    method: "POST",
+    body: { plan_slug: planSlug, will_id: willId, return_to: returnTo },
+  });
+
+  return result.ok
+    ? { ok: true, url: result.data.data.checkout_url }
+    : { ok: false, message: result.message };
+}
+
+/**
+ * Pays the lodging fee for an update, from the Will's final step, and comes
+ * back to that step — where the identity check then starts by itself.
+ */
+export function startAmendmentLodgingCheckout(willId: string, planSlug: string) {
+  return startWillCheckout(willId, planSlug, "will_update");
+}
+
+/**
+ * Renews a Will's subscription: what keeps it downloadable once the month of
+ * grace after a lapse is over, and what lets it be updated. Comes back to the
+ * Will's own page.
+ */
+export function startSubscriptionRenewalCheckout(willId: string, planSlug: string) {
+  return startWillCheckout(willId, planSlug, "will");
+}
