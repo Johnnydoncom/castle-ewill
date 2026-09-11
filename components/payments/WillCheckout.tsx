@@ -98,6 +98,7 @@ export function WillCheckout({
   lodging,
   initialQuotes,
   hasActiveSubscription,
+  autoRenewAvailable = false,
 }: {
   /*
    * Which Will is being paid for.
@@ -125,11 +126,15 @@ export function WillCheckout({
   initialQuotes: Record<string, PriceQuote>;
   /** Already subscribed: the option is shown as met rather than offered again. */
   hasActiveSubscription: boolean;
+  /** Whether the active gateway can keep a card for automatic renewal. */
+  autoRenewAvailable?: boolean;
 }) {
   const [selected, setSelected] = useState(
     () => plans.find((plan) => plan.is_popular)?.slug ?? plans[0]?.slug ?? "",
   );
   const [options, setOptions] = useState<PriceOptions>(NO_OPTIONS);
+  /** "Renew my subscription automatically each year" — off unless ticked. */
+  const [autoRenew, setAutoRenew] = useState(false);
   const [fetched, setFetched] = useState<Record<string, PriceQuote>>({});
   const [repricing, startReprice] = useTransition();
 
@@ -182,6 +187,16 @@ export function WillCheckout({
   const cacheKey = `${selected}:${options.withReview}:${options.withSubscription}:${options.withLodging}`;
   const baseline = untouched ? initialQuotes[selected] : undefined;
   const quote = baseline ?? fetched[cacheKey] ?? null;
+
+  /*
+   * Offered only where it can work: a gateway that keeps cards, a Will for the
+   * subscription to belong to, and an order that includes a subscription at
+   * all. The server checks all three again.
+   */
+  const offersAutoRenew =
+    autoRenewAvailable &&
+    Boolean(willId) &&
+    (quote?.subscription_months ?? plan?.included_subscription_months ?? 0) > 0;
 
   useEffect(() => {
     if (!selected || baseline || fetched[cacheKey]) return;
@@ -313,6 +328,29 @@ export function WillCheckout({
         </fieldset>
       )}
 
+      {offersAutoRenew && (
+        <label className="flex cursor-pointer items-start gap-4 border border-border p-5 transition-colors has-[:checked]:border-gold has-[:checked]:bg-gold/5">
+          <input
+            type="checkbox"
+            checked={autoRenew}
+            onChange={(event) => setAutoRenew(event.target.checked)}
+            className="mt-1.5 accent-gold"
+          />
+          <span className="min-w-0 flex-1">
+            <span className="font-serif text-base text-navy">
+              Renew my subscription automatically each year
+            </span>
+            <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">
+              We keep the card you pay with and charge{" "}
+              {subscription ? subscription.price_formatted : "the annual subscription"}{" "}
+              when your year ends, so access to your Will never lapses. We remind
+              you a week before, and you can switch it off at any time. Card
+              payments only.
+            </span>
+          </span>
+        </label>
+      )}
+
       {quote && (
         <dl className="space-y-2 border-t border-border pt-5 text-sm">
           {quote.lines.map((line) => (
@@ -367,6 +405,10 @@ export function WillCheckout({
         */}
         <form action={card}>
           <SelectionFields willId={willId} planSlug={selected} options={options} />
+          {/* The card form only: a bank transfer keeps no card to renew with. */}
+          {offersAutoRenew && autoRenew && (
+            <input type="hidden" name="autoRenew" value="on" />
+          )}
           <Submit label="Pay now" featured />
         </form>
 

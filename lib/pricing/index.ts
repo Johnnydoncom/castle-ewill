@@ -13,6 +13,7 @@ const EMPTY: PriceList = {
   subscription: null,
   quotes: {},
   providers: { nomba: false, paystack: false, flutterwave: false, bank_transfer: true },
+  autoRenewAvailable: false,
 };
 
 /**
@@ -32,7 +33,11 @@ export const PRICE_TTL_SECONDS = 300;
 export async function getPriceList(): Promise<PriceList> {
   const result = await api<{
     data: Plan[];
-    meta?: { quotes?: PriceList["quotes"]; providers?: PriceList["providers"] };
+    meta?: {
+      quotes?: PriceList["quotes"];
+      providers?: PriceList["providers"];
+      auto_renew_available?: boolean;
+    };
     /*
      * Five minutes. Prices change when an administrator edits them, which is
      * rare and never urgent to the minute — and the alternative was every
@@ -58,5 +63,6 @@ export async function getPriceList(): Promise<PriceList> {
     subscription: ofKind("subscription")[0] ?? null,
     quotes: result.data.meta?.quotes ?? {},
     providers: result.data.meta?.providers ?? EMPTY.providers,
+    autoRenewAvailable: result.data.meta?.auto_renew_available ?? false,
   };
 }

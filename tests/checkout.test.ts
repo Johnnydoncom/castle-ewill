@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
+  startBankTransferAction,
   startCheckoutAction,
 } from "@/lib/actions/payments.client";
 
@@ -49,6 +50,39 @@ describe("the main checkout button", () => {
 
     expect(path).toBe("/payments/checkout");
     expect(options.body.plan_slug).toBe("basic");
+  });
+});
+
+describe("automatic renewal", () => {
+  it("is asked for only when the box is ticked", async () => {
+    const ticked = selection();
+    ticked.set("autoRenew", "on");
+
+    await startCheckoutAction({ status: "idle" }, ticked);
+    await startCheckoutAction({ status: "idle" }, selection());
+
+    expect(api.mock.calls[0][1].body.auto_renew).toBe(true);
+    expect(api.mock.calls[1][1].body).not.toHaveProperty("auto_renew");
+  });
+
+  it("is never sent with a bank transfer, which keeps no card", async () => {
+    api.mockResolvedValue({
+      ok: true,
+      data: {
+        message: "",
+        data: {
+          payment: { reference: "CWP-1", amount_formatted: "₦5,000.00" },
+          account: { bank_name: "", account_name: "", account_number: "" },
+        },
+      },
+    });
+
+    const ticked = selection();
+    ticked.set("autoRenew", "on");
+
+    await startBankTransferAction({ status: "idle" }, ticked);
+
+    expect(api.mock.calls[0][1].body).not.toHaveProperty("auto_renew");
   });
 });
 

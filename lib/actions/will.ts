@@ -172,6 +172,21 @@ export type WillJourney = {
   lodged_at: string | null;
 };
 
+/**
+ * Automatic renewal of a Will's subscription, as the server describes it.
+ *
+ * The card is a label and the last four digits — the token it is charged by
+ * never leaves the server.
+ */
+export type AutoRenewal = {
+  enabled: boolean;
+  card: { label: string; brand: string | null; last4: string | null } | null;
+  /** When the kept card is next charged; null while off or with no card. */
+  renews_on: string | null;
+  /** Whether a card could be kept today (or one already is). */
+  available: boolean;
+};
+
 export type ApiWill = {
   id: string;
   reference: string;
@@ -195,6 +210,8 @@ export type ApiWill = {
    */
   subscription_expires_at: string | null;
   has_active_subscription: boolean;
+  /** The account holder's own view only; absent for anybody else. */
+  auto_renewal?: AutoRenewal;
   personal: Record<string, string | null>;
   declaration: Record<string, boolean>;
   has_minor_children: boolean | null;

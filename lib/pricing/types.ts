@@ -100,4 +100,6 @@ export type PriceList = {
   /** Composed totals keyed by Will-plan slug — render, never recompute. */
   quotes: Record<string, PriceQuote>;
   providers: PaymentProviders;
+  /** Whether the active gateway can keep a card for automatic renewal. */
+  autoRenewAvailable: boolean;
 };

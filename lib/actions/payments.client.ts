@@ -84,7 +84,14 @@ async function startCheckout(formData: FormData): Promise<FormState> {
        * The buttons that named a gateway are gone too. On an account with one
        * gateway they sat beside "Pay now" doing the identical thing.
        */
-      body: selection,
+      body: {
+        ...selection,
+        /*
+         * Card checkouts only — a bank transfer keeps no card, so its action
+         * never sends this. Sent only when ticked.
+         */
+        ...(formData.get("autoRenew") === "on" ? { auto_renew: true } : {}),
+      },
     },
   );
 
@@ -183,10 +190,11 @@ async function startWillCheckout(
   willId: string,
   planSlug: string,
   returnTo: "will_update" | "will",
+  extra: Record<string, unknown> = {},
 ): Promise<{ ok: true; url: string } | { ok: false; message: string }> {
   const result = await api<{ data: { checkout_url: string } }>("/payments/checkout", {
     method: "POST",
-    body: { plan_slug: planSlug, will_id: willId, return_to: returnTo },
+    body: { plan_slug: planSlug, will_id: willId, return_to: returnTo, ...extra },
   });
 
   return result.ok
@@ -207,6 +215,30 @@ export function startAmendmentLodgingCheckout(willId: string, planSlug: string) 
  * grace after a lapse is over, and what lets it be updated. Comes back to the
  * Will's own page.
  */
-export function startSubscriptionRenewalCheckout(willId: string, planSlug: string) {
-  return startWillCheckout(willId, planSlug, "will");
+export function startSubscriptionRenewalCheckout(
+  willId: string,
+  planSlug: string,
+  autoRenew = false,
+) {
+  return startWillCheckout(willId, planSlug, "will", autoRenew ? { auto_renew: true } : {});
+}
+
+/**
+ * Switches a Will's automatic renewal on or off.
+ *
+ * On needs a card the client kept; the server answers `card_required` with a
+ * sentence saying how to keep one when there is none.
+ */
+export async function setAutoRenewalAction(
+  willId: string,
+  enabled: boolean,
+): Promise<{ ok: true; message: string } | { ok: false; message: string }> {
+  const result = await api<{ message: string }>(
+    `/wills/${encodeURIComponent(willId)}/auto-renew`,
+    { method: "PUT", body: { enabled } },
+  );
+
+  return result.ok
+    ? { ok: true, message: result.data.message }
+    : { ok: false, message: result.message };
 }

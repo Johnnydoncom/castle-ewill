@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { AlertTriangle, ArrowLeft } from "lucide-react";
 
 import { PageHead } from "@/components/dashboard/PageHead";
+import { AutoRenewalPanel } from "@/components/will/AutoRenewalPanel";
 import { JourneyActions } from "@/components/will/JourneyActions";
 import { JourneyBar } from "@/components/will/JourneyBar";
 import { ReviewSummary } from "@/components/will/ReviewSummary";
@@ -164,11 +165,21 @@ export default async function WillDetailPage({
                 ? {
                     planSlug: prices.subscription.slug,
                     price: prices.subscription.price_formatted,
+                    autoRenewAvailable: prices.autoRenewAvailable,
                   }
                 : null
             }
           />
         </div>
+      )}
+
+      {/* Only once there is a subscription to renew. */}
+      {will.auto_renewal && will.subscription_expires_at && (
+        <AutoRenewalPanel
+          willId={will.id}
+          autoRenewal={will.auto_renewal}
+          subscriptionPrice={prices.subscription?.price_formatted ?? null}
+        />
       )}
 
       {/*
@@ -197,6 +208,7 @@ export default async function WillDetailPage({
               // tell a lawyer's second client their document was covered by
               // the first client's payment.
               hasActiveSubscription={will.has_active_subscription}
+              autoRenewAvailable={prices.autoRenewAvailable}
             />
           </div>
         </section>

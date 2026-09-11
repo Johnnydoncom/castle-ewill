@@ -11,7 +11,7 @@ import { chooseReviewAction } from "@/lib/actions/will.client";
 import type { PrintBlocker, WillJourney } from "@/lib/actions/will";
 
 /** The subscription a Will can be renewed on, priced server-side. */
-type Renewal = { planSlug: string; price: string };
+type Renewal = { planSlug: string; price: string; autoRenewAvailable?: boolean };
 
 /**
  * Renews this Will's subscription, straight to the gateway and back.
@@ -30,12 +30,18 @@ function RenewSubscription({
 }) {
   const [pending, setPending] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  /** Keep this card and renew by itself from now on — off unless ticked. */
+  const [autoRenew, setAutoRenew] = useState(false);
 
   async function renew() {
     setError(null);
     setPending(true);
 
-    const result = await startSubscriptionRenewalCheckout(willId, renewal.planSlug);
+    const result = await startSubscriptionRenewalCheckout(
+      willId,
+      renewal.planSlug,
+      renewal.autoRenewAvailable === true && autoRenew,
+    );
 
     if (result.ok) {
       window.location.assign(result.url);
@@ -48,6 +54,17 @@ function RenewSubscription({
 
   return (
     <div className="mt-5 space-y-3">
+      {renewal.autoRenewAvailable && (
+        <label className="flex cursor-pointer items-start gap-2 text-sm leading-relaxed text-navy">
+          <input
+            type="checkbox"
+            checked={autoRenew}
+            onChange={(event) => setAutoRenew(event.target.checked)}
+            className="mt-1 accent-gold"
+          />
+          Renew automatically each year after this, on the card I pay with
+        </label>
+      )}
       <button
         type="button"
         onClick={() => void renew()}
