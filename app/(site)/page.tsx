@@ -127,11 +127,18 @@ function Proof() {
    * the same fault as a fabricated testimonial, and on a regulated service
    * they are a good deal worse than an embarrassment. Replaced with claims
    * the codebase itself makes true.
+   *
+   * "3 Identity checks" was one of them and has gone the same way: there is
+   * one check, of the client themselves — the lawyer's own, on the
+   * professional package — and it is done once rather than at every visit
+   * (`WillJourney::identityState()`, and "Verified once" on the security
+   * page). The witnesses' identification is a console option, off by default,
+   * so it is not a promise the homepage may make.
    */
   const stats = [
     ["4", "Guided steps"],
     ["AES-256", "Encrypted at rest"],
-    ["3", "Identity checks"],
+    ["Once", "Identity verified"],
     ["RC 9701348", "Registered in Nigeria"],
   ];
   return (
