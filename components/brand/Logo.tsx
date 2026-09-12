@@ -19,7 +19,7 @@ export function Logo({
   const content = (
     <span className={`inline-flex items-center gap-3 ${className}`}>
       <Image
-        src="/images/castle-ewill-logo.png"
+        src="/images/castle-ewill-logo.webp"
         alt="Castle eWill and Trust"
         width={size}
         height={size}
