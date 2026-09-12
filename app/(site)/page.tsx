@@ -129,7 +129,7 @@ function Proof() {
    * the codebase itself makes true.
    */
   const stats = [
-    ["9", "Guided sections"],
+    ["4", "Guided steps"],
     ["AES-256", "Encrypted at rest"],
     ["3", "Identity checks"],
     ["RC 9701348", "Registered in Nigeria"],
@@ -232,7 +232,7 @@ function Steps() {
           n: "01",
           title: "Prepare",
           by: "You",
-          body: "Nine guided sections in plain English. Save and come back as often as you like.",
+          body: "Four guided steps in plain English. Save and come back as often as you like.",
         },
         {
           n: "02",
@@ -406,7 +406,7 @@ function Features() {
     {
       numeral: "I",
       title: "Guided Will wizard",
-      body: "Nine considered sections, each explained in plain English. No legal jargon — just clarity.",
+      body: "Four considered steps, each explained in plain English. No legal jargon — just clarity.",
     },
     {
       numeral: "II",
@@ -586,7 +586,7 @@ function Assurances() {
 function HowItWorks() {
   const steps = [
     { n: "01", title: "Create account", body: "Three fields. No credit card." },
-    { n: "02", title: "Draft your Will", body: "Nine guided sections, plain English throughout." },
+    { n: "02", title: "Draft your Will", body: "Four guided steps, plain English throughout." },
     { n: "03", title: "Counsel review", body: "Optional: a qualified solicitor checks every clause." },
     { n: "04", title: "Sign & seal", body: "Two witnesses, your signature, encrypted vault." },
   ];

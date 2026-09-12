@@ -35,7 +35,7 @@ const cols = [
 const assurances = [
   [Scale, "Compliant with Nigerian law"],
   [Lock, "AES-256 encrypted vault"],
-  [Clock, "Nine guided sections"],
+  [Clock, "Four guided steps"],
 ] as const;
 
 export function SiteFooter() {

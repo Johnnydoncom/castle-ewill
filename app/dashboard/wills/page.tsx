@@ -63,7 +63,7 @@ export default async function WillsPage() {
           <FileText className="mx-auto h-8 w-8 text-muted-foreground/40" />
           <h2 className="mt-4 font-serif text-2xl text-navy">No Will yet.</h2>
           <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
-            Nine guided sections, plain English throughout. You can pause and
+            Four guided steps, plain English throughout. You can pause and
             resume at any point.
           </p>
           <Link

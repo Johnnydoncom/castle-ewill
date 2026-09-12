@@ -40,7 +40,7 @@ const SERVICES = [
     title: "Guided Will builder",
     body: "An interactive questionnaire, not a blank page. Rather than asking you to draft legal clauses, we ask who your beneficiaries are, who should administer your estate, and what you own. The system assembles a Will that complies with the law from your answers.",
     points: [
-      "Nine plain-English sections",
+      "Four plain-English steps",
       "Inline explanations on every field",
       "Save a draft and resume at any time",
     ],

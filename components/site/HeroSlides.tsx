@@ -45,7 +45,7 @@ const SLIDES: Slide[] = [
      * makes true.
      */
     caption: "Everyone your Will speaks for",
-    meta: "Nine guided sections, in your own words",
+    meta: "Four guided steps, in your own words",
     cta: { label: "Start your Will", to: "/register" },
   },
   {

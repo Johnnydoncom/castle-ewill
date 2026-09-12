@@ -169,7 +169,7 @@ export default async function DashboardPage({
                 No Will yet.
               </h2>
               <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
-                Nine guided sections, plain English throughout. You can pause and
+                Four guided steps, plain English throughout. You can pause and
                 resume at any point.
               </p>
               <Link
