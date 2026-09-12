@@ -91,12 +91,14 @@ export function SiteHeader() {
               ))}
             </nav>
 
-            <Link
-              href={secondary.href}
-              className="hidden h-11 items-center rounded-full px-5 text-[15px] font-semibold text-navy transition-colors hover:bg-muted md:inline-flex"
-            >
-              {secondary.label}
-            </Link>
+            {!viewer && (
+              <Link
+                href={secondary.href}
+                className="hidden h-11 items-center rounded-full px-5 text-[15px] font-semibold text-navy transition-colors hover:bg-muted md:inline-flex"
+              >
+                {secondary.label}
+              </Link>
+            )}
             <Link
               href={primary.href}
               className="group hidden h-11 items-center gap-2 rounded-full bg-navy px-6 text-[15px] font-semibold text-navy-foreground transition-all hover:shadow-elegant md:inline-flex"
