@@ -177,7 +177,7 @@ export function HeroSlides() {
 
           <h1
             key={`t-${active}`}
-            className="mt-7 animate-in fade-in slide-in-from-bottom-3 font-serif text-[2.75rem] leading-[0.98] tracking-[-0.03em] duration-700 sm:text-6xl lg:text-[4.5rem]"
+            className="mt-7 animate-in fade-in slide-in-from-bottom-3 font-serif text-[2.75rem] leading-[0.98] tracking-[-0.03em] duration-700 sm:text-6xl lg:text-[3.5rem]"
           >
             {slide.title}
           </h1>
@@ -248,11 +248,10 @@ export function HeroSlides() {
                   >
                     <span
                       aria-hidden
-                      className={`absolute inset-x-0 top-1/2 h-px -translate-y-1/2 transition-colors ${
-                        isActive
+                      className={`absolute inset-x-0 top-1/2 h-px -translate-y-1/2 transition-colors ${isActive
                           ? "bg-white/25"
                           : "bg-white/20 group-hover:bg-white/45"
-                      }`}
+                        }`}
                     />
                     {isActive && (
                       <span
