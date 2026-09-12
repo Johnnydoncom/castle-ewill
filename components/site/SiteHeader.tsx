@@ -5,6 +5,8 @@ import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Menu, X, MailCheck, ArrowRight } from "lucide-react";
 import { Logo } from "@/components/brand/Logo";
+import { useViewer } from "@/hooks/use-viewer";
+import { headerDestinations } from "@/lib/site/header-links";
 
 
 /** Public navigation, per the client brief's Public Website list. */
@@ -21,6 +23,18 @@ const nav = [
 export function SiteHeader() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+
+  /*
+   * Signed in, the two controls are not "Sign in" and "Start your Will".
+   *
+   * They pointed at /login and /register whoever was looking, so a client who
+   * was already signed in was asked to sign in again — and the primary button
+   * offered to start a Will they had already started. Asked from the browser
+   * rather than the server because these pages are cached; see `useViewer`.
+   */
+  const { viewer } = useViewer();
+
+  const { secondary, primary } = headerDestinations(viewer);
 
   const [scrolled, setScrolled] = useState(false);
 
@@ -78,16 +92,16 @@ export function SiteHeader() {
             </nav>
 
             <Link
-              href="/login"
+              href={secondary.href}
               className="hidden h-11 items-center rounded-full px-5 text-[15px] font-semibold text-navy transition-colors hover:bg-muted md:inline-flex"
             >
-              Sign in
+              {secondary.label}
             </Link>
             <Link
-              href="/register"
+              href={primary.href}
               className="group hidden h-11 items-center gap-2 rounded-full bg-navy px-6 text-[15px] font-semibold text-navy-foreground transition-all hover:shadow-elegant md:inline-flex"
             >
-              Start your Will
+              {primary.label}
               <ArrowRight className="h-3.5 w-3.5 transition-transform group-hover:translate-x-0.5" />
             </Link>
 
@@ -137,18 +151,18 @@ export function SiteHeader() {
             </div>
             <div className="mt-5 grid gap-2">
               <Link
-                href="/register"
+                href={primary.href}
                 onClick={() => setOpen(false)}
                 className="inline-flex h-12 items-center justify-center rounded-full bg-navy text-sm font-semibold text-navy-foreground"
               >
-                Start your Will
+                {primary.label}
               </Link>
               <Link
-                href="/login"
+                href={secondary.href}
                 onClick={() => setOpen(false)}
                 className="inline-flex h-12 items-center justify-center rounded-full border border-border text-sm font-semibold text-navy"
               >
-                Sign in
+                {secondary.label}
               </Link>
             </div>
           </div>
