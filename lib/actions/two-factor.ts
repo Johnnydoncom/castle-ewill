@@ -22,17 +22,28 @@ export type TwoFactorSetup =
     secret: string;
     formatted: string;
     uri: string;
+    /**
+     * The setup link as a QR code to scan — a PNG data URI drawn by our own
+     * API, so the secret goes to no image service. Null when it could not be
+     * drawn; the key is there to enter by hand instead.
+     */
+    qr: string | null;
   };
+
+/** Only ever an inline PNG: anything else is not used as an image source. */
+const INLINE_PNG = "data:image/png;base64,";
 
 export async function beginTwoFactorSetupAction(): Promise<TwoFactorSetup> {
   const result = await api<{
     message: string;
-    data: { secret: string; formatted: string; uri: string };
+    data: { secret: string; formatted: string; uri: string; qr?: string | null };
   }>("/two-factor/begin", { method: "POST" });
 
   if (!result.ok) {
     return { status: "error", message: result.message };
   }
+
+  const qr = result.data.data.qr;
 
   return {
     status: "success",
@@ -40,6 +51,7 @@ export async function beginTwoFactorSetupAction(): Promise<TwoFactorSetup> {
     secret: result.data.data.secret,
     formatted: result.data.data.formatted,
     uri: result.data.data.uri,
+    qr: typeof qr === "string" && qr.startsWith(INLINE_PNG) ? qr : null,
   };
 }
 
