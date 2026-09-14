@@ -50,6 +50,13 @@ describe("reading a start", () => {
       ...config,
       document_types: [
         { code: "PASSPORT", label: "International passport", has_back: false },
+        {
+          code: "NIN_V2",
+          label: "National ID (NIN)",
+          has_back: false,
+          requires_id_number: true,
+          id_number_pattern: "^[0-9]{11}$",
+        },
         { code: "DRIVERS_LICENSE", label: "Driver's licence", has_back: true },
       ],
     };

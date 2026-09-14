@@ -57,12 +57,41 @@ export type SmileIdCaptureConfig = {
    * capture. Empty on a recheck, and absent from an older API.
    */
   document_types?: DocumentTypeOption[];
+  /**
+   * The NIN the client already gave on their own Will, offered back if they
+   * choose the National ID. Null for a lawyer, whose Wills are their clients'.
+   */
+  prefill?: { id_number: string | null } | null;
   environment: "sandbox" | "production";
   theme_color: string;
 };
 
-/** A document the client may choose, as the server lists it. */
-export type DocumentTypeOption = { code: string; label: string; has_back: boolean };
+/** What the client may choose, as the server lists it. */
+export type DocumentTypeOption = {
+  code: string;
+  label: string;
+  has_back: boolean;
+  /**
+   * Checked by its number rather than photographed: the National ID, which
+   * Smile ID matches by NIN (Biometric KYC). No document camera for it.
+   */
+  requires_id_number?: boolean;
+  /** The pattern that number must match, as Smile ID publish it. */
+  id_number_pattern?: string | null;
+};
+
+/**
+ * Smile ID's sandbox NIN test numbers — the last digit decides the answer.
+ *
+ * `4` is matched against a photograph the backend sends with the job (in the
+ * sandbox only), so it is the one that can pass a real selfie.
+ *
+ * @see https://legacy-docs.usesmileid.com/supported-id-types/for-individuals-kyc/backed-by-id-authority/test-data
+ */
+export const SANDBOX_TEST_NUMBERS = {
+  matchesYourSelfie: "00000000004",
+  notFound: "00000000001",
+} as const;
 
 export type StartAnswer =
   | { kind: "capture"; attemptId: string; config: SmileIdCaptureConfig }

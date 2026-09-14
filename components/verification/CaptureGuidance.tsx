@@ -33,10 +33,10 @@ export function CaptureGuidance({
       <ul className="mt-3 space-y-2 text-sm leading-relaxed text-muted-foreground">
         {withDocument && (
           <li>
-            <span className="text-navy">Have an identity document to hand</span>{" "}
-            — such as your international passport, driver&apos;s licence,
-            national ID card or voter&apos;s card. After your selfie you will
-            photograph it, or upload a clear photo or scan of it.
+            <span className="text-navy">Have your NIN or an identity document to hand</span>{" "}
+            — your 11-digit NIN for your National ID, or your international
+            passport, driver&apos;s licence or voter&apos;s card, which you will
+            photograph after your selfie or upload as a clear photo or scan.
           </li>
         )}
         <li>

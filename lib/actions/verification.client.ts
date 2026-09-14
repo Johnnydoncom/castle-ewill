@@ -64,6 +64,7 @@ export async function submitCaptureAction(
   attemptId: string,
   images: readonly CapturedImage[],
   documentType: string | null = null,
+  idNumber: string | null = null,
 ): Promise<
   { status: "error"; message: string } | { status: "success"; message: string }
 > {
@@ -72,8 +73,10 @@ export async function submitCaptureAction(
     body: {
       attempt_id: attemptId,
       images: imagesForSubmission(images),
-      // The document the client chose, as Smile ID's `id_type`.
+      // What the client chose, as Smile ID's `id_type`.
       ...(documentType && { id_type: documentType }),
+      // The National ID's NIN, when that is what they chose.
+      ...(idNumber && { id_number: idNumber }),
     },
   });
 

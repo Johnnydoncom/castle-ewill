@@ -21,6 +21,7 @@ import {
   CAPTURE_PUBLISHED,
   imagesForSubmission,
   loadSmileIdSdk,
+  SANDBOX_TEST_NUMBERS,
   type CapturedImage,
   type DocumentTypeOption,
   type SmileIdCaptureConfig,
@@ -92,6 +93,9 @@ export function SmileIdCapture({
   /** The document the client chose, once they have. Read when the camera is built. */
   const documentRef = useRef<DocumentTypeOption | null>(null);
 
+  /** The NIN, when the client chose the National ID. */
+  const idNumberRef = useRef<string | null>(null);
+
   /** One submission per capture. Their review screen can publish twice. */
   const sending = useRef(false);
 
@@ -134,7 +138,12 @@ export function SmileIdCapture({
       sending.current = true;
       setStep("sending");
 
-      const result = await submitCaptureAction(attemptId, captured, documentRef.current?.code ?? null);
+      const result = await submitCaptureAction(
+        attemptId,
+        captured,
+        documentRef.current?.code ?? null,
+        idNumberRef.current,
+      );
 
       if (result.status === "error") {
         fail(result.message);
@@ -167,7 +176,8 @@ export function SmileIdCapture({
 
     camera.setAttribute("theme-color", config.theme_color);
 
-    if (config.capture_document) {
+    // The National ID is checked by its NIN: a selfie, and no document camera.
+    if (config.capture_document && !documentRef.current?.requires_id_number) {
       camera.setAttribute("capture-id", "");
       camera.setAttribute("document-capture-modes", config.document_capture_modes);
 
@@ -241,6 +251,7 @@ export function SmileIdCapture({
 
     setConfig(opened.config);
     documentRef.current = null;
+    idNumberRef.current = null;
     // A document check asks which document first; a recheck opens the camera.
     setStep((opened.config.document_types ?? []).length > 0 ? "document" : "capture");
   }, [fail, finish]);
@@ -332,8 +343,9 @@ export function SmileIdCapture({
         {step === "document" && config && (
           <DocumentTypeStep
             config={config}
-            onContinue={(document) => {
+            onContinue={(document, idNumber) => {
               documentRef.current = document;
+              idNumberRef.current = idNumber;
               setStep("capture");
             }}
             onBack={() => setStep("idle")}
@@ -368,35 +380,52 @@ function DocumentTypeStep({
   onBack,
 }: {
   config: SmileIdCaptureConfig;
-  onContinue: (document: DocumentTypeOption) => void;
+  onContinue: (document: DocumentTypeOption, idNumber: string | null) => void;
   onBack: () => void;
 }) {
   const documents = config.document_types ?? [];
   const [chosen, setChosen] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [idNumber, setIdNumber] = useState(config.prefill?.id_number ?? "");
+  const selected = documents.find((candidate) => candidate.code === chosen) ?? null;
 
   function proceed(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const document = documents.find((candidate) => candidate.code === chosen);
+    if (!selected) {
+      setError("Choose how you will prove your identity.");
 
-    if (!document) {
-      setError("Choose the document you will photograph or upload.");
+      return;
+    }
+
+    // Checked here for feedback only: the server checks the pattern again.
+    if (selected.requires_id_number) {
+      const number = idNumber.replace(/\s+/g, "");
+
+      if (!new RegExp(selected.id_number_pattern ?? "^[0-9]{11}$").test(number)) {
+        setError("Enter your 11-digit NIN, as it appears on your National ID card or NIN slip.");
+
+        return;
+      }
+
+      setError(null);
+      onContinue(selected, number);
 
       return;
     }
 
     setError(null);
-    onContinue(document);
+    onContinue(selected, null);
   }
 
   return (
     <form onSubmit={proceed} noValidate className="space-y-5 p-6 text-left sm:p-8">
       <fieldset aria-describedby={error ? "document-type-error" : undefined}>
-        <legend className="font-serif text-xl text-navy">Your identity document</legend>
+        <legend className="font-serif text-xl text-navy">Your identity</legend>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          Choose the document you have to hand. After your selfie you can
-          photograph it, or upload a clear photo or scan of it.
+          Choose what you have to hand. Your National ID is checked by its NIN
+          and a selfie. A passport, driver&apos;s licence or voter&apos;s card
+          is photographed after your selfie, or uploaded as a clear photo or scan.
         </p>
 
         <div className="mt-5 space-y-2">
@@ -419,19 +448,64 @@ function DocumentTypeStep({
                 className="h-4 w-4 shrink-0 accent-navy"
               />
               <span className="flex-1">{document.label}</span>
-              {!document.has_back && (
-                <span className="text-xs text-muted-foreground">Photo page only</span>
+              {document.requires_id_number ? (
+                <span className="text-xs text-muted-foreground">NIN and selfie</span>
+              ) : (
+                !document.has_back && (
+                  <span className="text-xs text-muted-foreground">Photo page only</span>
+                )
               )}
             </label>
           ))}
         </div>
       </fieldset>
 
+      {selected?.requires_id_number && (
+        <label className="block">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-navy">
+            National Identification Number (NIN)
+          </span>
+          <input
+            name="id_number"
+            inputMode="numeric"
+            autoComplete="off"
+            maxLength={14}
+            value={idNumber}
+            onChange={(event) => {
+              setIdNumber(event.target.value);
+              setError(null);
+            }}
+            aria-invalid={error !== null}
+            aria-describedby={error ? "document-type-error" : undefined}
+            placeholder="11 digits"
+            className="mt-2 h-12 w-full rounded-xl border border-border bg-background px-4 font-mono text-base tracking-wider text-navy focus:border-gold focus:outline-none"
+          />
+          <span className="mt-2 block text-xs leading-relaxed text-muted-foreground">
+            Your selfie is matched against the photograph held on the national
+            register for this number, so there is no document to photograph.
+            {config.prefill?.id_number && " This is the NIN from your Will — check it is right."}
+          </span>
+        </label>
+      )}
+
       {config.environment === "sandbox" && (
         <p className="border-l-2 border-gold bg-gold/5 px-4 py-3 text-xs leading-relaxed text-navy">
-          <strong className="font-medium">Test mode:</strong> Smile ID&apos;s sandbox does
-          not process real documents, so a check sent from here can stay under review
-          without a verdict.
+          <strong className="font-medium">Test mode:</strong>{" "}
+          {selected?.requires_id_number ? (
+            <>
+              Smile ID&apos;s sandbox accepts only its test numbers, and refuses a
+              real NIN. Use{" "}
+              <span className="font-mono">{SANDBOX_TEST_NUMBERS.matchesYourSelfie}</span> to
+              be matched against your own selfie, or{" "}
+              <span className="font-mono">{SANDBOX_TEST_NUMBERS.notFound}</span> for a
+              number the register does not hold.
+            </>
+          ) : (
+            <>
+              Smile ID&apos;s sandbox does not process real documents, so a check sent
+              from here can stay under review without a verdict.
+            </>
+          )}
         </p>
       )}
 
