@@ -9,7 +9,7 @@ export type SessionUser = {
   id: string;
   email: string;
   name: string;
-  role: "user" | "admin";
+  role: "user" | "lawyer" | "admin";
   /** Only ever populated by `requireAdmin()` — a superadmin passes every permission check. */
   isSuperAdmin?: boolean;
   /** Only ever populated by `requireAdmin()`. Full catalog when `isSuperAdmin`. */
@@ -39,8 +39,13 @@ export type Profile = {
   email: string;
   phone: string | null;
   image: string | null;
-  role: "user" | "admin";
+  role: "user" | "lawyer" | "admin";
   status: "active" | "suspended" | "deleted";
+  /**
+   * Which price list this account buys from — `User::pricingAudience()`.
+   * "lawyer" only for a verified lawyer. Present on the caller's own record.
+   */
+  pricing_audience?: "individual" | "lawyer";
   is_email_verified: boolean;
   is_phone_verified: boolean;
   is_kyc_verified: boolean;
@@ -92,6 +97,21 @@ export type Profile = {
  * cookie-forwarded call to `GET /me` on every protected page.
  */
 export async function requireUser(): Promise<SessionUser> {
+  const profile = await requireProfile();
+
+  return {
+    id: profile.id,
+    email: profile.email,
+    name: profile.name ?? profile.email,
+    role: profile.role,
+  };
+}
+
+/**
+ * `requireUser()`, returning the whole account record — for a page that needs
+ * more than who is signed in, without a second `GET /me`.
+ */
+export async function requireProfile(): Promise<Profile> {
   const read = await loadProfile();
 
   // A backend we could not reach is an error, not a sign-out.
@@ -101,14 +121,7 @@ export async function requireUser(): Promise<SessionUser> {
     redirect("/login");
   }
 
-  const { profile } = read;
-
-  return {
-    id: profile.id,
-    email: profile.email,
-    name: profile.name ?? profile.email,
-    role: profile.role,
-  };
+  return read.profile;
 }
 
 export async function requireAdmin(): Promise<SessionUser> {

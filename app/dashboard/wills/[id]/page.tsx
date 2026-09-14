@@ -18,7 +18,8 @@ import {
   suggestedWitnesses,
   witnessIdTypes,
 } from "@/lib/actions/verification";
-import { requireUser } from "@/lib/actions/guards";
+import { requireProfile } from "@/lib/actions/guards";
+import { willPlansFor } from "@/lib/pricing/audience";
 import { conflictingWitnesses } from "@/lib/will/conflicts";
 import { WILL_STATUS_LABELS } from "@/lib/will/reference";
 
@@ -43,7 +44,7 @@ export default async function WillDetailPage({
 }: {
   params: Promise<{ id: string }>;
 }) {
-  await requireUser();
+  const profile = await requireProfile();
 
   const { id } = await params;
   const read = await readWill(id);
@@ -212,7 +213,8 @@ export default async function WillDetailPage({
           <div className="mt-6">
             <WillCheckout
               willId={will.id}
-              plans={prices.will}
+              // A verified lawyer is offered the professional plan only.
+              plans={willPlansFor(prices, profile.pricing_audience)}
               review={prices.review}
               subscription={prices.subscription}
               lodging={prices.lodging}
