@@ -97,14 +97,22 @@ export function profileCompletion(user: {
   email?: string | null;
   phone?: string | null;
   isEmailVerified?: boolean;
-  image?: string | null;
+  isPhoneVerified?: boolean;
+  requiresEmailVerification?: boolean;
+  requiresPhoneVerification?: boolean;
+  twoFactorEnabled?: boolean;
 }): number {
+  // Mirrors DashboardController: no profile photo (nothing can upload one),
+  // and each confirmation counts only while it is being asked for.
   const checks = [
     Boolean(user.name),
-    Boolean(user.email),
-    Boolean(user.isEmailVerified),
-    Boolean(user.phone),
-    Boolean(user.image),
+    user.requiresEmailVerification
+      ? Boolean(user.isEmailVerified)
+      : Boolean(user.email),
+    user.requiresPhoneVerification
+      ? Boolean(user.isPhoneVerified)
+      : Boolean(user.phone),
+    Boolean(user.twoFactorEnabled),
   ];
 
   return Math.round((checks.filter(Boolean).length / checks.length) * 100);

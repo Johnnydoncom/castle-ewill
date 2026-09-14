@@ -32,7 +32,10 @@ export default async function SettingsPage() {
         email: profile.email,
         phone: profile.phone,
         isEmailVerified: profile.is_email_verified,
-        image: profile.image,
+        isPhoneVerified: profile.is_phone_verified,
+        requiresEmailVerification: profile.requires_email_verification,
+        requiresPhoneVerification: profile.requires_phone_verification,
+        twoFactorEnabled: profile.two_factor_enabled,
       })
     : 0;
   const verified = Boolean(profile?.is_email_verified);
