@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type FormEvent } from "react";
 import {
   AlertCircle,
   CheckCircle2,
@@ -20,6 +20,8 @@ import {
   CAPTURE_PUBLISHED,
   imagesForSubmission,
   loadSmileIdSdk,
+  SANDBOX_TEST_NUMBERS,
+  type CaptureIdentity,
   type CapturedImage,
   type SmileIdCaptureConfig,
 } from "@/lib/smile-id/capture";
@@ -33,8 +35,11 @@ import { CaptureGuidance } from "./CaptureGuidance";
  *
  *     start  →  <smart-camera-web>  →  our API  →  Smile ID
  *
- * Their v11 SDK runs the capture — selfie and liveness, then the document when
- * the server asked for one (`capture-id`) — and publishes base64 images. Those
+ * A first check asks for the client's NIN before the camera opens (Biometric
+ * KYC: the selfie is matched against the photograph the ID authority holds for
+ * it). Their v11 SDK then runs the capture — selfie and liveness, and a
+ * document only when the server asked for one (`capture-id`) — and publishes
+ * base64 images. Those
  * go to **our** backend, which submits the job to Smile ID server to server;
  * the key that signs it never leaves the server. Everything that is a decision
  * — which product, whether there is a document step — arrives from the server
@@ -50,7 +55,7 @@ import { CaptureGuidance } from "./CaptureGuidance";
  * @see https://legacy-docs.usesmileid.com/integration-options/web-mobile-web/javascript-sdk-beta/usage
  */
 
-type Step = "idle" | "loading" | "capture" | "sending";
+type Step = "idle" | "loading" | "identity" | "capture" | "sending";
 type Outcome = null | { kind: "done" | "error"; message: string };
 
 export function SmileIdCapture({
@@ -60,6 +65,7 @@ export function SmileIdCapture({
   onVerified,
   autoStart = false,
   withDocument = true,
+  withIdNumber = false,
 }: {
   title: string;
   description: string;
@@ -76,6 +82,8 @@ export function SmileIdCapture({
   autoStart?: boolean;
   /** False once a client is proved: their check has no document step. */
   withDocument?: boolean;
+  /** A first identity check: the guidance mentions the NIN asked for first. */
+  withIdNumber?: boolean;
 }) {
   const [step, setStep] = useState<Step>(autoStart ? "loading" : "idle");
   const [outcome, setOutcome] = useState<Outcome>(null);
@@ -83,6 +91,9 @@ export function SmileIdCapture({
 
   const hostRef = useRef<HTMLDivElement | null>(null);
   const attemptRef = useRef<string | null>(null);
+
+  /** What Biometric KYC matches the selfie against, once the client has given it. */
+  const identityRef = useRef<CaptureIdentity | null>(null);
 
   /** One submission per capture. Their review screen can publish twice. */
   const sending = useRef(false);
@@ -126,7 +137,7 @@ export function SmileIdCapture({
       sending.current = true;
       setStep("sending");
 
-      const result = await submitCaptureAction(attemptId, captured);
+      const result = await submitCaptureAction(attemptId, captured, identityRef.current);
 
       if (result.status === "error") {
         fail(result.message);
@@ -225,7 +236,9 @@ export function SmileIdCapture({
     }
 
     setConfig(opened.config);
-    setStep("capture");
+    identityRef.current = null;
+    // Biometric KYC asks for the number first; a recheck opens the camera.
+    setStep(opened.config.id_number_required ? "identity" : "capture");
   }, [fail, finish]);
 
   useEffect(() => {
@@ -298,7 +311,9 @@ export function SmileIdCapture({
 
         {step === "idle" && outcome?.kind !== "done" && (
           <div className="p-6 !pt-0 sm:p-8">
-            {!autoStart && <CaptureGuidance withDocument={withDocument} />}
+            {!autoStart && (
+              <CaptureGuidance withDocument={withDocument} withIdNumber={withIdNumber} />
+            )}
 
             <button
               type="button"
@@ -308,6 +323,17 @@ export function SmileIdCapture({
               {outcome?.kind === "error" ? "Try again" : "Begin identity check"}
             </button>
           </div>
+        )}
+
+        {step === "identity" && config && (
+          <IdentityNumberStep
+            config={config}
+            onContinue={(identity) => {
+              identityRef.current = identity;
+              setStep("capture");
+            }}
+            onBack={() => setStep("idle")}
+          />
         )}
 
         {/* Their capture, created and connected by the effect above. */}
@@ -320,5 +346,139 @@ export function SmileIdCapture({
         )}
       </div>
     </div>
+  );
+}
+
+const FIELD_LABEL = "text-[11px] font-semibold uppercase tracking-[0.16em] text-navy";
+const FIELD =
+  "mt-2 h-12 w-full rounded-xl border border-border bg-background px-4 text-base text-navy focus:border-gold focus:outline-none";
+
+/**
+ * The number Biometric KYC matches the selfie against, asked before the camera.
+ *
+ * Checked here for feedback only: the pattern comes from the server, which
+ * checks it again before anything reaches Smile ID. A client's own Will already
+ * holds their NIN, so it is offered back rather than asked for twice.
+ */
+function IdentityNumberStep({
+  config,
+  onContinue,
+  onBack,
+}: {
+  config: SmileIdCaptureConfig;
+  onContinue: (identity: CaptureIdentity) => void;
+  onBack: () => void;
+}) {
+  const types = config.id_types ?? [];
+  const [idType, setIdType] = useState(types[0]?.code ?? "NIN_V2");
+  const [idNumber, setIdNumber] = useState(config.prefill?.id_number ?? "");
+  const [dob, setDob] = useState(config.prefill?.dob ?? "");
+  const [error, setError] = useState<string | null>(null);
+
+  const chosen = types.find((type) => type.code === idType) ?? types[0];
+  const label = chosen?.label ?? "National Identification Number (NIN)";
+
+  function proceed(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+
+    const number = idNumber.replace(/\s+/g, "");
+
+    if (chosen && !new RegExp(chosen.pattern).test(number)) {
+      setError("Enter your 11-digit NIN, as it appears on your NIN slip or in the NIMC app.");
+
+      return;
+    }
+
+    setError(null);
+    onContinue({ id_type: chosen?.code ?? idType, id_number: number, dob: dob || null });
+  }
+
+  return (
+    <form onSubmit={proceed} noValidate className="space-y-5 p-6 text-left sm:p-8">
+      <div>
+        <h2 className="font-serif text-xl text-navy">Your identity number</h2>
+        <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+          Your selfie is matched against the photograph held on the national
+          register for your NIN.
+          {config.prefill?.id_number && " This is the number from your Will — check it is right."}
+        </p>
+      </div>
+
+      {types.length > 1 && (
+        <label className="block">
+          <span className={FIELD_LABEL}>Identity number type</span>
+          <select value={idType} onChange={(event) => setIdType(event.target.value)} className={FIELD}>
+            {types.map((type) => (
+              <option key={type.code} value={type.code}>
+                {type.label}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+
+      <label className="block">
+        <span className={FIELD_LABEL}>{label}</span>
+        <input
+          name="id_number"
+          inputMode="numeric"
+          autoComplete="off"
+          maxLength={14}
+          value={idNumber}
+          onChange={(event) => setIdNumber(event.target.value)}
+          aria-invalid={error !== null}
+          aria-describedby={error ? "id-number-error" : undefined}
+          placeholder="11 digits"
+          className={`${FIELD} font-mono tracking-wider`}
+        />
+      </label>
+
+      <label className="block">
+        <span className={FIELD_LABEL}>
+          Date of birth{" "}
+          <span className="font-normal normal-case tracking-normal text-muted-foreground">(optional)</span>
+        </span>
+        <input
+          type="date"
+          name="dob"
+          value={dob}
+          onChange={(event) => setDob(event.target.value)}
+          className={FIELD}
+        />
+      </label>
+
+      {config.environment === "sandbox" && (
+        <p className="border-l-2 border-gold bg-gold/5 px-4 py-3 text-xs leading-relaxed text-navy">
+          <strong className="font-medium">Test mode:</strong> Smile ID&apos;s sandbox
+          accepts only its test numbers, and refuses a real NIN. Use{" "}
+          <span className="font-mono">{SANDBOX_TEST_NUMBERS.matchesYourSelfie}</span> to be
+          matched against your own selfie, or{" "}
+          <span className="font-mono">{SANDBOX_TEST_NUMBERS.notFound}</span> for a number
+          the register does not hold.
+        </p>
+      )}
+
+      {error && (
+        <p id="id-number-error" role="alert" className="text-sm leading-relaxed text-destructive">
+          {error}
+        </p>
+      )}
+
+      <div className="flex flex-col items-center gap-3">
+        <button
+          type="submit"
+          className="flex h-12 w-full items-center justify-center rounded-full bg-navy px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-foreground transition-colors hover:bg-navy/90"
+        >
+          Continue to the camera
+        </button>
+        <button
+          type="button"
+          onClick={onBack}
+          className="text-xs uppercase tracking-[0.15em] text-muted-foreground underline underline-offset-4 hover:text-navy"
+        >
+          Back
+        </button>
+      </div>
+    </form>
   );
 }

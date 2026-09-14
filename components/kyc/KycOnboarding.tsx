@@ -5,17 +5,13 @@ import { AlertCircle } from "lucide-react";
 import { SmileIdCapture } from "@/components/verification/SmileIdCapture";
 
 /**
- * The KYC flow: one Smile ID session that photographs the client's face and
- * their identity document together.
+ * The KYC flow: the client's NIN, then one Smile ID capture of their face.
  *
- * There are no uploads to the vault here, and no questions either. Smile ID's
- * capture photographs the face and the document under their own guidance, the
- * images are passed to Smile ID for checking, and none of them is stored by
- * us.
- *
- * No document-type picker: the job omits `id_type` so Smile ID classifies
- * whatever document it is actually given, which is more forgiving than holding
- * somebody to a choice made a screen earlier.
+ * Biometric KYC (2026-09-14): the selfie is matched against the photograph the
+ * national register holds for the NIN, so there is no document to photograph
+ * and nothing uploaded to the vault. The images go to Smile ID for checking and
+ * none of them is stored by us. A returning client is asked for a face and
+ * nothing else.
  */
 function RejectionNotice({ reason }: { reason: string }) {
   return (
@@ -53,14 +49,15 @@ export function KycOnboarding({
         description={
           recheckOnly
             ? "You are already verified — this is a short selfie to confirm it is you collecting the Will. No documents, and it takes a few seconds."
-            : "You'll take a selfie — smiling when asked, so we can tell a live person from a photograph — and then photograph your identity document. It takes about a minute."
+            : "You'll give your NIN, then take a selfie — smiling when asked, so we can tell a live person from a photograph. Your selfie is matched against the photograph held on the national register. It takes about a minute."
         }
         footerNote={
           recheckOnly
             ? "This is used only to confirm it is you. Nothing is kept."
             : "Your photographs are passed to our identity provider for checking. We do not store them."
         }
-        withDocument={!recheckOnly}
+        withDocument={false}
+        withIdNumber={!recheckOnly}
         onVerified={() => {
           // A full reload rather than a client-side refresh: this is the
           // moment `is_kyc_verified` flips, and every server component down

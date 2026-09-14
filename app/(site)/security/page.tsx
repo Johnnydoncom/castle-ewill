@@ -16,21 +16,21 @@ export const metadata: Metadata = {
   alternates: { canonical: "/security" },
   title: "Security & Identity Verification",
   description:
-    "How Castle eWill & Trust verifies who is registering a Will — document authentication, liveness detection and face matching, before any document is written or stored.",
+    "How Castle eWill & Trust verifies who is registering a Will — your NIN checked against the national identity register, liveness detection and a face match, before any Will is released.",
 };
 
 const STEPS = [
   {
     numeral: "I",
     icon: FileCheck2,
-    title: "A valid means of identification",
-    body: "Your international passport, driver's licence, National ID (NIN) or voter's card — a government-issued document, not a self-declaration. You photograph it on camera, guided, rather than uploading a file.",
+    title: "Your National Identification Number",
+    body: "Your NIN — the 11-digit number on your NIN slip or in the NIMC app. It is checked against the national identity register rather than taken as a self-declaration, and there is no document to photograph or upload.",
   },
   {
     numeral: "II",
     icon: Camera,
     title: "Your face, in the same session",
-    body: "A short guided capture immediately after the document, so the face being compared and the document being checked come from one continuous session rather than two uploads that could have been assembled separately.",
+    body: "A short guided selfie immediately afterwards, so the number being checked and the face being compared come from one continuous session rather than two uploads that could have been assembled separately.",
   },
   {
     numeral: "III",
@@ -41,8 +41,8 @@ const STEPS = [
   {
     numeral: "IV",
     icon: UserCheck,
-    title: "Document authentication and a face match",
-    body: "Your identity document is authenticated — its security features, machine-readable zone and barcodes checked, and the details printed on it extracted — then compared against your face. Every outcome is available for one of our administrators to review.",
+    title: "A face match against the national register",
+    body: "Your selfie is compared with the photograph the national identity register holds for your NIN — by our identity provider, against a record you cannot supply yourself. Every outcome is available for one of our administrators to review.",
   },
 ] as const;
 
@@ -112,11 +112,11 @@ export default function SecurityPage() {
             </p>
             <p>
               That is the entire purpose of the identity check every client
-              completes before their Will can be printed: a
-              government-issued document authenticated against its own
-              security features, the face of the person holding it, and a
-              live camera check tying the two together — all captured in
-              one session. Not one signal — three, judged as a whole.
+              completes before their Will can be printed: your NIN checked
+              against the national identity register, your face compared
+              with the photograph held there, and a live camera check tying
+              the two together — all captured in one session. Not one
+              signal — three, judged as a whole.
             </p>
             <p className="text-navy">
               We take this seriously enough to build it as a gate, not a

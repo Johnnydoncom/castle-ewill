@@ -187,7 +187,7 @@ const BLOCKERS: Record<
   kyc_required: {
     icon: ScanFace,
     title: "One identity check to go",
-    body: "Because this is your first Will with us, we confirm your identity against a government-issued document before releasing it.",
+    body: "Because this is your first Will with us, we confirm your identity before releasing it — your NIN and a selfie, matched against the national identity register.",
     cta: { label: "Verify my identity", href: "/dashboard/kyc" },
   },
   /*

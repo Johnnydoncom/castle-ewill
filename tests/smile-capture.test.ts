@@ -4,6 +4,7 @@ import {
   CAPTURE_CANCELLED,
   CAPTURE_CLOSED,
   CAPTURE_PUBLISHED,
+  SANDBOX_TEST_NUMBERS,
   SMILE_ID_SCRIPT_URL,
   imagesForSubmission,
   readStart,
@@ -41,6 +42,26 @@ describe("reading a start", () => {
       kind: "capture",
       attemptId: "a1",
       config,
+    });
+  });
+
+  it("reads a Biometric KYC config, with the number it asks for", () => {
+    const biometric: SmileIdCaptureConfig = {
+      ...config,
+      product: "biometric_kyc",
+      job_type: 1,
+      capture_document: false,
+      id_number_required: true,
+      id_types: [
+        { code: "NIN_V2", label: "National Identification Number (NIN)", pattern: "^[0-9]{11}$" },
+      ],
+      prefill: { id_number: null, dob: null },
+    };
+
+    expect(readStart({ attempt_id: "a1", smile_id: biometric })).toEqual({
+      kind: "capture",
+      attemptId: "a1",
+      config: biometric,
     });
   });
 
@@ -87,6 +108,14 @@ describe("the images sent on", () => {
         { image_type_id: 2, image: "" },
       ]),
     ).toEqual([]);
+  });
+});
+
+describe("the sandbox test numbers", () => {
+  it("are Smile ID's, and only the one ending in 4 can match a real selfie", () => {
+    expect(SANDBOX_TEST_NUMBERS.matchesYourSelfie).toBe("00000000004");
+    expect(SANDBOX_TEST_NUMBERS.notFound).toBe("00000000001");
+    expect(new RegExp("^[0-9]{11}$").test(SANDBOX_TEST_NUMBERS.matchesYourSelfie)).toBe(true);
   });
 });
 

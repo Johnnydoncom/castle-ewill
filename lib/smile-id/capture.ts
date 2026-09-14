@@ -39,6 +39,7 @@ export type CapturedImage = {
 /** Everything the capture needs, decided by the server. */
 export type SmileIdCaptureConfig = {
   product:
+    | "biometric_kyc"
     | "document_verification"
     | "smart_selfie_authentication"
     | "smart_selfie_registration";
@@ -49,9 +50,41 @@ export type SmileIdCaptureConfig = {
    */
   capture_document: boolean;
   document_capture_modes: string;
+  /**
+   * Biometric KYC: the selfie is matched against the photograph the ID
+   * authority holds for a number the client gives, so it is asked for before
+   * the camera opens. False, or absent from an older API, on a recheck.
+   */
+  id_number_required?: boolean;
+  /** The numbers that may be given, with the pattern each must match. */
+  id_types?: IdTypeOption[];
+  /** What the client already gave on their own Will, offered back rather than asked twice. */
+  prefill?: { id_number: string | null; dob: string | null } | null;
   environment: "sandbox" | "production";
   theme_color: string;
 };
+
+export type IdTypeOption = { code: string; label: string; pattern: string };
+
+/** What Biometric KYC matches the selfie against, as the client gave it. */
+export type CaptureIdentity = {
+  id_type: string;
+  id_number: string;
+  dob: string | null;
+};
+
+/**
+ * Smile ID's sandbox test numbers — the last digit decides the answer.
+ *
+ * `4` is matched against a photograph the backend sends with the job (in the
+ * sandbox only), so it is the one that can pass a real selfie.
+ *
+ * @see https://legacy-docs.usesmileid.com/supported-id-types/for-individuals-kyc/backed-by-id-authority/test-data
+ */
+export const SANDBOX_TEST_NUMBERS = {
+  matchesYourSelfie: "00000000004",
+  notFound: "00000000001",
+} as const;
 
 export type StartAnswer =
   | { kind: "capture"; attemptId: string; config: SmileIdCaptureConfig }

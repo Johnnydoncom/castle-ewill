@@ -104,6 +104,26 @@ describe("sending a capture", () => {
     });
   });
 
+  it("sends the NIN with a first identity check, and only what was given", async () => {
+    api.mockResolvedValue({ ok: true, data: { message: "Submitted." } });
+
+    await submitCaptureAction("attempt-1", [{ image_type_id: 2, image: "selfie" }], {
+      id_type: "NIN_V2",
+      id_number: "12345678901",
+      dob: null,
+    });
+
+    expect(api).toHaveBeenCalledWith("/verification/legacy/submit", {
+      method: "POST",
+      body: {
+        attempt_id: "attempt-1",
+        images: [{ image_type_id: 2, image: "selfie" }],
+        id_type: "NIN_V2",
+        id_number: "12345678901",
+      },
+    });
+  });
+
   it("passes the server's refusal back to the screen", async () => {
     api.mockResolvedValue({
       ok: false,
