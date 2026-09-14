@@ -49,11 +49,6 @@ export default async function AdminOverviewPage() {
 
   return (
     <div className="space-y-8">
-      <PageHead
-        kicker="Registry · Overview"
-        title="Overview"
-        blurb="What needs a decision, how the practice is trending, and where clients stop."
-      />
 
       <AttentionPanel
         items={[
