@@ -211,8 +211,8 @@ export function startAmendmentLodgingCheckout(willId: string, planSlug: string) 
 }
 
 /**
- * Renews a Will's subscription: what keeps it downloadable once the month of
- * grace after a lapse is over, and what lets it be updated. Comes back to the
+ * Renews a Will's subscription: what keeps it and its vault documents
+ * downloadable, and what lets it be updated. Comes back to the
  * Will's own page.
  */
 export function startSubscriptionRenewalCheckout(

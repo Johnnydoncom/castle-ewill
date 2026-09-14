@@ -157,7 +157,8 @@ const BLOCKERS: Record<
     cta: { label: "Open this Will", href: null },
   },
   /*
-   * A lapsed subscription, once its month of grace is over. Renewing is the way
+   * No active subscription on this Will (2026-09-14: downloading stops the moment
+   * a subscription ends, with no grace). Renewing is the way
    * back and nothing was deleted, so the card says both. The button goes to the
    * Will's Subscription panel, which renews on the spot; on that page itself the
    * card is not shown (`resolvedHere`).
@@ -165,7 +166,7 @@ const BLOCKERS: Record<
   subscription_required: {
     icon: CreditCard,
     title: "Renew to download your Will",
-    body: "Your subscription has ended and its month of grace is over. Renew your subscription to download your Will again — nothing has been deleted, and renewing opens it straight away.",
+    body: "This Will's subscription has ended, so downloading it is paused. Renew your subscription to download it again — nothing has been deleted, and renewing opens it straight away.",
     cta: { label: "Renew on this Will's page", href: null },
   },
   /*
@@ -402,7 +403,8 @@ export function JourneyActions({
           </a>
 
           {/*
-            The month of grace after a lapsed subscription, while it runs. Said
+            Any grace after a lapsed subscription, while it runs — none by
+            default since 2026-09-14. Said
             here, beside the button it will take away, rather than left to an
             email.
           */}

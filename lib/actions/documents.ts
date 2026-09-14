@@ -24,12 +24,16 @@ export type VaultDocument = {
   version?: number;
   kind: string;
   /**
-   * When the vault closes on this document; null while it stays open.
-   *
-   * Null whenever the client subscribes. Nothing is ever deleted — access is
-   * closed, and subscribing again reopens it exactly as it was.
+   * When downloads of this document stop — set only once that is near, or has
+   * happened. Downloading is what the subscription keeps: it stops when the
+   * subscription covering the document ends, and renewing reopens it exactly
+   * as it was. Nothing is ever deleted.
    */
   vault_access_ends_at: string | null;
+  /** Whether this document can be downloaded now. False once its subscription has ended. */
+  download_available?: boolean;
+  /** The Will this document belongs to — and whose subscription covers it — if any. */
+  will_id?: string | null;
   identity_document_type?: string | null;
   file_name: string;
   mime_type: string;

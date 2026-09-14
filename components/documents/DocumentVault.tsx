@@ -1,9 +1,10 @@
 "use client";
 
+import Link from "next/link";
 import { useFormAction } from "@/hooks/use-api-form";
 import { useRef, useState } from "react";
 import { useFormStatus } from "react-dom";
-import { AlertCircle, CheckCircle2, Download, Trash2, Upload } from "lucide-react";
+import { AlertCircle, CheckCircle2, Download, Lock, Trash2, Upload } from "lucide-react";
 
 import { type FormState } from "@/lib/actions/state";
 import {
@@ -17,6 +18,8 @@ import {
   formatBytes,
 } from "@/lib/documents";
 import { type VaultDocument } from "@/lib/actions/documents";
+import type { ApiWill } from "@/lib/actions/will";
+import { renewHrefFor, willDownloadBlock } from "@/lib/will/download";
 import {
   uploadDocumentAction,
   deleteDocumentAction,
@@ -243,17 +246,29 @@ function DocumentRow({ record }: { record: VaultDocument }) {
           Not left to email. An email is not a delivery guarantee, and the
           consequence here is somebody unable to open their own Will.
         */}
-        {record.vault_access_ends_at && (
+        {record.download_available === false ? (
           <p className="mt-1.5 text-[11px] leading-relaxed text-destructive">
-            Vault access ends{" "}
-            {new Date(record.vault_access_ends_at).toLocaleDateString("en-GB", {
-              day: "numeric",
-              month: "short",
-              year: "numeric",
-            })}
-            . Download your copy, or subscribe to keep it stored here — nothing
-            is deleted, and subscribing reopens your vault as it was.
+            Your subscription has ended, so downloading is paused.{" "}
+            <Link href={renewHrefFor(record.will_id)} className="underline underline-offset-4">
+              Renew your subscription
+            </Link>{" "}
+            to download it again — nothing has been deleted.
           </p>
+        ) : (
+          record.vault_access_ends_at && (
+            <p className="mt-1.5 text-[11px] leading-relaxed text-navy">
+              Downloads stop on{" "}
+              {new Date(record.vault_access_ends_at).toLocaleDateString("en-GB", {
+                day: "numeric",
+                month: "short",
+                year: "numeric",
+              })}{" "}
+              unless your subscription is renewed.{" "}
+              <Link href={renewHrefFor(record.will_id)} className="underline underline-offset-4">
+                Renew now
+              </Link>
+            </p>
+          )
         )}
 
         {record.document_number && (
@@ -303,13 +318,24 @@ function DocumentRow({ record }: { record: VaultDocument }) {
             Encrypted
           </span>
         )}
-        <a
-          href={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/documents/${record.id}/download`}
-          className="inline-flex items-center gap-1.5 text-xs text-navy underline underline-offset-4 transition-colors hover:text-gold"
-        >
-          <Download className="h-3.5 w-3.5" />
-          Download
-        </a>
+        {record.download_available === false ? (
+          <span
+            aria-disabled="true"
+            title="Renew your subscription to download"
+            className="inline-flex cursor-not-allowed items-center gap-1.5 text-xs text-muted-foreground"
+          >
+            <Lock className="h-3.5 w-3.5" />
+            Download
+          </span>
+        ) : (
+          <a
+            href={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/documents/${record.id}/download`}
+            className="inline-flex items-center gap-1.5 text-xs text-navy underline underline-offset-4 transition-colors hover:text-gold"
+          >
+            <Download className="h-3.5 w-3.5" />
+            Download
+          </a>
+        )}
         <form action={action}>
           <input type="hidden" name="documentId" value={record.id} />
           <DeleteButton />
@@ -319,9 +345,93 @@ function DocumentRow({ record }: { record: VaultDocument }) {
   );
 }
 
-export function DocumentVault({ records }: { records: VaultDocument[] }) {
+/**
+ * The client's paid Wills, downloadable from the vault.
+ *
+ * A Will's PDF is produced when it is downloaded (`/wills/{id}/pdf`), which
+ * files a copy here as it goes — so a Will never yet downloaded had no row in
+ * the vault and did not appear in it at all. Listed from the Wills themselves
+ * now, behind exactly the gates the Will's own page uses: paid for, identity
+ * confirmed, and an active subscription.
+ */
+function WillCopies({ wills }: { wills: ApiWill[] }) {
+  if (wills.length === 0) return null;
+
+  return (
+    <section className="space-y-4">
+      <h2 className="font-serif text-xl text-navy">
+        {wills.length === 1 ? "Your Will" : "Your Wills"}
+      </h2>
+      <ul className="divide-y divide-border border border-border bg-background">
+        {wills.map((will) => {
+          const block = will.journey?.can_print
+            ? null
+            : (willDownloadBlock(will.id, will.journey?.print_blocked_by) ?? {
+                message: "Your Will cannot be downloaded yet.",
+                cta: { label: "Open this Will", href: `/dashboard/wills/${will.id}` },
+              });
+
+          return (
+            <li
+              key={will.id}
+              className="grid gap-3 px-5 py-4 sm:flex sm:items-center sm:justify-between"
+            >
+              <div className="min-w-0">
+                <p className="truncate text-sm font-medium text-navy">{will.title}</p>
+                <p className="mt-0.5 font-mono text-[11px] tracking-wider text-muted-foreground">
+                  {will.reference}
+                  {will.version > 1 ? ` · v${will.version}` : ""}
+                </p>
+                {block && (
+                  <p className="mt-1.5 text-[11px] leading-relaxed text-destructive">
+                    {block.message}{" "}
+                    <Link href={block.cta.href} className="underline underline-offset-4">
+                      {block.cta.label}
+                    </Link>
+                  </p>
+                )}
+              </div>
+
+              <div className="flex shrink-0 items-center gap-4">
+                {block ? (
+                  <span
+                    aria-disabled="true"
+                    className="inline-flex cursor-not-allowed items-center gap-1.5 text-xs text-muted-foreground"
+                  >
+                    <Lock className="h-3.5 w-3.5" />
+                    Download
+                  </span>
+                ) : (
+                  <a
+                    href={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${will.id}/pdf`}
+                    className="inline-flex items-center gap-1.5 text-xs text-navy underline underline-offset-4 transition-colors hover:text-gold"
+                  >
+                    <Download className="h-3.5 w-3.5" />
+                    Download
+                  </a>
+                )}
+              </div>
+            </li>
+          );
+        })}
+      </ul>
+    </section>
+  );
+}
+
+export function DocumentVault({
+  records,
+  wills = [],
+}: {
+  records: VaultDocument[];
+  /** The client's paid Wills, listed above their documents. */
+  wills?: ApiWill[];
+}) {
   return (
     <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr] lg:gap-10">
+      <div className="space-y-8">
+      <WillCopies wills={wills} />
+
       <section className="space-y-4">
         <h2 className="font-serif text-xl text-navy">Your documents</h2>
 
@@ -339,6 +449,7 @@ export function DocumentVault({ records }: { records: VaultDocument[] }) {
           </ul>
         )}
       </section>
+      </div>
 
       <section className="space-y-4">
         <h2 className="font-serif text-xl text-navy">Add a document</h2>

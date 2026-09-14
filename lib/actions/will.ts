@@ -111,7 +111,7 @@ export type PrintBlocker =
   | "kyc_required"
   | "passport_photograph_required"
   | "witnesses_required"
-  /** A lapsed subscription whose month of grace is over: renew to download. */
+  /** No active subscription on this Will: renew to download. */
   | "subscription_required";
 
 /**
@@ -156,7 +156,7 @@ export type WillJourney = {
   print_blocked_by: PrintBlocker | null;
   /**
    * When downloading stops without a renewal — set only while a lapsed
-   * subscription is inside its month of grace.
+   * subscription is inside a grace period, which is none by default.
    */
   download_access_ends_at?: string | null;
   /** What the final step of an amendment still owes; null otherwise. */

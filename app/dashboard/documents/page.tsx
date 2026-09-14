@@ -5,6 +5,7 @@ import { PageHead } from "@/components/dashboard/PageHead";
 import { DocumentVault } from "@/components/documents/DocumentVault";
 import { listUserDocuments } from "@/lib/actions/documents";
 import { getProfile } from "@/lib/actions/guards";
+import { listWills } from "@/lib/actions/will";
 import { WillRecordingUpload } from "@/components/will/WillRecordingUpload";
 import { formatBytes } from "@/lib/documents";
 
@@ -15,7 +16,13 @@ export const metadata: Metadata = {
 
 export default async function DocumentsPage() {
   // Scoped to the caller by the API — never by an id passed from here.
-  const records = await listUserDocuments();
+  const [records, allWills] = await Promise.all([listUserDocuments(), listWills()]);
+
+  /*
+   * The client's own Wills that have been paid for, each downloadable from the
+   * vault behind the same gates as its own page. A draft has no copy to offer.
+   */
+  const wills = allWills.filter((will) => will.journey?.is_paid);
 
   /*
    * The Platinum capability. Read from the profile rather than worked out
@@ -68,7 +75,7 @@ export default async function DocumentsPage() {
         })}
       </dl>
 
-      <DocumentVault records={records} />
+      <DocumentVault records={records} wills={wills} />
 
       <section className="border-l-2 border-gold/40 bg-gold/5 px-6 py-5">
         <p className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">
