@@ -198,6 +198,36 @@ function describeSignInError(code: string | undefined): string {
 
 type LoginResponse = { data: { user: { id: string; role: "user" | "admin" } } };
 
+/**
+ * The password was right and the account uses two-factor: the form moves on to
+ * its own code step (2026-09-14), rather than growing a code box under a red
+ * banner as though the sign-in had failed.
+ *
+ * Asking for the code is not an error, so it comes back `idle` with nothing to
+ * say. A wrong code is, and says so against the code field. `email` goes back
+ * so the step can show which account the code is for. Null for anything else.
+ */
+export function twoFactorChallenge(
+  code: string | undefined,
+  email: string,
+): FormState | null {
+  if (code === "two_factor_required") {
+    return { status: "idle", data: { challenge: "totp", email } };
+  }
+
+  if (code === "two_factor_invalid") {
+    return {
+      status: "error",
+      message:
+        "That code was not accepted. Check your device clock and try the current code.",
+      data: { challenge: "totp", email },
+      fieldErrors: { totp: ["That code was not accepted. Try the current code."] },
+    };
+  }
+
+  return null;
+}
+
 export async function signInAction(
   _previous: FormState,
   formData: FormData,
@@ -220,26 +250,10 @@ export async function signInAction(
   });
 
   if (!result.ok) {
-    // The password was correct; the form needs to collect a code and retry.
-    if (result.code === "two_factor_required") {
-      return {
-        status: "error",
-        message: "Enter the six-digit code from your authenticator app.",
-        data: { challenge: "totp" },
-      };
-    }
-
-    if (result.code === "two_factor_invalid") {
-      return {
-        status: "error",
-        message:
-          "That code was not accepted. Check your device clock and try the current code.",
-        data: { challenge: "totp" },
-        fieldErrors: { totp: ["Incorrect code"] },
-      };
-    }
-
-    return errorState(describeSignInError(result.code));
+    return (
+      twoFactorChallenge(result.code, email) ??
+      errorState(describeSignInError(result.code))
+    );
   }
 
   /*
@@ -290,28 +304,11 @@ export async function adminSignInAction(
   });
 
   if (!result.ok) {
-    if (result.code === "two_factor_required") {
-      return {
-        status: "error",
-        message: "Enter the six-digit code from your authenticator app.",
-        data: { challenge: "totp" },
-      };
-    }
-
-    if (result.code === "two_factor_invalid") {
-      return {
-        status: "error",
-        message:
-          "That code was not accepted. Check your device clock and try the current code.",
-        data: { challenge: "totp" },
-        fieldErrors: { totp: ["Incorrect code"] },
-      };
-    }
-
-    return errorState(describeSignInError(result.code));
+    return (
+      twoFactorChallenge(result.code, email) ??
+      errorState(describeSignInError(result.code))
+    );
   }
-
-  console.log("Admin signed in");
 
   if (result.data.data.user.role != "admin") {
     // The credentials were genuine, so this is not a login failure — but the
