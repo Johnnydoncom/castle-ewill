@@ -15,14 +15,14 @@ import {
   submittedVerificationAction,
 } from "@/lib/actions/verification.client";
 import {
+  CAPTURE_BACK,
   CAPTURE_CANCELLED,
   CAPTURE_CLOSED,
   CAPTURE_PUBLISHED,
   imagesForSubmission,
   loadSmileIdSdk,
-  SANDBOX_TEST_NUMBERS,
-  type CaptureIdentity,
   type CapturedImage,
+  type DocumentTypeOption,
   type SmileIdCaptureConfig,
 } from "@/lib/smile-id/capture";
 
@@ -35,10 +35,10 @@ import { CaptureGuidance } from "./CaptureGuidance";
  *
  *     start  →  <smart-camera-web>  →  our API  →  Smile ID
  *
- * A first check asks for the client's NIN before the camera opens (Biometric
- * KYC: the selfie is matched against the photograph the ID authority holds for
- * it). Their v11 SDK then runs the capture — selfie and liveness, and a
- * document only when the server asked for one (`capture-id`) — and publishes
+ * A first check asks which identity document the client has before the camera
+ * opens. Their v11 SDK then runs the capture — selfie and liveness, then that
+ * document, photographed or uploaded (`capture-id`, `document-capture-modes`,
+ * and `hide-back-of-id` for one with nothing on the back) — and publishes
  * base64 images. Those
  * go to **our** backend, which submits the job to Smile ID server to server;
  * the key that signs it never leaves the server. Everything that is a decision
@@ -55,7 +55,7 @@ import { CaptureGuidance } from "./CaptureGuidance";
  * @see https://legacy-docs.usesmileid.com/integration-options/web-mobile-web/javascript-sdk-beta/usage
  */
 
-type Step = "idle" | "loading" | "identity" | "capture" | "sending";
+type Step = "idle" | "loading" | "document" | "capture" | "sending";
 type Outcome = null | { kind: "done" | "error"; message: string };
 
 export function SmileIdCapture({
@@ -65,7 +65,6 @@ export function SmileIdCapture({
   onVerified,
   autoStart = false,
   withDocument = true,
-  withIdNumber = false,
 }: {
   title: string;
   description: string;
@@ -82,8 +81,6 @@ export function SmileIdCapture({
   autoStart?: boolean;
   /** False once a client is proved: their check has no document step. */
   withDocument?: boolean;
-  /** A first identity check: the guidance mentions the NIN asked for first. */
-  withIdNumber?: boolean;
 }) {
   const [step, setStep] = useState<Step>(autoStart ? "loading" : "idle");
   const [outcome, setOutcome] = useState<Outcome>(null);
@@ -92,8 +89,8 @@ export function SmileIdCapture({
   const hostRef = useRef<HTMLDivElement | null>(null);
   const attemptRef = useRef<string | null>(null);
 
-  /** What Biometric KYC matches the selfie against, once the client has given it. */
-  const identityRef = useRef<CaptureIdentity | null>(null);
+  /** The document the client chose, once they have. Read when the camera is built. */
+  const documentRef = useRef<DocumentTypeOption | null>(null);
 
   /** One submission per capture. Their review screen can publish twice. */
   const sending = useRef(false);
@@ -137,7 +134,7 @@ export function SmileIdCapture({
       sending.current = true;
       setStep("sending");
 
-      const result = await submitCaptureAction(attemptId, captured, identityRef.current);
+      const result = await submitCaptureAction(attemptId, captured, documentRef.current?.code ?? null);
 
       if (result.status === "error") {
         fail(result.message);
@@ -173,6 +170,11 @@ export function SmileIdCapture({
     if (config.capture_document) {
       camera.setAttribute("capture-id", "");
       camera.setAttribute("document-capture-modes", config.document_capture_modes);
+
+      // A passport's details are all on its photo page: no back to ask for.
+      if (documentRef.current && !documentRef.current.has_back) {
+        camera.setAttribute("hide-back-of-id", "");
+      }
     }
 
     const onPublish = (event: Event) => {
@@ -190,6 +192,7 @@ export function SmileIdCapture({
     camera.addEventListener(CAPTURE_PUBLISHED, onPublish);
     camera.addEventListener(CAPTURE_CANCELLED, onLeave);
     camera.addEventListener(CAPTURE_CLOSED, onLeave);
+    camera.addEventListener(CAPTURE_BACK, onLeave);
 
     host.replaceChildren(camera);
 
@@ -197,6 +200,7 @@ export function SmileIdCapture({
       camera.removeEventListener(CAPTURE_PUBLISHED, onPublish);
       camera.removeEventListener(CAPTURE_CANCELLED, onLeave);
       camera.removeEventListener(CAPTURE_CLOSED, onLeave);
+      camera.removeEventListener(CAPTURE_BACK, onLeave);
       camera.remove();
     };
   }, [step, config]);
@@ -236,9 +240,9 @@ export function SmileIdCapture({
     }
 
     setConfig(opened.config);
-    identityRef.current = null;
-    // Biometric KYC asks for the number first; a recheck opens the camera.
-    setStep(opened.config.id_number_required ? "identity" : "capture");
+    documentRef.current = null;
+    // A document check asks which document first; a recheck opens the camera.
+    setStep((opened.config.document_types ?? []).length > 0 ? "document" : "capture");
   }, [fail, finish]);
 
   useEffect(() => {
@@ -312,7 +316,7 @@ export function SmileIdCapture({
         {step === "idle" && outcome?.kind !== "done" && (
           <div className="p-6 !pt-0 sm:p-8">
             {!autoStart && (
-              <CaptureGuidance withDocument={withDocument} withIdNumber={withIdNumber} />
+              <CaptureGuidance withDocument={withDocument} />
             )}
 
             <button
@@ -325,11 +329,11 @@ export function SmileIdCapture({
           </div>
         )}
 
-        {step === "identity" && config && (
-          <IdentityNumberStep
+        {step === "document" && config && (
+          <DocumentTypeStep
             config={config}
-            onContinue={(identity) => {
-              identityRef.current = identity;
+            onContinue={(document) => {
+              documentRef.current = document;
               setStep("capture");
             }}
             onBack={() => setStep("idle")}
@@ -349,117 +353,90 @@ export function SmileIdCapture({
   );
 }
 
-const FIELD_LABEL = "text-[11px] font-semibold uppercase tracking-[0.16em] text-navy";
-const FIELD =
-  "mt-2 h-12 w-full rounded-xl border border-border bg-background px-4 text-base text-navy focus:border-gold focus:outline-none";
 
 /**
- * The number Biometric KYC matches the selfie against, asked before the camera.
+ * Which identity document the client has, asked before the camera opens.
  *
- * Checked here for feedback only: the pattern comes from the server, which
- * checks it again before anything reaches Smile ID. A client's own Will already
- * holds their NIN, so it is offered back rather than asked for twice.
+ * The list is Smile ID's for Nigeria, as the server read it, and the server
+ * checks the choice again before anything reaches Smile ID. Asked first so the
+ * capture can skip the back of a passport, and so Smile ID is told what it is
+ * looking at rather than left to work it out.
  */
-function IdentityNumberStep({
+function DocumentTypeStep({
   config,
   onContinue,
   onBack,
 }: {
   config: SmileIdCaptureConfig;
-  onContinue: (identity: CaptureIdentity) => void;
+  onContinue: (document: DocumentTypeOption) => void;
   onBack: () => void;
 }) {
-  const types = config.id_types ?? [];
-  const [idType, setIdType] = useState(types[0]?.code ?? "NIN_V2");
-  const [idNumber, setIdNumber] = useState(config.prefill?.id_number ?? "");
-  const [dob, setDob] = useState(config.prefill?.dob ?? "");
+  const documents = config.document_types ?? [];
+  const [chosen, setChosen] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-
-  const chosen = types.find((type) => type.code === idType) ?? types[0];
-  const label = chosen?.label ?? "National Identification Number (NIN)";
 
   function proceed(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
 
-    const number = idNumber.replace(/\s+/g, "");
+    const document = documents.find((candidate) => candidate.code === chosen);
 
-    if (chosen && !new RegExp(chosen.pattern).test(number)) {
-      setError("Enter your 11-digit NIN, as it appears on your NIN slip or in the NIMC app.");
+    if (!document) {
+      setError("Choose the document you will photograph or upload.");
 
       return;
     }
 
     setError(null);
-    onContinue({ id_type: chosen?.code ?? idType, id_number: number, dob: dob || null });
+    onContinue(document);
   }
 
   return (
     <form onSubmit={proceed} noValidate className="space-y-5 p-6 text-left sm:p-8">
-      <div>
-        <h2 className="font-serif text-xl text-navy">Your identity number</h2>
+      <fieldset aria-describedby={error ? "document-type-error" : undefined}>
+        <legend className="font-serif text-xl text-navy">Your identity document</legend>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          Your selfie is matched against the photograph held on the national
-          register for your NIN.
-          {config.prefill?.id_number && " This is the number from your Will — check it is right."}
+          Choose the document you have to hand. After your selfie you can
+          photograph it, or upload a clear photo or scan of it.
         </p>
-      </div>
 
-      {types.length > 1 && (
-        <label className="block">
-          <span className={FIELD_LABEL}>Identity number type</span>
-          <select value={idType} onChange={(event) => setIdType(event.target.value)} className={FIELD}>
-            {types.map((type) => (
-              <option key={type.code} value={type.code}>
-                {type.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-
-      <label className="block">
-        <span className={FIELD_LABEL}>{label}</span>
-        <input
-          name="id_number"
-          inputMode="numeric"
-          autoComplete="off"
-          maxLength={14}
-          value={idNumber}
-          onChange={(event) => setIdNumber(event.target.value)}
-          aria-invalid={error !== null}
-          aria-describedby={error ? "id-number-error" : undefined}
-          placeholder="11 digits"
-          className={`${FIELD} font-mono tracking-wider`}
-        />
-      </label>
-
-      <label className="block">
-        <span className={FIELD_LABEL}>
-          Date of birth{" "}
-          <span className="font-normal normal-case tracking-normal text-muted-foreground">(optional)</span>
-        </span>
-        <input
-          type="date"
-          name="dob"
-          value={dob}
-          onChange={(event) => setDob(event.target.value)}
-          className={FIELD}
-        />
-      </label>
+        <div className="mt-5 space-y-2">
+          {documents.map((document) => (
+            <label
+              key={document.code}
+              className={`flex cursor-pointer items-center gap-3 rounded-xl border px-4 py-3 text-sm text-navy transition-colors ${
+                chosen === document.code ? "border-gold bg-gold/5" : "border-border hover:border-gold/60"
+              }`}
+            >
+              <input
+                type="radio"
+                name="document_type"
+                value={document.code}
+                checked={chosen === document.code}
+                onChange={() => {
+                  setChosen(document.code);
+                  setError(null);
+                }}
+                className="h-4 w-4 shrink-0 accent-navy"
+              />
+              <span className="flex-1">{document.label}</span>
+              {!document.has_back && (
+                <span className="text-xs text-muted-foreground">Photo page only</span>
+              )}
+            </label>
+          ))}
+        </div>
+      </fieldset>
 
       {config.environment === "sandbox" && (
         <p className="border-l-2 border-gold bg-gold/5 px-4 py-3 text-xs leading-relaxed text-navy">
-          <strong className="font-medium">Test mode:</strong> Smile ID&apos;s sandbox
-          accepts only its test numbers, and refuses a real NIN. Use{" "}
-          <span className="font-mono">{SANDBOX_TEST_NUMBERS.matchesYourSelfie}</span> to be
-          matched against your own selfie, or{" "}
-          <span className="font-mono">{SANDBOX_TEST_NUMBERS.notFound}</span> for a number
-          the register does not hold.
+          <strong className="font-medium">Test mode:</strong> Smile ID&apos;s sandbox does
+          not process real documents, so a check sent from here can stay under review
+          without a verdict.
         </p>
       )}
 
       {error && (
-        <p id="id-number-error" role="alert" className="text-sm leading-relaxed text-destructive">
+        <p id="document-type-error" role="alert" className="text-sm leading-relaxed text-destructive">
           {error}
         </p>
       )}

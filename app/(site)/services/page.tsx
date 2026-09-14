@@ -68,9 +68,9 @@ const SERVICES = [
   {
     numeral: "IV",
     title: "Identity verification",
-    body: "We confirm your email address, check your NIN against the national identity register, and match the photograph held there against a live camera check — so the person making a Will is demonstrably the person named in it. A Will that cannot be shown to be yours is a Will that can be challenged.",
+    body: "We confirm your email address, authenticate the government-issued ID you photograph or upload, and match it against a live camera check — so the person making a Will is demonstrably the person named in it. A Will that cannot be shown to be yours is a Will that can be challenged.",
     points: [
-      "Passport photograph and your NIN",
+      "Passport photograph and valid ID",
       "Live liveness check, issued fresh each time",
       "Full audit trail",
     ],

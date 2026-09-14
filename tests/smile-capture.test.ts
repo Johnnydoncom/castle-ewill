@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  CAPTURE_BACK,
   CAPTURE_CANCELLED,
   CAPTURE_CLOSED,
   CAPTURE_PUBLISHED,
-  SANDBOX_TEST_NUMBERS,
   SMILE_ID_SCRIPT_URL,
   imagesForSubmission,
   readStart,
@@ -45,23 +45,19 @@ describe("reading a start", () => {
     });
   });
 
-  it("reads a Biometric KYC config, with the number it asks for", () => {
-    const biometric: SmileIdCaptureConfig = {
+  it("reads a document check config, with the documents it offers", () => {
+    const withDocuments: SmileIdCaptureConfig = {
       ...config,
-      product: "biometric_kyc",
-      job_type: 1,
-      capture_document: false,
-      id_number_required: true,
-      id_types: [
-        { code: "NIN_V2", label: "National Identification Number (NIN)", pattern: "^[0-9]{11}$" },
+      document_types: [
+        { code: "PASSPORT", label: "International passport", has_back: false },
+        { code: "DRIVERS_LICENSE", label: "Driver's licence", has_back: true },
       ],
-      prefill: { id_number: null, dob: null },
     };
 
-    expect(readStart({ attempt_id: "a1", smile_id: biometric })).toEqual({
+    expect(readStart({ attempt_id: "a1", smile_id: withDocuments })).toEqual({
       kind: "capture",
       attemptId: "a1",
-      config: biometric,
+      config: withDocuments,
     });
   });
 
@@ -111,14 +107,6 @@ describe("the images sent on", () => {
   });
 });
 
-describe("the sandbox test numbers", () => {
-  it("are Smile ID's, and only the one ending in 4 can match a real selfie", () => {
-    expect(SANDBOX_TEST_NUMBERS.matchesYourSelfie).toBe("00000000004");
-    expect(SANDBOX_TEST_NUMBERS.notFound).toBe("00000000001");
-    expect(new RegExp("^[0-9]{11}$").test(SANDBOX_TEST_NUMBERS.matchesYourSelfie)).toBe(true);
-  });
-});
-
 describe("the SDK", () => {
   it("loads v11 from Smile ID's own CDN", () => {
     expect(SMILE_ID_SCRIPT_URL).toBe(
@@ -130,5 +118,6 @@ describe("the SDK", () => {
     expect(CAPTURE_PUBLISHED).toBe("smart-camera-web.publish");
     expect(CAPTURE_CANCELLED).toBe("smart-camera-web.cancelled");
     expect(CAPTURE_CLOSED).toBe("smart-camera-web.close");
+    expect(CAPTURE_BACK).toBe("smart-camera-web.back");
   });
 });

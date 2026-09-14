@@ -8,8 +8,9 @@
  *    hints — "move closer", "centre your face" — which read as the thing being
  *    asked for. They are not. Somebody following them exactly can stand there
  *    indefinitely; somebody who shows their teeth is through in a second.
- *  - **A first check asks for the NIN** before the camera opens, so the client
- *    has it to hand rather than going to look for it halfway through.
+ *  - **The document comes after the selfie**, on a first check. Worth saying up
+ *    front so the client has it to hand — or a photo of it to upload — before
+ *    the camera opens, rather than going to look for it halfway through.
  *
  * We cannot edit their screens. We can say what they are looking for.
  *
@@ -20,11 +21,8 @@
  */
 export function CaptureGuidance({
   withDocument = true,
-  withIdNumber = false,
 }: {
   withDocument?: boolean;
-  /** A first check: the NIN the selfie is matched against, asked for first. */
-  withIdNumber?: boolean;
 }) {
   return (
     <div className="border border-border bg-surface px-5 py-4 text-left">
@@ -33,19 +31,12 @@ export function CaptureGuidance({
       </p>
 
       <ul className="mt-3 space-y-2 text-sm leading-relaxed text-muted-foreground">
-        {withIdNumber && (
-          <li>
-            <span className="text-navy">Have your NIN to hand</span> — the
-            11-digit number on your NIN slip or in the NIMC app. Your selfie is
-            matched against the photograph held on the national register for it.
-          </li>
-        )}
         {withDocument && (
           <li>
-            <span className="text-navy">Have a government ID to hand</span> —
-            your NIN slip, passport, driver&apos;s licence or voter&apos;s card.
-            After your selfie you will photograph it, or attach a photo you
-            already have.
+            <span className="text-navy">Have an identity document to hand</span>{" "}
+            — such as your international passport, driver&apos;s licence,
+            national ID card or voter&apos;s card. After your selfie you will
+            photograph it, or upload a clear photo or scan of it.
           </li>
         )}
         <li>

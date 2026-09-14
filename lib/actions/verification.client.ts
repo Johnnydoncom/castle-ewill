@@ -2,7 +2,6 @@ import { api } from "@/lib/api/browser";
 import {
   imagesForSubmission,
   readStart,
-  type CaptureIdentity,
   type CapturedImage,
   type SmileIdCaptureConfig,
 } from "@/lib/smile-id/capture";
@@ -64,7 +63,7 @@ export async function startVerificationAction(): Promise<
 export async function submitCaptureAction(
   attemptId: string,
   images: readonly CapturedImage[],
-  identity: CaptureIdentity | null = null,
+  documentType: string | null = null,
 ): Promise<
   { status: "error"; message: string } | { status: "success"; message: string }
 > {
@@ -73,12 +72,8 @@ export async function submitCaptureAction(
     body: {
       attempt_id: attemptId,
       images: imagesForSubmission(images),
-      // Biometric KYC's number, when the check asked for one.
-      ...(identity && {
-        id_type: identity.id_type,
-        id_number: identity.id_number,
-        ...(identity.dob && { dob: identity.dob }),
-      }),
+      // The document the client chose, as Smile ID's `id_type`.
+      ...(documentType && { id_type: documentType }),
     },
   });
 

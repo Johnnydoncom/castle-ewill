@@ -5,12 +5,12 @@ import { AlertCircle } from "lucide-react";
 import { SmileIdCapture } from "@/components/verification/SmileIdCapture";
 
 /**
- * The KYC flow: the client's NIN, then one Smile ID capture of their face.
+ * The KYC flow: the client chooses their identity document, then one Smile ID
+ * capture of their face and that document — photographed or uploaded.
  *
- * Biometric KYC (2026-09-14): the selfie is matched against the photograph the
- * national register holds for the NIN, so there is no document to photograph
- * and nothing uploaded to the vault. The images go to Smile ID for checking and
- * none of them is stored by us. A returning client is asked for a face and
+ * Nothing goes to the vault. The images are passed to Smile ID for checking
+ * and none of them is stored by us. The documents offered are Smile ID's list
+ * for Nigeria, read by the server. A returning client is asked for a face and
  * nothing else.
  */
 function RejectionNotice({ reason }: { reason: string }) {
@@ -49,15 +49,14 @@ export function KycOnboarding({
         description={
           recheckOnly
             ? "You are already verified — this is a short selfie to confirm it is you collecting the Will. No documents, and it takes a few seconds."
-            : "You'll give your NIN, then take a selfie — smiling when asked, so we can tell a live person from a photograph. Your selfie is matched against the photograph held on the national register. It takes about a minute."
+            : "You'll choose your identity document and take a selfie — smiling when asked, so we can tell a live person from a photograph — then photograph the document or upload a photo of it. It takes about a minute."
         }
         footerNote={
           recheckOnly
             ? "This is used only to confirm it is you. Nothing is kept."
             : "Your photographs are passed to our identity provider for checking. We do not store them."
         }
-        withDocument={false}
-        withIdNumber={!recheckOnly}
+        withDocument={!recheckOnly}
         onVerified={() => {
           // A full reload rather than a client-side refresh: this is the
           // moment `is_kyc_verified` flips, and every server component down
