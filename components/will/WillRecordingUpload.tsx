@@ -6,9 +6,7 @@ import { CheckCircle2, Video } from "lucide-react";
 
 import { useFormAction } from "@/hooks/use-api-form";
 import { uploadDocumentAction } from "@/lib/actions/documents.client";
-
-/** Mirrors `vault.max_video_bytes`. Feedback only — the server is the rule. */
-const MAX_BYTES = 60 * 1024 * 1024;
+import { MAX_VIDEO_BYTES, VIDEO_ACCEPT_ATTRIBUTE, describeFileProblem } from "@/lib/documents";
 
 function Submit() {
   const { pending } = useFormStatus();
@@ -42,6 +40,8 @@ export function WillRecordingUpload({ existing }: { existing: boolean }) {
   const [state, action] = useFormAction(uploadDocumentAction);
   const [fileName, setFileName] = useState("");
   const [tooLarge, setTooLarge] = useState(false);
+  /** Said as soon as a file is chosen, rather than after pressing upload. */
+  const [wrongFile, setWrongFile] = useState<string | null>(null);
 
   return (
     <section className="border border-gold/40 bg-gold/[0.03] p-6 sm:p-8">
@@ -92,6 +92,11 @@ export function WillRecordingUpload({ existing }: { existing: boolean }) {
           shorter, and try again.
         </p>
       )}
+      {wrongFile && (
+        <p className="mt-5 border border-destructive/40 bg-destructive/5 p-3 text-sm text-destructive">
+          {wrongFile}
+        </p>
+      )}
 
       <form action={action} className="mt-6 flex flex-wrap items-end gap-4">
         {/* Fixed: this form uploads one thing, and the kind is not the
@@ -106,11 +111,17 @@ export function WillRecordingUpload({ existing }: { existing: boolean }) {
             type="file"
             name="file"
             required
-            accept="video/mp4,video/quicktime,video/webm"
+            accept={VIDEO_ACCEPT_ATTRIBUTE}
             onChange={(event) => {
               const file = event.target.files?.[0];
+              const over = (file?.size ?? 0) > MAX_VIDEO_BYTES;
+
               setFileName(file?.name ?? "");
-              setTooLarge((file?.size ?? 0) > MAX_BYTES);
+              setTooLarge(over);
+              // The over-size sentence above says more than the generic one would.
+              setWrongFile(
+                file && !over ? describeFileProblem(file.name, file.type, file.size, "will_video") : null,
+              );
             }}
             className="mt-2 block w-full text-sm text-navy file:mr-4 file:border file:border-border file:bg-surface file:px-4 file:py-2 file:text-xs file:uppercase file:tracking-[0.15em] file:text-navy hover:file:border-gold"
           />

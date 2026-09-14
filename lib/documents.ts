@@ -29,6 +29,28 @@ export const ACCEPTED_TYPES: Record<string, readonly string[]> = {
 /** `accept` attribute for the file input. */
 export const ACCEPT_ATTRIBUTE = Object.keys(ACCEPTED_TYPES).join(",");
 
+/**
+ * A Will recording — the Platinum capability — has its own formats and its
+ * own ceiling, as `vault.allowed_video_types` and `vault.max_video_bytes` do on
+ * the server. Feedback only: the server is the rule, and refuses a recording to
+ * anybody without a settled Platinum payment.
+ */
+export const MAX_VIDEO_BYTES = 60 * 1024 * 1024;
+
+export const ACCEPTED_VIDEO_TYPES: Record<string, readonly string[]> = {
+  "video/mp4": ["mp4", "m4v"],
+  "video/quicktime": ["mov"],
+  "video/webm": ["webm"],
+};
+
+/** `accept` for the recording input: types and extensions, since some pickers honour only one. */
+export const VIDEO_ACCEPT_ATTRIBUTE = [
+  ...Object.keys(ACCEPTED_VIDEO_TYPES),
+  ...Object.values(ACCEPTED_VIDEO_TYPES)
+    .flat()
+    .map((extension) => `.${extension}`),
+].join(",");
+
 export const UPLOADABLE_KINDS = [
   {
     value: "identity_document",
@@ -87,22 +109,54 @@ export function extensionOf(fileName: string): string {
   return parts.length > 1 ? parts[parts.length - 1] : "";
 }
 
-/** Shared client/server check so the browser can reject a file before upload. */
+/**
+ * Shared client check so the browser can reject a file before upload.
+ *
+ * By kind: a Will recording (`will_video`) is checked against the video formats
+ * and the video ceiling, and every other upload against the document formats.
+ * It used to check every upload against the document list, so a Platinum
+ * client's MP4 was refused in the browser — "Only PDF, JPG, PNG, WEBP and HEIC
+ * files are accepted" — before the server, which accepts it, was ever asked
+ * (fixed 2026-09-14).
+ */
 export function describeFileProblem(
   name: string,
   type: string,
   size: number,
+  kind?: string,
 ): string | null {
   if (size === 0) return "That file appears to be empty.";
 
-  if (size > MAX_UPLOAD_BYTES) {
-    return `That file is ${(size / 1024 / 1024).toFixed(1)} MB. The limit is ${
-      MAX_UPLOAD_BYTES / 1024 / 1024
-    } MB.`;
+  const isRecording = kind === "will_video";
+  const limit = isRecording ? MAX_VIDEO_BYTES : MAX_UPLOAD_BYTES;
+
+  if (size > limit) {
+    return `That file is ${(size / 1024 / 1024).toFixed(1)} MB. The limit is ${limit / 1024 / 1024} MB.`;
+  }
+
+  const extension = extensionOf(name);
+
+  if (isRecording) {
+    const knownExtension = Object.values(ACCEPTED_VIDEO_TYPES).some((extensions) =>
+      extensions.includes(extension),
+    );
+
+    /*
+     * The extension decides, and a declared type may only contradict it.
+     * Browsers are inconsistent about video types — a .mov can arrive as
+     * `video/quicktime` or with no type at all — and the server reads the
+     * file's real type regardless.
+     */
+    const declared = ACCEPTED_VIDEO_TYPES[type];
+    const contradicted =
+      type !== "" &&
+      (!type.startsWith("video/") || (declared !== undefined && !declared.includes(extension)));
+
+    return knownExtension && !contradicted ? null : "Only MP4, MOV and WebM recordings are accepted.";
   }
 
   const allowed = ACCEPTED_TYPES[type];
-  if (!allowed || !allowed.includes(extensionOf(name))) {
+  if (!allowed || !allowed.includes(extension)) {
     return "Only PDF, JPG, PNG, WEBP and HEIC files are accepted.";
   }
 

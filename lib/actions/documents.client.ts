@@ -24,13 +24,15 @@ export async function uploadDocumentAction(
     return errorState("Choose a file to upload.");
   }
 
-  // Client-side pre-check for a fast, specific message. The backend re-checks
-  // type, extension and size, and refuses a mismatch between the declared type
-  // and the real one — that check is the guarantee, this one is courtesy.
-  const problem = describeFileProblem(file.name, file.type, file.size);
-  if (problem) return errorState(problem);
-
   if (!kind) return errorState("Choose what kind of document this is.");
+
+  // Client-side pre-check for a fast, specific message, by kind: a Will
+  // recording against the video formats, everything else against the document
+  // formats. The backend re-checks type, extension and size, and refuses a
+  // mismatch between the declared type and the real one — that check is the
+  // guarantee, this one is courtesy.
+  const problem = describeFileProblem(file.name, file.type, file.size, kind);
+  if (problem) return errorState(problem);
 
   const identityDocumentType = String(formData.get("identityDocumentType") ?? "");
   if (kind === "identity_document" && !identityDocumentType) {
