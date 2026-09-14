@@ -42,8 +42,41 @@ export async function listUserPayments(): Promise<PaymentRecord[]> {
   return apiData<PaymentRecord[]>("/payments", []);
 }
 
+/** One line of an order, as it was quoted when the order was placed. */
+export type ReceiptLine = {
+  label: string;
+  kind: string | null;
+  amount_formatted: string;
+  /** Covered by the plan at no charge — shown to say so, never added to the total. */
+  is_included: boolean;
+};
+
 /**
- * One payment and the account to transfer to.
+ * A payment as its receipt, as the server composes it.
+ *
+ * Written from the order as it was placed, so a price edited since does not
+ * change it.
+ */
+export type PaymentReceipt = {
+  reference: string;
+  status: PaymentRecord["status"];
+  amount_kobo: number;
+  amount_formatted: string;
+  currency: string;
+  paid_at: string | null;
+  created_at: string;
+  description: string;
+  lines: ReceiptLine[];
+  subscription_months: number;
+  /** Taken by itself on a card kept for renewal, rather than at a checkout. */
+  automatic_renewal: boolean;
+  paid_with: { provider: string; channel: string | null };
+  will: { id: string; reference: string; title: string } | null;
+  billed_to: { name: string; email: string } | null;
+};
+
+/**
+ * One payment's receipt.
  *
  * Scoped to the caller by the API: another client's reference resolves to null,
  * and the page turns that into a 404. A payment reference is short and quotable,
@@ -52,9 +85,9 @@ export async function listUserPayments(): Promise<PaymentRecord[]> {
  */
 export async function getPaymentByReference(reference: string): Promise<{
   payment: PaymentRecord;
-  account: BankAccount;
+  receipt: PaymentReceipt;
 } | null> {
-  return apiData<{ payment: PaymentRecord; account: BankAccount } | null>(
+  return apiData<{ payment: PaymentRecord; receipt: PaymentReceipt } | null>(
     `/payments/${encodeURIComponent(reference)}`,
     null,
   );

@@ -114,10 +114,10 @@ export function DashboardShell({
     : "U";
 
   return (
-    <div className="min-h-screen bg-surface">
+    <div className="min-h-screen bg-surface print:min-h-0 print:bg-white">
       {/* Desktop Fixed Sidebar */}
       <aside
-        className={`hidden lg:flex fixed top-0 left-0 bottom-0 z-30 flex-col border-r border-border/80 bg-background transition-all duration-300 ease-in-out ${
+        className={`hidden lg:flex print:!hidden fixed top-0 left-0 bottom-0 z-30 flex-col border-r border-border/80 bg-background transition-all duration-300 ease-in-out ${
           collapsed ? "w-20" : "w-72"
         }`}
       >
@@ -336,12 +336,12 @@ export function DashboardShell({
 
       {/* Main Right-Side Content Wrapper */}
       <div
-        className={`flex min-h-screen flex-col transition-all duration-300 ease-in-out ${
+        className={`flex min-h-screen flex-col transition-all duration-300 ease-in-out print:!min-h-0 print:!pl-0 ${
           collapsed ? "lg:pl-20" : "lg:pl-72"
         }`}
       >
         {/* Header Bar */}
-        <header className="sticky top-0 z-20 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-md sm:px-6 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:px-10 lg:py-4">
+        <header className="sticky top-0 z-20 grid print:!hidden grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3 border-b border-border bg-background/95 px-4 py-3 backdrop-blur-md sm:px-6 lg:grid-cols-[auto_minmax(0,1fr)_auto] lg:px-10 lg:py-4">
           <div className="flex items-center gap-3">
             {/* Mobile Hamburger Toggle Button */}
             <button
@@ -378,7 +378,7 @@ export function DashboardShell({
         </header>
 
         {/* Mobile Horizontal Navigation Tabs */}
-        <div className="scrollbar-none flex gap-2 overflow-x-auto border-b border-border bg-background px-4 py-2.5 lg:hidden">
+        <div className="scrollbar-none flex gap-2 overflow-x-auto border-b border-border bg-background px-4 py-2.5 lg:hidden print:!hidden">
           {nav.map((n) => {
             const active = pathname === n.href;
             const Icon = n.icon ? ICON_MAP[n.icon] : undefined;
@@ -407,7 +407,7 @@ export function DashboardShell({
         </div>
 
         {/* Scrollable Main Content */}
-        <main className="flex-1 px-4 py-8 sm:px-6 lg:px-10 lg:py-10">
+        <main className="flex-1 px-4 py-8 sm:px-6 lg:px-10 lg:py-10 print:!p-0">
           {/*
             A measure, rather than the full width of the window.
 

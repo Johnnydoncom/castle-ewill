@@ -1,18 +1,40 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { AlertCircle, Building2, CheckCircle2, Clock } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 
+import { Logo } from "@/components/brand/Logo";
+import { PrintReceiptButton } from "@/components/payments/PrintReceiptButton";
 import { getPaymentByReference } from "@/lib/actions/payments";
 import { COMPANY } from "@/lib/company";
-import { PageHead } from "@/components/dashboard/PageHead";
+import { paidWith, receiptDate, receiptNotes, receiptStanding } from "@/lib/payments/receipt";
 
 export const metadata: Metadata = {
-  title: "Payment instructions",
+  title: "Payment receipt",
   robots: { index: false, follow: false },
 };
 
-export default async function TransferInstructionsPage({
+/** A receipt is the caller's own record, read per request. */
+export const dynamic = "force-dynamic";
+
+const BADGE_TONES = {
+  paid: "border-success/40 bg-success/10 text-success",
+  pending: "border-gold/50 bg-gold/10 text-navy",
+  unpaid: "border-destructive/40 bg-destructive/5 text-destructive",
+  refunded: "border-border bg-surface text-muted-foreground",
+} as const;
+
+/**
+ * One payment's receipt.
+ *
+ * This page used to be the bank-transfer instructions screen, so a renewal paid
+ * by card still showed "Where to send it" beside bank details that were never
+ * set up (redesigned 2026-09-14). It is a receipt now, and nothing else: what
+ * was bought — the lines as quoted when the order was placed — for which Will,
+ * billed to whom, and how it was paid. Printable as it stands; the dashboard
+ * around it stays off the paper.
+ */
+export default async function PaymentReceiptPage({
   params,
 }: {
   params: Promise<{ reference: string }>;
@@ -22,133 +44,196 @@ export default async function TransferInstructionsPage({
   // Scoped to the signed-in caller by the API, so another client's reference
   // 404s rather than confirming that it exists.
   const detail = await getPaymentByReference(reference);
-  if (!detail) notFound();
+  if (!detail?.receipt) notFound();
 
-  const { payment, account } = detail;
-  const configured = account.configured;
-  const settled = payment.status === "success";
+  const { receipt } = detail;
+  const standing = receiptStanding(receipt.status);
+  const paid = standing.tone === "paid";
+  const notes = receiptNotes(receipt);
+  const dated = receipt.paid_at ?? receipt.created_at;
 
   return (
-    <div className="space-y-8">
-      <PageHead
-        kicker="Payment"
-        title={settled ? "Payment received" : "Complete your transfer"}
-        blurb={
-          settled
-            ? "This payment has been confirmed. Nothing further is needed."
-            : "Transfer the amount below, quoting the reference exactly as shown."
-        }
-      />
+    <div className="mx-auto w-full max-w-3xl space-y-6 print:max-w-none">
+      <div className="flex flex-wrap items-center justify-between gap-3 print:hidden">
+        <Link
+          href="/dashboard/payments"
+          className="inline-flex items-center gap-2 text-[11px] uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-navy"
+        >
+          <ArrowLeft className="h-3.5 w-3.5" />
+          Billing
+        </Link>
+        {paid && <PrintReceiptButton />}
+      </div>
 
-      {settled ? (
-        <div className="flex items-start gap-3 border-l-2 border-success bg-success/5 px-5 py-4 text-sm text-navy">
-          <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0 text-success" />
-          <p>
-            We received {payment.amount_formatted} against reference{" "}
-            <span className="font-medium">{payment.reference}</span>. Thank you.
-          </p>
-        </div>
-      ) : (
-        <div className="flex items-start gap-3 border-l-2 border-gold bg-gold/5 px-5 py-4 text-sm text-navy">
-          <Clock className="mt-0.5 h-4 w-4 shrink-0 text-gold" />
-          <p>
-            Awaiting your transfer. We confirm manually during business hours,
-            usually within one working day of the funds arriving.
-          </p>
-        </div>
-      )}
-
-      <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
-        <section className="border border-border bg-background p-6 sm:p-8">
-          <div className="flex items-center gap-3">
-            <Building2 className="h-4 w-4 text-gold" />
-            <h2 className="font-serif text-lg text-navy">Where to send it</h2>
+      <article className="border border-border bg-background shadow-elegant print:border-0 print:shadow-none">
+        {/* Letterhead */}
+        <header className="border-t-4 border-gold px-6 pb-8 pt-8 sm:px-10">
+          <div className="flex flex-wrap items-start justify-between gap-6">
+            <Logo size={44} linked={false} />
+            <address className="text-xs not-italic leading-relaxed text-muted-foreground sm:text-right">
+              <span className="block font-medium text-navy">{COMPANY.legalName}</span>
+              <span className="block">RC {COMPANY.rcNumber}</span>
+              {COMPANY.addressLines.map((line) => (
+                <span key={line} className="block">
+                  {line}
+                </span>
+              ))}
+              <span className="block">{COMPANY.email}</span>
+            </address>
           </div>
 
-          {!configured && (
-            <div className="mt-5 flex items-start gap-3 border-l-2 border-destructive bg-destructive/5 px-4 py-3 text-sm text-navy">
-              <AlertCircle className="mt-0.5 h-4 w-4 shrink-0 text-destructive" />
-              <p>
-                Our bank details are not published yet. Please call{" "}
-                <a href={COMPANY.phoneHref} className="underline underline-offset-4">
-                  {COMPANY.phone}
-                </a>{" "}
-                and quote reference {payment.reference}, and we will confirm
-                where to send payment.
+          <div className="mt-10 flex flex-wrap items-end justify-between gap-4">
+            <div>
+              <p className="font-serif text-[10px] uppercase tracking-[0.35em] text-gold">
+                {standing.kicker}
               </p>
+              <h1 className="mt-2 font-serif text-3xl tracking-tight text-navy sm:text-4xl">
+                {standing.title}
+              </h1>
+            </div>
+            <span
+              className={`inline-flex items-center border px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] ${BADGE_TONES[standing.tone]}`}
+            >
+              {standing.badge}
+            </span>
+          </div>
+        </header>
+
+        {/* The amount */}
+        <section className="border-y border-border bg-surface px-6 py-6 sm:px-10 print:bg-transparent">
+          <p className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+            {paid ? "Amount paid" : "Amount"}
+          </p>
+          <p className="mt-1 font-serif text-4xl tabular-nums text-navy">
+            {receipt.amount_formatted}
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            {paid && receipt.paid_at ? `Paid on ${receiptDate(receipt.paid_at)}` : standing.note}
+          </p>
+        </section>
+
+        {/* Details */}
+        <dl className="grid gap-x-10 gap-y-6 px-6 py-8 sm:grid-cols-2 sm:px-10">
+          <div>
+            <dt className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+              Receipt number
+            </dt>
+            <dd className="mt-1 break-all font-mono text-sm tracking-wide text-navy">
+              {receipt.reference}
+            </dd>
+          </div>
+
+          <div>
+            <dt className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+              {paid ? "Date paid" : "Date"}
+            </dt>
+            <dd className="mt-1 text-sm text-navy">{receiptDate(dated)}</dd>
+          </div>
+
+          {receipt.billed_to && (
+            <div>
+              <dt className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                Billed to
+              </dt>
+              <dd className="mt-1 text-sm text-navy">
+                <span className="block">{receipt.billed_to.name}</span>
+                <span className="block break-all text-muted-foreground">{receipt.billed_to.email}</span>
+              </dd>
             </div>
           )}
 
-          <dl className="mt-6 divide-y divide-border border-t border-border">
-            {[
-              ["Bank", account.bank_name],
-              ["Account name", account.account_name],
-              ["Account number", account.account_number],
-              ["Amount", payment.amount_formatted],
-              ["Reference", payment.reference],
-            ].map(([label, value]) => (
-              <div
-                key={label}
-                className="grid gap-1 py-4 sm:grid-cols-[160px_1fr] sm:gap-4"
-              >
-                <dt className="font-serif text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-                  {label}
-                </dt>
-                <dd
-                  className={
-                    label === "Reference" || label === "Account number"
-                      ? "break-all font-mono text-sm tracking-wider text-navy"
-                      : "text-sm text-navy"
-                  }
+          <div>
+            <dt className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+              {paid ? "Paid with" : "Payment method"}
+            </dt>
+            <dd className="mt-1 text-sm text-navy">{paidWith(receipt)}</dd>
+          </div>
+
+          {receipt.will && (
+            <div className="sm:col-span-2">
+              <dt className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">For</dt>
+              <dd className="mt-1 text-sm text-navy">
+                <Link
+                  href={`/dashboard/wills/${receipt.will.id}`}
+                  className="underline decoration-gold/50 underline-offset-4 hover:text-gold print:no-underline"
                 >
-                  {value}
-                </dd>
-              </div>
-            ))}
-          </dl>
+                  {receipt.will.title}
+                </Link>{" "}
+                <span className="font-mono text-xs text-muted-foreground">{receipt.will.reference}</span>
+              </dd>
+            </div>
+          )}
+        </dl>
 
-          <p className="mt-6 border-l-2 border-gold/40 bg-gold/5 px-4 py-3 text-xs leading-relaxed text-navy/80">
-            {account.instructions ??
-              "Quote your payment reference exactly as shown, or we cannot match your transfer."}
-          </p>
-        </section>
-
-        <section className="space-y-6">
-          <div className="border border-border bg-surface p-6">
-            <p className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">
-              What happens next
-            </p>
-            <ol className="mt-4 space-y-3 text-sm leading-relaxed text-navy/80">
-              <li>1. You make the transfer, quoting the reference.</li>
-              <li>2. We match it against your account and confirm it.</li>
-              <li>3. You receive an email, and your dashboard updates.</li>
-            </ol>
+        {/* What was bought */}
+        <section className="px-6 pb-8 sm:px-10">
+          <div className="overflow-x-auto">
+            <table className="w-full text-sm">
+              <caption className="sr-only">What this payment was for</caption>
+              <thead>
+                <tr className="border-b border-navy text-left text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                  <th scope="col" className="py-3 pr-4 font-normal">
+                    Description
+                  </th>
+                  <th scope="col" className="py-3 text-right font-normal">
+                    Amount
+                  </th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-border">
+                {receipt.lines.map((line, index) => (
+                  <tr key={`${line.label}-${index}`}>
+                    <td className="py-3 pr-4 text-navy">
+                      {line.label}
+                      {line.is_included && (
+                        <span className="block text-xs text-muted-foreground">Included in your plan</span>
+                      )}
+                    </td>
+                    <td className="py-3 text-right tabular-nums text-navy">
+                      {line.is_included ? (
+                        <span className="text-muted-foreground">Included</span>
+                      ) : (
+                        line.amount_formatted
+                      )}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="border-t-2 border-navy">
+                  <th scope="row" className="pr-4 pt-4 text-left font-serif text-base font-normal text-navy">
+                    {paid ? "Total paid" : "Total"}
+                  </th>
+                  <td className="pt-4 text-right font-serif text-xl tabular-nums text-navy">
+                    {receipt.amount_formatted}
+                  </td>
+                </tr>
+              </tfoot>
+            </table>
           </div>
 
-          <div className="border border-border bg-background p-6">
-            <p className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">
-              Prefer to pay by card?
-            </p>
-            <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-              Card payments confirm instantly rather than waiting on a manual
-              check.
-            </p>
-            <Link
-              href="/pricing"
-              className="mt-4 inline-block text-xs uppercase tracking-[0.2em] text-navy underline underline-offset-4 hover:text-gold"
-            >
-              Back to pricing &rarr;
-            </Link>
-          </div>
+          {notes.length > 0 && (
+            <ul className="mt-8 space-y-1 border-l-2 border-gold bg-gold/5 px-4 py-3 text-sm leading-relaxed text-navy print:bg-transparent">
+              {notes.map((note) => (
+                <li key={note}>{note}</li>
+              ))}
+            </ul>
+          )}
         </section>
-      </div>
 
-      <Link
-        href="/dashboard"
-        className="inline-block text-sm uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-navy"
-      >
-        &larr; Back to dashboard
-      </Link>
+        <footer className="border-t border-border px-6 py-5 text-xs leading-relaxed text-muted-foreground sm:px-10">
+          {paid ? "Issued electronically" : "Recorded"} by {COMPANY.legalName}, RC {COMPANY.rcNumber}.
+          Questions about this payment? Email{" "}
+          <a href={`mailto:${COMPANY.email}`} className="underline underline-offset-4 hover:text-navy">
+            {COMPANY.email}
+          </a>{" "}
+          or call{" "}
+          <a href={COMPANY.phoneHref} className="underline underline-offset-4 hover:text-navy">
+            {COMPANY.phone}
+          </a>
+          , quoting <span className="font-mono">{receipt.reference}</span>.
+        </footer>
+      </article>
     </div>
   );
 }
