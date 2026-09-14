@@ -6,6 +6,8 @@ import { PageHead } from "@/components/dashboard/PageHead";
 import { getPriceList } from "@/lib/pricing";
 import { listUserPayments } from "@/lib/actions/payments";
 import { getProfile, requireCustomer } from "@/lib/actions/guards";
+import { listWills } from "@/lib/actions/will";
+import { describeStanding, subscriptionStanding } from "@/lib/will/subscription";
 
 export const metadata: Metadata = {
   title: "Pay for your Will",
@@ -19,11 +21,21 @@ export default async function DashboardPaymentsPage() {
   // The redirect guard first, then the live account record it does not carry.
   await requireCustomer();
 
-  const [profile, prices, payments] = await Promise.all([
+  const [profile, prices, payments, wills] = await Promise.all([
     getProfile(),
     getPriceList(),
     listUserPayments(),
+    listWills(),
   ]);
+
+  /*
+   * Each Will's own cover. A subscription belongs to a Will, so this is the
+   * honest detail under the account-level line above — and where renewing
+   * starts, on the Will it renews.
+   */
+  const subscriptions = wills.filter(
+    (will) => will.journey?.can_renew_subscription || will.subscription_expires_at !== null,
+  );
 
   const expiresOn = profile?.subscription_expires_at
     ? new Date(profile.subscription_expires_at).toLocaleDateString("en-NG", {
@@ -66,6 +78,48 @@ export default async function DashboardPaymentsPage() {
         </div>
       )}
 
+
+      {subscriptions.length > 0 && (
+        <section className="space-y-4">
+          <h2 className="font-serif text-xl text-navy">Subscriptions</h2>
+          <p className="max-w-2xl text-sm leading-relaxed text-muted-foreground">
+            Renewing costs {prices.subscription ? prices.subscription.price_formatted : "the annual subscription"}{" "}
+            a year — the subscription alone, not your plan again — and renewing
+            early adds the year to the one running.
+          </p>
+
+          <ul className="divide-y divide-border border border-border bg-background">
+            {subscriptions.map((will) => {
+              const standing = subscriptionStanding(
+                will.subscription_expires_at,
+                will.has_active_subscription,
+              );
+
+              return (
+                <li
+                  key={will.id}
+                  className="flex flex-wrap items-center justify-between gap-4 px-5 py-4"
+                >
+                  <div className="min-w-0">
+                    <p className="text-sm font-medium text-navy">{will.title}</p>
+                    <p className="mt-0.5 text-xs text-muted-foreground">
+                      <span className="font-mono">{will.reference}</span> ·{" "}
+                      {describeStanding(standing)}
+                      {will.auto_renewal?.enabled ? " · renews automatically" : ""}
+                    </p>
+                  </div>
+                  <Link
+                    href={`/dashboard/wills/${will.id}#subscription`}
+                    className="shrink-0 text-xs uppercase tracking-[0.15em] text-navy underline underline-offset-4 hover:text-gold"
+                  >
+                    {standing.kind === "active" ? "Manage" : "Renew"}
+                  </Link>
+                </li>
+              );
+            })}
+          </ul>
+        </section>
+      )}
 
       <section className="space-y-4">
         <h2 className="font-serif text-xl text-navy">Your payments</h2>

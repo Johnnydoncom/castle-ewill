@@ -5,6 +5,7 @@ import { AlertTriangle, ArrowLeft } from "lucide-react";
 
 import { PageHead } from "@/components/dashboard/PageHead";
 import { AutoRenewalPanel } from "@/components/will/AutoRenewalPanel";
+import { SubscriptionPanel } from "@/components/will/SubscriptionPanel";
 import { JourneyActions } from "@/components/will/JourneyActions";
 import { JourneyBar } from "@/components/will/JourneyBar";
 import { ReviewSummary } from "@/components/will/ReviewSummary";
@@ -150,27 +151,39 @@ export default async function WillDetailPage({
             journey={will.journey}
             pdfUrl={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${will.id}/pdf`}
             /*
-              Both of these have their own panel further down this page, so the
-              card and its button would only be pointing at what is already in
-              view.
+              These have their own panel further down this page, so the card
+              and its button would only be pointing at what is already in view.
             */
             resolvedHere={[
               "unpaid",
               "passport_photograph_required",
               "witnesses_required",
+              "subscription_required",
             ]}
-            // Renewing keeps the Will downloadable, and lets it be updated.
-            renewal={
-              prices.subscription
-                ? {
-                    planSlug: prices.subscription.slug,
-                    price: prices.subscription.price_formatted,
-                    autoRenewAvailable: prices.autoRenewAvailable,
-                  }
-                : null
-            }
           />
         </div>
+      )}
+
+      {/*
+        The subscription, once the Will is paid for: where it stands, and
+        renewing it for the subscription's price alone.
+      */}
+      {will.journey?.can_renew_subscription && (
+        <SubscriptionPanel
+          willId={will.id}
+          expiresAt={will.subscription_expires_at}
+          isActive={will.has_active_subscription}
+          renewal={
+            prices.subscription
+              ? {
+                  planSlug: prices.subscription.slug,
+                  price: prices.subscription.price_formatted,
+                  // Not offered again for a Will already renewing by itself.
+                  autoRenewAvailable: prices.autoRenewAvailable && !will.auto_renewal?.enabled,
+                }
+              : null
+          }
+        />
       )}
 
       {/* Only once there is a subscription to renew. */}

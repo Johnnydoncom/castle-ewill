@@ -6,82 +6,8 @@ import { useFormStatus } from "react-dom";
 import { Check, CreditCard, Download, ScanFace, Scale } from "lucide-react";
 
 import { useFormAction } from "@/hooks/use-api-form";
-import { startSubscriptionRenewalCheckout } from "@/lib/actions/payments.client";
 import { chooseReviewAction } from "@/lib/actions/will.client";
 import type { PrintBlocker, WillJourney } from "@/lib/actions/will";
-
-/** The subscription a Will can be renewed on, priced server-side. */
-type Renewal = { planSlug: string; price: string; autoRenewAvailable?: boolean };
-
-/**
- * Renews this Will's subscription, straight to the gateway and back.
- *
- * A button rather than a link to a billing page: there is no page that sells a
- * subscription for one Will, and a renewal belongs to the Will it keeps open.
- */
-function RenewSubscription({
-  willId,
-  renewal,
-  label,
-}: {
-  willId: string;
-  renewal: Renewal;
-  label: string;
-}) {
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  /** Keep this card and renew by itself from now on — off unless ticked. */
-  const [autoRenew, setAutoRenew] = useState(false);
-
-  async function renew() {
-    setError(null);
-    setPending(true);
-
-    const result = await startSubscriptionRenewalCheckout(
-      willId,
-      renewal.planSlug,
-      renewal.autoRenewAvailable === true && autoRenew,
-    );
-
-    if (result.ok) {
-      window.location.assign(result.url);
-      return;
-    }
-
-    setPending(false);
-    setError(result.message);
-  }
-
-  return (
-    <div className="mt-5 space-y-3">
-      {renewal.autoRenewAvailable && (
-        <label className="flex cursor-pointer items-start gap-2 text-sm leading-relaxed text-navy">
-          <input
-            type="checkbox"
-            checked={autoRenew}
-            onChange={(event) => setAutoRenew(event.target.checked)}
-            className="mt-1 accent-gold"
-          />
-          Renew automatically each year after this, on the card I pay with
-        </label>
-      )}
-      <button
-        type="button"
-        onClick={() => void renew()}
-        disabled={pending}
-        className="inline-flex h-11 items-center gap-2 bg-navy px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-foreground transition-colors hover:bg-navy/90 disabled:cursor-not-allowed disabled:opacity-60"
-      >
-        <CreditCard className="h-4 w-4" />
-        {pending ? "Redirecting…" : `${label} · ${renewal.price}`}
-      </button>
-      {error && (
-        <p role="alert" className="text-sm leading-relaxed text-destructive">
-          {error}
-        </p>
-      )}
-    </div>
-  );
-}
 
 /** A date as the client reads it, the same on the server and in the browser. */
 function readableDate(iso: string): string {
@@ -232,9 +158,9 @@ const BLOCKERS: Record<
   },
   /*
    * A lapsed subscription, once its month of grace is over. Renewing is the way
-   * back and nothing was deleted, so the card says both. Where the price list
-   * is to hand the button renews on the spot; elsewhere it goes to the Will's
-   * page, which has it.
+   * back and nothing was deleted, so the card says both. The button goes to the
+   * Will's Subscription panel, which renews on the spot; on that page itself the
+   * card is not shown (`resolvedHere`).
    */
   subscription_required: {
     icon: CreditCard,
@@ -269,16 +195,10 @@ export function JourneyActions({
   journey,
   pdfUrl,
   resolvedHere = [],
-  renewal = null,
 }: {
   willId: string;
   journey: WillJourney;
   pdfUrl: string;
-  /**
-   * The subscription this Will can be renewed on, where the page has the price
-   * list. Without it, renewing is a link to the Will's own page.
-   */
-  renewal?: Renewal | null;
   /**
    * Blockers whose own panel is already on this page.
    *
@@ -495,9 +415,12 @@ export function JourneyActions({
                 </span>
                 ; after that, renew to keep access. Nothing is deleted.
               </p>
-              {renewal && (
-                <RenewSubscription willId={willId} renewal={renewal} label="Renew subscription" />
-              )}
+              <Link
+                href={`/dashboard/wills/${willId}#subscription`}
+                className="mt-3 inline-flex text-xs font-semibold uppercase tracking-[0.15em] text-navy underline underline-offset-4 hover:text-gold"
+              >
+                Renew subscription
+              </Link>
             </div>
           )}
         </section>
@@ -511,17 +434,16 @@ export function JourneyActions({
                 <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
                   {blocker.body}
                 </p>
-                {blocked === "subscription_required" && renewal ? (
-                  <RenewSubscription willId={willId} renewal={renewal} label="Renew subscription" />
-                ) : (
-                  blocker.cta && (
-                    <Link
-                      href={blocker.cta.href ?? `/dashboard/wills/${willId}`}
-                      className="mt-5 inline-flex h-11 items-center bg-navy px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-foreground transition-colors hover:bg-navy/90"
-                    >
-                      {blocker.cta.label}
-                    </Link>
-                  )
+                {blocker.cta && (
+                  <Link
+                    href={
+                      blocker.cta.href ??
+                      `/dashboard/wills/${willId}${blocked === "subscription_required" ? "#subscription" : ""}`
+                    }
+                    className="mt-5 inline-flex h-11 items-center bg-navy px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-foreground transition-colors hover:bg-navy/90"
+                  >
+                    {blocker.cta.label}
+                  </Link>
                 )}
               </div>
             </div>
@@ -545,16 +467,12 @@ export function JourneyActions({
               It linked to the payments page, which sells no subscription for a
               Will — so the button led somewhere nothing could be bought.
             */}
-            {renewal ? (
-              <RenewSubscription willId={willId} renewal={renewal} label="Subscribe" />
-            ) : (
-              <Link
-                href={`/dashboard/wills/${willId}`}
-                className="mt-5 inline-flex h-11 items-center border border-border px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy transition-colors hover:border-gold hover:text-gold"
-              >
-                See subscription
-              </Link>
-            )}
+            <Link
+              href={`/dashboard/wills/${willId}#subscription`}
+              className="mt-5 inline-flex h-11 items-center border border-border px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy transition-colors hover:border-gold hover:text-gold"
+            >
+              See subscription
+            </Link>
           </section>
         )}
     </div>

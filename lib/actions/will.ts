@@ -143,6 +143,12 @@ export type WillJourney = {
     kyc_verified: boolean;
   };
   is_subscribed: boolean;
+  /**
+   * Whether this Will's subscription may be bought or renewed from its page —
+   * once the Will itself is paid for, whatever state the subscription is in.
+   * Renewing early adds a year to the one running.
+   */
+  can_renew_subscription?: boolean;
   review_choice: "undecided" | "requested" | "skipped" | null;
   can_request_review: boolean;
   can_skip_review: boolean;
