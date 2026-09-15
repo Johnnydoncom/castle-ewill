@@ -83,8 +83,8 @@ export type DocumentTypeOption = {
   code: string;
   label: string;
   /**
-   * How Smile ID check it: `biometric_kyc` — the number and a selfie (the NIN,
-   * the BVN); `document_verification` — the document photographed or uploaded
+   * How Smile ID check it: `biometric_kyc` — the number and a selfie (the
+   * NIN); `document_verification` — the document photographed or uploaded
    * after the selfie (passport, driver's licence, voter's card).
    */
   method?: "biometric_kyc" | "document_verification";

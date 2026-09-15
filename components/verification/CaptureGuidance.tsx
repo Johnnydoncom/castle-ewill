@@ -34,7 +34,7 @@ export function CaptureGuidance({
         {withDocument && (
           <li>
             <span className="text-navy">Have your own ID to hand</span> — your
-            National ID or BVN is checked by its number and your selfie; an
+            National ID is checked by its number and your selfie; an
             international passport, driver&apos;s licence or voter&apos;s card
             is photographed after your selfie, or uploaded as a clear photo or scan.
           </li>

@@ -36,7 +36,7 @@ import { CaptureGuidance } from "./CaptureGuidance";
  *     start  →  <smart-camera-web>  →  our API  →  Smile ID
  *
  * A first check asks which ID the client has before the camera opens, and the
- * ID decides the product: the National ID (NIN) or BVN is Smile ID Biometric
+ * ID decides the product: the National ID (NIN) is Smile ID Biometric
  * KYC — a selfie matched against the photograph held for the number — and a
  * passport, driver's licence or voter's card is Document Verification, photographed or
  * uploaded after the selfie (`capture-id`, with their auto-capture). Their v11
@@ -178,7 +178,7 @@ export function SmileIdCapture({
 
     const chosenId = documentRef.current;
 
-    // A document is photographed after the selfie; the NIN and the BVN are a selfie alone.
+    // A document is photographed after the selfie; the National ID is a selfie alone.
     const capturesDocument =
       chosenId?.method === "document_verification" ||
       (config.capture_document && !chosenId?.requires_id_number);
@@ -381,13 +381,11 @@ export function SmileIdCapture({
 /** What each ID's number is called, for the field that asks for it. */
 const NUMBER_LABELS: Record<string, string> = {
   NIN_V2: "National Identification Number (NIN)",
-  BVN: "Bank Verification Number (BVN)",
 };
 
 /** Feedback only: the server checks the number again, with the same words. */
 const NUMBER_ERRORS: Record<string, string> = {
   NIN_V2: "Enter your 11-digit NIN, as it appears on your National ID card or NIN slip.",
-  BVN: "Enter your 11-digit Bank Verification Number (BVN).",
 };
 
 /**
@@ -453,7 +451,7 @@ function DocumentTypeStep({
       <fieldset aria-describedby={error ? "document-type-error" : undefined}>
         <legend className="font-serif text-xl text-navy">Your identity</legend>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          Choose the ID you will verify with. Your National ID or BVN is checked
+          Choose the ID you will verify with. Your National ID is checked
           by its number and your selfie. A passport, driver&apos;s licence or
           voter&apos;s card is photographed after your selfie, or uploaded as a
           clear photo or scan.
