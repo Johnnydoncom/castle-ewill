@@ -274,6 +274,8 @@ export async function recordLifeEventAction(
 /*  Legal review — the one optional stage                                      */
 /* -------------------------------------------------------------------------- */
 
+export type ReviewChoice = "requested" | "skipped";
+
 /**
  * Requests a lawyer's review, or skips it.
  *
@@ -281,17 +283,19 @@ export async function recordLifeEventAction(
  * so people can write and print their own Will, and a solicitor's read is a
  * paid extra. The choice is recorded either way so "declined" stays
  * distinguishable from "not yet asked".
+ *
+ * Called directly by the buttons rather than through a `<form action>`: the
+ * question is replaced by a summary once it is answered, and a form taken out
+ * of the page mid-submit was never sent (2026-09-15).
  */
-export async function chooseReviewAction(
-  _previous: FormState,
-  formData: FormData,
-): Promise<FormState> {
-  const willId = willIdOf(formData);
-  const choice = String(formData.get("choice") ?? "");
+export async function chooseReview(
+  willId: string,
+  choice: ReviewChoice,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const result = await api(`/wills/${willId}/review-choice`, {
+    method: "POST",
+    body: { choice },
+  });
 
-  if (!willId || (choice !== "requested" && choice !== "skipped")) {
-    return errorState("That request was not valid.");
-  }
-
-  return apiMutation(`/wills/${willId}/review-choice`, { body: { choice } });
+  return result.ok ? { ok: true } : { ok: false, message: result.message };
 }

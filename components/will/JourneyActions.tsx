@@ -1,12 +1,11 @@
 "use client";
 
 import Link from "next/link";
-import { useState } from "react";
-import { useFormStatus } from "react-dom";
+import { useRouter } from "next/navigation";
+import { useState, useTransition } from "react";
 import { Check, CreditCard, Download, ScanFace, Scale } from "lucide-react";
 
-import { useFormAction } from "@/hooks/use-api-form";
-import { chooseReviewAction } from "@/lib/actions/will.client";
+import { chooseReview, type ReviewChoice } from "@/lib/actions/will.client";
 import type { PrintBlocker, WillJourney } from "@/lib/actions/will";
 
 /** A date as the client reads it, the same on the server and in the browser. */
@@ -20,57 +19,44 @@ function readableDate(iso: string): string {
 }
 
 /**
- * One of two answers to a question, and it shows which one you gave.
+ * One answer to the legal-review question.
  *
- * These were two plain buttons. Pressing one submitted its own form, and until
- * the server answered and the route refetched, the screen looked exactly as it
- * had a moment earlier — so people pressed again, or wondered whether it had
- * registered at all.
- *
- * The choice is held here as well as on the server: pressed, it takes the
- * chosen state immediately and keeps it while the request is in flight. Marked
- * up as a pressed toggle rather than styled to look like one, so a screen
- * reader says "Request a review, pressed" instead of describing a button that
- * happens to be a different colour.
+ * A plain button that calls the API, not a submit button inside a
+ * `<form action>`. Those forms were never sent (2026-09-15): pressing one
+ * marked the question answered at once, which swapped the question for the
+ * summary and took the form out of the page — and a browser does not submit a
+ * form that is no longer in the document. The screen said "answered", nothing
+ * reached the server, and the question came back on the next visit. Not one
+ * choice had ever been recorded.
  */
-function ChoiceSubmit({
+function ChoiceButton({
   chosen,
-  onChoose,
+  saving,
+  disabled,
+  onClick,
   children,
 }: {
   chosen: boolean;
-  /**
-   * Fired on the click, not on the form's `onSubmit`.
-   *
-   * A `<form action={fn}>` in React 19 is submitted by React itself, and how
-   * a user-supplied `onSubmit` interleaves with that is a detail of theirs to
-   * change. A click on the submit button is not: it happens first, always, and
-   * it is the moment the client expects the screen to answer.
-   */
-  onChoose: () => void;
+  saving: boolean;
+  disabled: boolean;
+  onClick: () => void;
   children: React.ReactNode;
 }) {
-  const { pending } = useFormStatus();
-
   return (
     <button
-      type="submit"
-      onClick={onChoose}
+      type="button"
+      onClick={onClick}
       aria-pressed={chosen}
-      /*
-        Only the one being saved is disabled. Disabling both would take away
-        the correction from somebody who has just realised they pressed the
-        wrong one, in the seconds where it is easiest to make that mistake.
-      */
-      disabled={pending}
-      className={`inline-flex h-11 items-center justify-center gap-2 border px-5 text-[11px] font-semibold uppercase tracking-[0.18em] transition-colors disabled:opacity-70 ${
+      aria-busy={saving}
+      disabled={disabled}
+      className={`inline-flex h-11 items-center justify-center gap-2 border px-5 text-[11px] font-semibold uppercase tracking-[0.18em] transition-colors disabled:cursor-not-allowed disabled:opacity-70 ${
         chosen
           ? "border-navy bg-navy text-navy-foreground"
           : "border-border text-navy hover:border-gold hover:text-gold"
       }`}
     >
-      {chosen && !pending && <Check className="h-3.5 w-3.5" aria-hidden />}
-      {pending ? "Saving…" : children}
+      {chosen && !saving && <Check className="h-3.5 w-3.5" aria-hidden />}
+      {saving ? "Saving…" : children}
     </button>
   );
 }
@@ -210,40 +196,58 @@ export function JourneyActions({
    */
   resolvedHere?: string[];
 }) {
-  const [state, action] = useFormAction(chooseReviewAction);
+  const router = useRouter();
+  const [, startTransition] = useTransition();
 
   /*
-   * Which answer was given, held here so the screen can show it at the moment
-   * of the click rather than after the server has been asked and the route
-   * refetched. Cleared if the request fails, so a failed choice does not sit
-   * on screen looking settled.
-   */
-  const [pressed, setPressed] = useState<"requested" | "skipped" | null>(null);
-
-  /*
-   * What to show as chosen: the click if there has been one, otherwise the
-   * answer already on record.
+   * The legal-review answer, in three parts.
    *
-   * The stored answer matters as much as the click. This section used to
-   * vanish the moment a choice was made, so somebody coming back to the page
-   * found the question gone with nothing saying which way they had answered —
-   * and somebody who wanted to change their mind found nothing to change.
+   * `saving` is the answer on its way to the server: its button says so and
+   * both are held until it lands, so a second press cannot race the first.
+   * `saved` is an answer the server has accepted, shown at once rather than
+   * after the refetch that will carry it. And the answer on record, for
+   * everybody arriving at the page.
    *
-   * Derived rather than synchronised: a choice the server refused stops
-   * showing as one the moment the error arrives, without an effect writing
-   * state back into the render that produced it.
+   * Nothing is shown as answered until the server has said so. Showing it on
+   * the click is exactly what hid the fault this replaced: the screen agreed
+   * with the client while the server had heard nothing.
    */
-  const choosing =
-    state.status === "error"
-      ? null
-      : (pressed ??
-        (journey.review_choice === "undecided" ? null : journey.review_choice));
+  const [saving, setSaving] = useState<ReviewChoice | null>(null);
+  const [saved, setSaved] = useState<ReviewChoice | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  /** Whether the question has been answered — on the server, or just now. */
-  const decided = choosing !== null;
+  const onRecord =
+    journey.review_choice === "requested" || journey.review_choice === "skipped"
+      ? journey.review_choice
+      : null;
+
+  const answer = saved ?? onRecord;
 
   /** The answer they did not give, which is the only thing left to offer. */
-  const theOtherAnswer = choosing === "requested" ? "skipped" : "requested";
+  const theOtherAnswer: ReviewChoice =
+    answer === "requested" ? "skipped" : "requested";
+
+  const choose = async (choice: ReviewChoice) => {
+    if (saving) return;
+
+    setSaving(choice);
+    setError(null);
+
+    const result = await chooseReview(willId, choice);
+
+    setSaving(null);
+
+    if (!result.ok) {
+      setError(result.message);
+
+      return;
+    }
+
+    setSaved(choice);
+
+    // The journey bar and the print panel read the same record.
+    startTransition(() => router.refresh());
+  };
 
   /*
    * Whether this instance carries the question at all. The journey block
@@ -257,24 +261,30 @@ export function JourneyActions({
   const blocker =
     blocked && !resolvedHere.includes(blocked) ? BLOCKERS[blocked] : null;
 
+  /*
+    Beside the buttons, not at the top of the block. A refusal shown above a
+    journey bar is a refusal nobody scrolls up to read.
+  */
+  const errorMessage = error && (
+    <p
+      role="alert"
+      className="mt-4 w-full border-l-2 border-destructive bg-destructive/5 px-4 py-3 text-sm text-destructive"
+    >
+      {error}
+    </p>
+  );
+
   return (
     <div className="space-y-6">
-      {/* The optional stage. Offered only while the choice is still open —
-          after the Will is issued, a review is a different product. */}
       {/*
-        Asked while it is the question in front of the client, and afterwards
-        only summarised.
+        The optional stage, open until the Will is printed — after that, a
+        review is a different product.
 
-        The choice stays the client's until the Will is printed, so it was
-        rendered in full at every later stage as well — heading, explanation
-        and both buttons, on a page whose journey bar had already ticked legal
-        review off. A question asked again after it has been answered reads as
-        a question that was not heard.
-
-        Undecided, it is the step: asked in full wherever they are. Decided, it
-        is a line saying what they chose and how to change it.
+        Asked in full until it is answered, and afterwards only summarised: a
+        question asked again after it has been answered reads as a question
+        that was not heard.
       */}
-      {asksAboutReview && !decided && (
+      {asksAboutReview && answer === null && (
         <section className="border border-border bg-background p-6">
           <h3 className="font-serif text-lg text-navy">
             Would you like a lawyer to read it?
@@ -286,101 +296,64 @@ export function JourneyActions({
             it.
           </p>
           <div className="mt-5 flex flex-wrap gap-3">
-            <form action={action}>
-              <input type="hidden" name="willId" value={willId} />
-              <input type="hidden" name="choice" value="requested" />
-              <ChoiceSubmit
-                chosen={choosing === "requested"}
-                onChoose={() => setPressed("requested")}
-              >
-                Request a review
-              </ChoiceSubmit>
-            </form>
-            <form action={action}>
-              <input type="hidden" name="willId" value={willId} />
-              <input type="hidden" name="choice" value="skipped" />
-              <ChoiceSubmit
-                chosen={choosing === "skipped"}
-                onChoose={() => setPressed("skipped")}
-              >
-                Skip — I&apos;ll print it myself
-              </ChoiceSubmit>
-            </form>
+            <ChoiceButton
+              chosen={saving === "requested"}
+              saving={saving === "requested"}
+              disabled={saving !== null}
+              onClick={() => void choose("requested")}
+            >
+              Request a review
+            </ChoiceButton>
+            <ChoiceButton
+              chosen={saving === "skipped"}
+              saving={saving === "skipped"}
+              disabled={saving !== null}
+              onClick={() => void choose("skipped")}
+            >
+              Skip — I&apos;ll print it myself
+            </ChoiceButton>
           </div>
 
-          {/*
-            Said in words as well as in colour, because a filled button is not
-            an answer — and it stays on screen through the refetch that follows,
-            which is the second or two where nothing else on the page moves.
-          */}
-          {/*
-            Beside the buttons, not at the top of the block.
-
-            A refusal shown above a journey bar is a refusal nobody scrolls up
-            to read: the click looked as though it had simply done nothing,
-            which is how a 403 on every single choice went unnoticed for as
-            long as it did.
-          */}
-          {state.status === "error" && (
-            <p
-              role="alert"
-              className="mt-4 border-l-2 border-destructive bg-destructive/5 px-4 py-3 text-sm text-destructive"
-            >
-              {state.message}
-            </p>
-          )}
-
-          {choosing && state.status !== "error" && (
-            <p
-              role="status"
-              aria-live="polite"
-              className="mt-4 text-sm text-muted-foreground"
-            >
-              {choosing === "requested"
-                ? "A solicitor will read your Will. You can change this until it is printed."
-                : "You will print it yourself. You can change this until it is printed."}
-            </p>
-          )}
+          {errorMessage}
         </section>
       )}
 
-      {asksAboutReview && decided && (
+      {asksAboutReview && answer !== null && (
         <section className="flex flex-wrap items-center justify-between gap-4 border border-border bg-surface px-6 py-4">
-          <p className="text-sm leading-relaxed text-navy">
+          <p
+            role="status"
+            aria-live="polite"
+            className="text-sm leading-relaxed text-navy"
+          >
             <span className="text-[10px] uppercase tracking-[0.18em] text-muted-foreground">
               Legal review
             </span>
             <br />
-            {choosing === "requested"
+            {answer === "requested"
               ? "A solicitor will read your Will before you print it."
               : "You are printing it yourself, without a solicitor's read."}
           </p>
 
           {/*
             The other answer, offered as one button rather than the whole
-            question again. It is still changeable until the Will is printed,
-            which is worth saying once rather than asking twice.
+            question again. It is still changeable until the Will is printed.
           */}
-          <form action={action}>
-            <input type="hidden" name="willId" value={willId} />
-            <input type="hidden" name="choice" value={theOtherAnswer} />
-            {/*
-              Pressing it takes the new answer immediately, so the line above
-              changes with the click rather than after the round trip.
-            */}
-            <ChoiceSubmit
-              chosen={false}
-              onChoose={() => setPressed(theOtherAnswer)}
-            >
-              {theOtherAnswer === "skipped"
-                ? "Change — print it myself"
-                : "Change — request a review"}
-            </ChoiceSubmit>
-          </form>
+          <ChoiceButton
+            chosen={false}
+            saving={saving === theOtherAnswer}
+            disabled={saving !== null}
+            onClick={() => void choose(theOtherAnswer)}
+          >
+            {theOtherAnswer === "skipped"
+              ? "Change — print it myself"
+              : "Change — request a review"}
+          </ChoiceButton>
+
+          {errorMessage}
         </section>
       )}
 
-                  {/* Print: either the gate, or the download. */}
+      {/* Print: either the gate, or the download. */}
       {journey.can_print ? (
         <section className="border border-success/40 bg-success/5 p-6">
           <h3 className="font-serif text-lg text-navy">Your Will is ready</h3>
