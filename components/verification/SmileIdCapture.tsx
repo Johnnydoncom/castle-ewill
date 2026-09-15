@@ -35,11 +35,11 @@ import { CaptureGuidance } from "./CaptureGuidance";
  *
  *     start  →  <smart-camera-web>  →  our API  →  Smile ID
  *
- * A first check asks which identity document the client has before the camera
- * opens. Their v11 SDK then runs the capture — selfie and liveness, then that
- * document, photographed or uploaded (`capture-id`, `document-capture-modes`,
- * and `hide-back-of-id` for one with nothing on the back) — and publishes
- * base64 images. Those
+ * A first check is Smile ID Biometric KYC: it asks which ID the client has —
+ * National ID (NIN), BVN or voter's card — before the camera opens, and their
+ * v11 SDK captures the selfie and liveness frames, with nothing to photograph,
+ * and publishes base64 images. The selfie is matched against the photograph
+ * the ID authority holds for that ID's number. Those
  * go to **our** backend, which submits the job to Smile ID server to server;
  * the key that signs it never leaves the server. Everything that is a decision
  * — which product, whether there is a document step — arrives from the server
@@ -365,13 +365,26 @@ export function SmileIdCapture({
 }
 
 
+/** What each ID's number is called, for the field that asks for it. */
+const NUMBER_LABELS: Record<string, string> = {
+  NIN_V2: "National Identification Number (NIN)",
+  BVN: "Bank Verification Number (BVN)",
+  VOTER_ID: "Voter Identification Number (VIN)",
+};
+
+/** Feedback only: the server checks the number again, with the same words. */
+const NUMBER_ERRORS: Record<string, string> = {
+  NIN_V2: "Enter your 11-digit NIN, as it appears on your National ID card or NIN slip.",
+  BVN: "Enter your 11-digit Bank Verification Number (BVN).",
+  VOTER_ID: "Enter the Voter Identification Number (VIN) printed on your voter's card.",
+};
+
 /**
- * Which identity document the client has, asked before the camera opens.
+ * Which ID the client will verify with, asked before the camera opens.
  *
- * The list is Smile ID's for Nigeria, as the server read it, and the server
- * checks the choice again before anything reaches Smile ID. Asked first so the
- * capture can skip the back of a passport, and so Smile ID is told what it is
- * looking at rather than left to work it out.
+ * The list is the server's — the Biometric KYC ID types Smile ID take for this
+ * account — and the server checks the choice and the number again before
+ * anything reaches Smile ID.
  */
 function DocumentTypeStep({
   config,
@@ -389,12 +402,12 @@ function DocumentTypeStep({
   const selected = documents.find((candidate) => candidate.code === chosen) ?? null;
 
   /*
-   * Where the National ID's NIN comes from. Only `ask` shows a field: the NIN
-   * on the client's own Will (or, in test mode, Smile ID's test number) is
-   * sent by the server without being asked for again.
+   * Where the chosen ID's number comes from. Only `ask` shows a field: the NIN
+   * on the client's own Will, or in test mode Smile ID's test number, is sent
+   * by the server without being asked for.
    */
-  const ninSource = config.national_id?.source ?? "ask";
-  const asksForNin = selected?.requires_id_number === true && ninSource === "ask";
+  const numberSource = selected?.number_source ?? "ask";
+  const asksForNumber = selected?.requires_id_number === true && numberSource === "ask";
 
   function proceed(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -406,11 +419,14 @@ function DocumentTypeStep({
     }
 
     // Checked here for feedback only: the server checks the pattern again.
-    if (asksForNin) {
-      const number = idNumber.replace(/\s+/g, "");
+    if (asksForNumber) {
+      const number =
+        selected.code === "VOTER_ID"
+          ? idNumber.trim().replace(/\s+/g, " ")
+          : idNumber.replace(/\s+/g, "");
 
       if (!new RegExp(selected.id_number_pattern ?? "^[0-9]{11}$").test(number)) {
-        setError("Enter your 11-digit NIN, as it appears on your National ID card or NIN slip.");
+        setError(NUMBER_ERRORS[selected.code] ?? `Enter your ${selected.label} to continue.`);
 
         return;
       }
@@ -430,9 +446,9 @@ function DocumentTypeStep({
       <fieldset aria-describedby={error ? "document-type-error" : undefined}>
         <legend className="font-serif text-xl text-navy">Your identity</legend>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          Choose what you have to hand. Your National ID is checked by its NIN
-          and a selfie. A passport, driver&apos;s licence or voter&apos;s card
-          is photographed after your selfie, or uploaded as a clear photo or scan.
+          Choose the ID you will verify with. Your selfie is matched against the
+          photograph held on the official register for its number, so there is
+          nothing to photograph or upload.
         </p>
 
         <div className="mt-5 space-y-2">
@@ -455,35 +471,29 @@ function DocumentTypeStep({
                 className="h-4 w-4 shrink-0 accent-navy"
               />
               <span className="flex-1">{document.label}</span>
-              {document.requires_id_number ? (
-                <span className="text-xs text-muted-foreground">NIN and selfie</span>
-              ) : (
-                !document.has_back && (
-                  <span className="text-xs text-muted-foreground">Photo page only</span>
-                )
+              {document.number_source === "will" && (
+                <span className="text-xs text-muted-foreground">From your Will</span>
               )}
             </label>
           ))}
         </div>
       </fieldset>
 
-      {selected?.requires_id_number && ninSource === "will" && (
+      {selected?.requires_id_number && numberSource === "will" && (
         <p className="rounded-xl border border-border bg-surface px-4 py-3 text-sm leading-relaxed text-navy">
           We will use the NIN on your Will, ending{" "}
-          <span className="font-mono">{config.national_id?.hint}</span>. Your
-          selfie is matched against the photograph held on the national register
-          for it, so there is nothing to type or photograph.
+          <span className="font-mono">{selected.number_hint}</span>, so there is
+          nothing to type.
         </p>
       )}
 
-      {asksForNin && (
+      {asksForNumber && selected && (
         <label className="block">
           <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-navy">
-            National Identification Number (NIN)
+            {NUMBER_LABELS[selected.code] ?? selected.label}
           </span>
           <input
             name="id_number"
-            inputMode="numeric"
             autoComplete="off"
             maxLength={14}
             value={idNumber}
@@ -493,13 +503,10 @@ function DocumentTypeStep({
             }}
             aria-invalid={error !== null}
             aria-describedby={error ? "document-type-error" : undefined}
-            placeholder="11 digits"
+            placeholder={selected.code === "VOTER_ID" ? "As printed on your voter's card" : "11 digits"}
+            inputMode={selected.code === "VOTER_ID" ? "text" : "numeric"}
             className="mt-2 h-12 w-full rounded-xl border border-border bg-background px-4 font-mono text-base tracking-wider text-navy focus:border-gold focus:outline-none"
           />
-          <span className="mt-2 block text-xs leading-relaxed text-muted-foreground">
-            Your selfie is matched against the photograph held on the national
-            register for this number, so there is no document to photograph.
-          </span>
         </label>
       )}
 
@@ -508,14 +515,14 @@ function DocumentTypeStep({
           <strong className="font-medium">Test mode:</strong>{" "}
           {selected?.requires_id_number ? (
             <>
-              Smile ID&apos;s sandbox refuses a real NIN, so their test number,{" "}
-              <span className="font-mono">{config.national_id?.hint ?? "00000000000"}</span>, is
-              sent instead of the one on your Will.
+              Smile ID&apos;s sandbox refuses real numbers, so their test number,{" "}
+              <span className="font-mono">{selected.number_hint ?? "00000000000"}</span>, is
+              sent instead, and the result is simulated as approved.
             </>
           ) : (
             <>
-              Smile ID&apos;s sandbox does not process real documents, so a check sent
-              from here can stay under review without a verdict.
+              Smile ID&apos;s sandbox is used, with its test numbers, and the result
+              is simulated.
             </>
           )}
         </p>

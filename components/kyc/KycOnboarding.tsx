@@ -49,7 +49,7 @@ export function KycOnboarding({
         description={
           recheckOnly
             ? "You are already verified — this is a short selfie to confirm it is you collecting the Will. No documents, and it takes a few seconds."
-            : "You'll choose your National ID (by its NIN) or another identity document, and take a selfie — smiling when asked, so we can tell a live person from a photograph. A passport, driver's licence or voter's card is then photographed or uploaded. It takes about a minute."
+            : "You'll choose your National ID (NIN), BVN or voter's card and take a selfie — smiling when asked, so we can tell a live person from a photograph. Your selfie is matched against the photograph held on the register for that number. It takes about a minute."
         }
         footerNote={
           recheckOnly

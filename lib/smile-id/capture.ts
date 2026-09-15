@@ -41,6 +41,7 @@ export type CapturedImage = {
 /** Everything the capture needs, decided by the server. */
 export type SmileIdCaptureConfig = {
   product:
+    | "biometric_kyc"
     | "document_verification"
     | "smart_selfie_authentication"
     | "smart_selfie_registration";
@@ -78,12 +79,23 @@ export type DocumentTypeOption = {
   label: string;
   has_back: boolean;
   /**
-   * Checked by its number rather than photographed: the National ID, which
-   * Smile ID matches by NIN (Biometric KYC). No document camera for it.
+   * Checked by its number rather than photographed (Smile ID Biometric KYC):
+   * the selfie is matched against the photograph held for it. No document
+   * camera.
    */
   requires_id_number?: boolean;
   /** The pattern that number must match, as Smile ID publish it. */
   id_number_pattern?: string | null;
+  /**
+   * Where the number comes from — the server sends it:
+   *
+   * - `sandbox`: Smile ID's test number for this ID (`number_hint`).
+   * - `will`: the NIN on the client's own Will; `number_hint` is its last four
+   *   digits. Not asked for again.
+   * - `ask`: typed by the client.
+   */
+  number_source?: "sandbox" | "will" | "ask";
+  number_hint?: string | null;
 };
 
 export type StartAnswer =
