@@ -70,7 +70,12 @@ export function SmileIdCapture({
   title: string;
   description: string;
   footerNote: string;
-  onVerified: () => void;
+  /**
+   * The check was handed over — to Smile ID (`automated`), or recorded for a
+   * person to decide. Not a verdict: that follows, and is the caller's to wait
+   * for.
+   */
+  onVerified: (outcome: { automated: boolean }) => void;
   /**
    * Open straight into the capture, with no intro of ours.
    *
@@ -109,10 +114,10 @@ export function SmileIdCapture({
   }, []);
 
   const finish = useCallback(
-    (message: string) => {
+    (message: string, automated: boolean) => {
       setStep("idle");
       setOutcome({ kind: "done", message });
-      onVerified();
+      onVerified({ automated });
     },
     [onVerified],
   );
@@ -151,7 +156,7 @@ export function SmileIdCapture({
         return;
       }
 
-      finish(result.message);
+      finish(result.message, true);
     },
     [fail, finish],
   );
@@ -256,6 +261,7 @@ export function SmileIdCapture({
       finish(
         (recorded.status === "success" ? recorded.message : null) ??
           "Your identity check has been recorded.",
+        false,
       );
 
       return;

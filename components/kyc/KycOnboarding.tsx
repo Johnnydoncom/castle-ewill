@@ -1,8 +1,10 @@
 "use client";
 
+import { useState } from "react";
 import { AlertCircle } from "lucide-react";
 
 import { SmileIdCapture } from "@/components/verification/SmileIdCapture";
+import { VerificationPending } from "@/components/kyc/VerificationPending";
 
 /**
  * The KYC flow: the client chooses their identity document, then one Smile ID
@@ -40,6 +42,27 @@ export function KycOnboarding({
   /** Set when the most recent attempt was rejected — surfaced so the client knows what to fix. */
   rejectionReason?: string | null;
 }) {
+  /*
+   * Set the moment the check is handed over.
+   *
+   * The client is shown the wait, on this screen, straight away — "checking
+   * your identity", polling until the verdict lands, then on to the dashboard
+   * (or back to the check with the reason). This used to reload the page to
+   * find out instead, and a reload that beat the verdict rendered the check's
+   * opening screen again: no status, no polling, nothing happening until the
+   * client refreshed by hand.
+   */
+  const [handedOver, setHandedOver] = useState<{ automated: boolean } | null>(null);
+
+  if (handedOver) {
+    return (
+      <VerificationPending
+        provider={handedOver.automated ? "smile_id" : "manual_review"}
+        next="/dashboard"
+      />
+    );
+  }
+
   return (
     <div className="space-y-6">
       {rejectionReason && <RejectionNotice reason={rejectionReason} />}
@@ -57,12 +80,7 @@ export function KycOnboarding({
             : "Your photographs are passed to our identity provider for checking. We do not store them."
         }
         withDocument={!recheckOnly}
-        onVerified={() => {
-          // A full reload rather than a client-side refresh: this is the
-          // moment `is_kyc_verified` flips, and every server component down
-          // the tree (the dashboard banner, the Will gate) should see it.
-          window.location.href = "/dashboard/kyc";
-        }}
+        onVerified={setHandedOver}
       />
     </div>
   );
