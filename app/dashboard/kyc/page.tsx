@@ -13,6 +13,9 @@ export const metadata: Metadata = {
   robots: { index: false, follow: false },
 };
 
+// Reads the session and a verdict that can change seconds after the last load.
+export const dynamic = "force-dynamic";
+
 export default async function KycPage() {
   const [profile, verification] = await Promise.all([
     getProfile(),
@@ -20,22 +23,20 @@ export default async function KycPage() {
   ]);
 
   /*
-   * Identity is proved once. A camera check is not that.
+   * Only for somebody who has not yet proved who they are (2026-09-15, the
+   * owner's instruction).
    *
-   * `is_kyc_verified` means the document check has been passed — it never
-   * expires and is never asked for twice. `verification.is_verified` is the
-   * narrower, hour-long fact that this session is that person, which the print
-   * gate wants fresh.
-   *
-   * This page used to redirect anybody KYC-verified straight back to the
-   * dashboard, which made the live check unreachable: the journey card sends
-   * them here, and here sent them away again. Reported as being asked to do
-   * KYC twice — what the second visit actually needed was the short check,
-   * shown with the same words and the same document flow as the first.
+   * Identity is proved once, and `is_kyc_verified` never expires. This page
+   * used to keep a verified client here until a pass from the last hour was
+   * also on file, offering them a short camera check instead — which nothing
+   * asks for any more: the print gate does not want a fresh camera check from
+   * a proved client, and an amendment's check is taken on the Will itself.
+   * So a client who had just passed was left on this page, with a camera,
+   * until they reloaded. Verified is verified: they go to the dashboard.
    */
   const kycDone = Boolean(profile?.is_kyc_verified);
 
-  if (kycDone && verification.is_verified) {
+  if (kycDone) {
     redirect("/dashboard");
   }
 
@@ -80,12 +81,6 @@ export default async function KycPage() {
         />
       ) : (
         <KycOnboarding
-          /*
-           * Which of the two checks this visit is for. A client who has
-           * already proved who they are is asked for a face and nothing else —
-           * no document, no second identity check.
-           */
-          recheckOnly={kycDone}
           rejectionReason={
             verification.latest?.status === "failed"
               ? verification.latest.failure_reason
