@@ -23,10 +23,16 @@ import { uploadDocumentAction } from "@/lib/actions/documents.client";
  * download route intact: nothing had to be relaxed to show a picture.
  */
 export function PassportPhotoField({
+  willId,
   documentId,
   onUploaded,
 }: {
-  /** The photograph already on file, if there is one. */
+  /**
+   * The Will this photograph is printed on. Each Will has its own: a lawyer's
+   * Wills are for different clients.
+   */
+  willId: string;
+  /** This Will's photograph, if it has one. */
   documentId?: string | null;
   /** Called once a new one is stored, so the page can stop asking for it. */
   onUploaded?: () => void;
@@ -87,6 +93,7 @@ export function PassportPhotoField({
 
     body.set("file", file);
     body.set("kind", "passport_photograph");
+    body.set("willId", willId);
 
     const result = await uploadDocumentAction({ status: "idle" }, body);
 

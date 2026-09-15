@@ -57,11 +57,11 @@ export const UPLOADABLE_KINDS = [
     label: "Identity document",
     hint: "Passport, driver's licence, national ID or voter's card.",
   },
-  {
-    value: "passport_photograph",
-    label: "Passport photograph",
-    hint: "A recent photograph of yourself.",
-  },
+  /*
+   * No passport photograph here. It is printed on one Will, so it is added on
+   * the first step of that Will, which names it — one uploaded here would
+   * belong to no Will and appear on none.
+   */
   {
     value: "supporting_document",
     label: "Supporting document",

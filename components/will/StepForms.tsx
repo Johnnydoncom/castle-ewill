@@ -261,7 +261,15 @@ export function AboutYouStep({
             A field, not a panel. It saves on selection, so there is nothing to
             press and nothing to forget to press before moving on.
           */}
-          <PassportPhotoField documentId={passportPhotoId} />
+          {/*
+            Keyed by the Will, so moving from one Will to another starts the
+            field afresh rather than keeping the last Will's preview.
+          */}
+          <PassportPhotoField
+            key={will.id}
+            willId={will.id}
+            documentId={passportPhotoId}
+          />
 
           {/*
             For everybody but a lawyer the name is not a question: the account

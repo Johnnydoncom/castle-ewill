@@ -15,7 +15,7 @@ const BASE_NAV = [
    * Will neither had an answer to "whose?", and both quietly picked one for
    * you. They live on the Will now.
    *
-   * Documents stays top-level: identity documents and the passport photograph
+   * Documents stays top-level: it is the whole vault, and identity documents
    * belong to the *person*, not to any one Will. Billing stays too, narrowed
    * to what is genuinely account-level — the subscription and the receipts.
    * Paying for a Will happens on that Will.

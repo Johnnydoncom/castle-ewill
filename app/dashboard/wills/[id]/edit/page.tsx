@@ -109,8 +109,9 @@ export default async function WillEditorPage({
     current > 1 ? `${basePath}?step=${previousStep(current)}` : undefined;
 
   /*
-   * The photograph belongs to the account, not the Will, so it is read here
-   * rather than off the Will. Only the first step uses it.
+   * This Will's photograph, read from the vault. Each Will has its own — a
+   * lawyer's Wills are for different clients — so it is matched on the Will,
+   * never taken as the account's first. Only the first step uses it.
    */
   const documents = await listUserDocuments();
 
@@ -126,8 +127,10 @@ export default async function WillEditorPage({
     will,
     backHref,
     passportPhotoId:
-      documents.find((record) => record.kind === "passport_photograph")?.id ??
-      null,
+      documents.find(
+        (record) =>
+          record.kind === "passport_photograph" && record.will_id === will.id,
+      )?.id ?? null,
     nameIsTheirs: !(profile?.may_name_another_testator ?? false),
     accountName: {
       first: profile?.first_name ?? "",
