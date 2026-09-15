@@ -6,7 +6,7 @@ import {
   type WillJourney,
 } from "@/lib/actions/will";
 
-const LABELS: Record<JourneyStage, string> = {
+export const JOURNEY_STAGE_LABELS: Record<JourneyStage, string> = {
   prepare: "Prepare",
   legal_review: "Legal review",
   print: "Print",
@@ -114,7 +114,7 @@ export function JourneyBar({ journey }: { journey: WillJourney }) {
                       : "text-muted-foreground/60"
                 }`}
               >
-                {LABELS[stage]}
+                {JOURNEY_STAGE_LABELS[stage]}
               </span>
             </li>
           );
@@ -123,7 +123,7 @@ export function JourneyBar({ journey }: { journey: WillJourney }) {
 
       {note && (
         <p className="mt-5 border-t border-border pt-4 text-center text-xs leading-relaxed text-muted-foreground">
-          <span className="font-medium text-navy">{LABELS[journey.stage]}</span>
+          <span className="font-medium text-navy">{JOURNEY_STAGE_LABELS[journey.stage]}</span>
           {" — "}
           {note}
         </p>

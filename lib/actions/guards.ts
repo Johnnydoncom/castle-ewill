@@ -80,6 +80,18 @@ export type Profile = {
    * shows that name rather than inviting a spelling of their own.
    */
   may_name_another_testator: boolean;
+  /**
+   * What the account asked to be, and whether an administrator has confirmed
+   * the enrolment number. The gap between them is "we are checking".
+   */
+  is_lawyer?: boolean;
+  is_verified_lawyer?: boolean;
+  /** Present when `role` is "lawyer". */
+  lawyer_verified_at?: string | null;
+  /** Why the enrolment number could not be confirmed, when it could not. */
+  lawyer_rejected_reason?: string | null;
+  /** The account holder's own record only. */
+  enrolment_number?: string | null;
   two_factor_enabled: boolean;
   created_at: string | null;
   last_login_at?: string | null;

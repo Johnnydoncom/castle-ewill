@@ -8,12 +8,13 @@ import {
   ShieldCheck,
 } from "lucide-react";
 
-import { requireUser } from "@/lib/actions/guards";
+import { requireProfile } from "@/lib/actions/guards";
 import { getDashboardData } from "@/lib/actions/dashboard";
 import { WILL_STATUS_LABELS } from "@/lib/will/reference";
 import { REVIEW_TRIGGERS } from "@/lib/company";
 import { PageHead } from "@/components/dashboard/PageHead";
 import { PaymentBanner } from "@/components/payments/PaymentBanner";
+import { PracticeDashboard } from "@/components/dashboard/PracticeDashboard";
 
 export const metadata: Metadata = {
   title: "Dashboard",
@@ -40,11 +41,30 @@ export default async function DashboardPage({
   searchParams: Promise<{ payment?: string }>;
 }) {
   const { payment: paymentOutcome } = await searchParams;
-  const sessionUser = await requireUser();
+  const profile = await requireProfile();
 
   // One round trip. The API scopes everything to the bearer token, so there is
   // no user id to pass and none to get wrong.
   const data = await getDashboardData();
+
+  /*
+   * A lawyer runs a practice, not a Will (2026-09-15).
+   *
+   * This page leads with the one Will a client holds. A lawyer holds one for
+   * each client, so it showed whichever was touched last and hid the others.
+   * Theirs leads with the practice instead. Everybody else is unchanged.
+   */
+  if (profile.role === "lawyer") {
+    return (
+      <PracticeDashboard
+        profile={profile}
+        data={data}
+        paymentOutcome={paymentOutcome}
+      />
+    );
+  }
+
+  const sessionName = profile.name ?? profile.email;
 
   const activeWill = data.primary_will?.will ?? null;
   const resumeStep = data.primary_will?.next_step ?? 1;
@@ -78,7 +98,7 @@ export default async function DashboardPage({
 
       <PageHead
         kicker="Overview"
-        title={`Good to see you, ${sessionUser.name.split(" ")[0]}.`}
+        title={`Good to see you, ${sessionName.split(" ")[0]}.`}
         blurb="Your Will, your documents and everything awaiting your attention."
       />
 
