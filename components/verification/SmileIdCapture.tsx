@@ -35,11 +35,12 @@ import { CaptureGuidance } from "./CaptureGuidance";
  *
  *     start  →  <smart-camera-web>  →  our API  →  Smile ID
  *
- * A first check is Smile ID Biometric KYC: it asks which ID the client has —
- * National ID (NIN), BVN or voter's card — before the camera opens, and their
- * v11 SDK captures the selfie and liveness frames, with nothing to photograph,
- * and publishes base64 images. The selfie is matched against the photograph
- * the ID authority holds for that ID's number. Those
+ * A first check asks which ID the client has before the camera opens, and the
+ * ID decides the product: the National ID (NIN) or BVN is Smile ID Biometric
+ * KYC — a selfie matched against the photograph held for the number — and a
+ * passport, driver's licence or voter's card is Document Verification, photographed or
+ * uploaded after the selfie (`capture-id`, with their auto-capture). Their v11
+ * SDK captures and publishes base64 images. Those
  * go to **our** backend, which submits the job to Smile ID server to server;
  * the key that signs it never leaves the server. Everything that is a decision
  * — which product, whether there is a document step — arrives from the server
@@ -175,13 +176,25 @@ export function SmileIdCapture({
 
     camera.setAttribute("theme-color", config.theme_color);
 
-    // The National ID is checked by its NIN: a selfie, and no document camera.
-    if (config.capture_document && !documentRef.current?.requires_id_number) {
+    const chosenId = documentRef.current;
+
+    // A document is photographed after the selfie; the NIN and the BVN are a selfie alone.
+    const capturesDocument =
+      chosenId?.method === "document_verification" ||
+      (config.capture_document && !chosenId?.requires_id_number);
+
+    if (capturesDocument) {
       camera.setAttribute("capture-id", "");
       camera.setAttribute("document-capture-modes", config.document_capture_modes);
+      /*
+       * Their document auto-capture engine, which captures at the resolution
+       * Document Verification needs (at least 600KB). Without it, laptop
+       * captures reached Smile ID at about 40KB and were never processed.
+       */
+      camera.setAttribute("auto-capture-enabled", "true");
 
       // A passport's details are all on its photo page: no back to ask for.
-      if (documentRef.current && !documentRef.current.has_back) {
+      if (chosenId && !chosenId.has_back) {
         camera.setAttribute("hide-back-of-id", "");
       }
     }
@@ -369,22 +382,19 @@ export function SmileIdCapture({
 const NUMBER_LABELS: Record<string, string> = {
   NIN_V2: "National Identification Number (NIN)",
   BVN: "Bank Verification Number (BVN)",
-  VOTER_ID: "Voter Identification Number (VIN)",
 };
 
 /** Feedback only: the server checks the number again, with the same words. */
 const NUMBER_ERRORS: Record<string, string> = {
   NIN_V2: "Enter your 11-digit NIN, as it appears on your National ID card or NIN slip.",
   BVN: "Enter your 11-digit Bank Verification Number (BVN).",
-  VOTER_ID: "Enter the Voter Identification Number (VIN) printed on your voter's card.",
 };
 
 /**
  * Which ID the client will verify with, asked before the camera opens.
  *
- * The list is the server's — the Biometric KYC ID types Smile ID take for this
- * account — and the server checks the choice and the number again before
- * anything reaches Smile ID.
+ * The list is the server's — each ID with how Smile ID check it — and the
+ * server checks the choice and any number again before anything reaches them.
  */
 function DocumentTypeStep({
   config,
@@ -420,10 +430,7 @@ function DocumentTypeStep({
 
     // Checked here for feedback only: the server checks the pattern again.
     if (asksForNumber) {
-      const number =
-        selected.code === "VOTER_ID"
-          ? idNumber.trim().replace(/\s+/g, " ")
-          : idNumber.replace(/\s+/g, "");
+      const number = idNumber.replace(/\s+/g, "");
 
       if (!new RegExp(selected.id_number_pattern ?? "^[0-9]{11}$").test(number)) {
         setError(NUMBER_ERRORS[selected.code] ?? `Enter your ${selected.label} to continue.`);
@@ -446,10 +453,20 @@ function DocumentTypeStep({
       <fieldset aria-describedby={error ? "document-type-error" : undefined}>
         <legend className="font-serif text-xl text-navy">Your identity</legend>
         <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
-          Choose the ID you will verify with. Your selfie is matched against the
-          photograph held on the official register for its number, so there is
-          nothing to photograph or upload.
+          Choose the ID you will verify with. Your National ID or BVN is checked
+          by its number and your selfie. A passport, driver&apos;s licence or
+          voter&apos;s card is photographed after your selfie, or uploaded as a
+          clear photo or scan.
         </p>
+
+        {config.account_holder?.is_lawyer && (
+          <p className="mt-4 rounded-xl border-l-2 border-gold bg-gold/5 px-4 py-3 text-sm leading-relaxed text-navy">
+            This check is of you
+            {config.account_holder.name ? `, ${config.account_holder.name}` : ""} —
+            the account holder. Use your own ID, not a client&apos;s: your
+            clients are never verified here.
+          </p>
+        )}
 
         <div className="mt-5 space-y-2">
           {documents.map((document) => (
@@ -471,9 +488,11 @@ function DocumentTypeStep({
                 className="h-4 w-4 shrink-0 accent-navy"
               />
               <span className="flex-1">{document.label}</span>
-              {document.number_source === "will" && (
+              {document.number_source === "will" ? (
                 <span className="text-xs text-muted-foreground">From your Will</span>
-              )}
+              ) : document.method === "document_verification" ? (
+                <span className="text-xs text-muted-foreground">Photograph</span>
+              ) : null}
             </label>
           ))}
         </div>
@@ -484,6 +503,14 @@ function DocumentTypeStep({
           We will use the NIN on your Will, ending{" "}
           <span className="font-mono">{selected.number_hint}</span>, so there is
           nothing to type.
+        </p>
+      )}
+
+      {selected?.method === "document_verification" && (
+        <p className="rounded-xl border border-border bg-surface px-4 py-3 text-sm leading-relaxed text-navy">
+          After your selfie, photograph your {selected.label.toLowerCase()} in good
+          light{selected.has_back ? ", front and back," : ""} or upload a clear
+          photo or scan of it.
         </p>
       )}
 
@@ -503,8 +530,8 @@ function DocumentTypeStep({
             }}
             aria-invalid={error !== null}
             aria-describedby={error ? "document-type-error" : undefined}
-            placeholder={selected.code === "VOTER_ID" ? "As printed on your voter's card" : "11 digits"}
-            inputMode={selected.code === "VOTER_ID" ? "text" : "numeric"}
+            placeholder="11 digits"
+            inputMode="numeric"
             className="mt-2 h-12 w-full rounded-xl border border-border bg-background px-4 font-mono text-base tracking-wider text-navy focus:border-gold focus:outline-none"
           />
         </label>
@@ -521,8 +548,8 @@ function DocumentTypeStep({
             </>
           ) : (
             <>
-              Smile ID&apos;s sandbox is used, with its test numbers, and the result
-              is simulated.
+              Smile ID&apos;s sandbox is used, and the result is simulated as
+              approved.
             </>
           )}
         </p>

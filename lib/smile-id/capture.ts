@@ -69,6 +69,11 @@ export type SmileIdCaptureConfig = {
    *   so it is typed.
    */
   national_id?: { source: "will" | "sandbox" | "ask"; hint: string | null } | null;
+  /**
+   * Whose identity is checked: the account holder's. A lawyer verifies
+   * themselves, never a client, and the screen says so.
+   */
+  account_holder?: { name: string | null; is_lawyer: boolean } | null;
   environment: "sandbox" | "production";
   theme_color: string;
 };
@@ -77,6 +82,12 @@ export type SmileIdCaptureConfig = {
 export type DocumentTypeOption = {
   code: string;
   label: string;
+  /**
+   * How Smile ID check it: `biometric_kyc` — the number and a selfie (the NIN,
+   * the BVN); `document_verification` — the document photographed or uploaded
+   * after the selfie (passport, driver's licence, voter's card).
+   */
+  method?: "biometric_kyc" | "document_verification";
   has_back: boolean;
   /**
    * Checked by its number rather than photographed (Smile ID Biometric KYC):

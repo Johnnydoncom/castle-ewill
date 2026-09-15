@@ -33,10 +33,10 @@ export function CaptureGuidance({
       <ul className="mt-3 space-y-2 text-sm leading-relaxed text-muted-foreground">
         {withDocument && (
           <li>
-            <span className="text-navy">Choose an ID you have</span> — your
-            National ID (the NIN on your Will is used), BVN or voter&apos;s card.
-            Your selfie is matched against the photograph held on the register
-            for its number, so there is nothing to photograph.
+            <span className="text-navy">Have your own ID to hand</span> — your
+            National ID or BVN is checked by its number and your selfie; an
+            international passport, driver&apos;s licence or voter&apos;s card
+            is photographed after your selfie, or uploaded as a clear photo or scan.
           </li>
         )}
         <li>
