@@ -138,21 +138,33 @@ export default async function WillsPage() {
 
           {/*
             Only a lawyer is offered another.
-            
-            Everybody else has one Will, and the server returns them to it
-            rather than creating a second — a button promising otherwise would
-            be offering something that cannot happen. Keeping one current is
-            the Update stage, not a new record.
+
+            A lawyer drafts for many clients at once, so they may start the
+            next client's Will whatever the others are waiting on — each of
+            those is continued from its own row above. Everybody else has one
+            Will, and the server returns them to it rather than creating a
+            second; keeping one current is the Update stage, not a new record.
+
+            No prefetch: opening the new-Will route can create a Will.
           */}
-          <Link
-            href="/dashboard/will"
-            className="inline-flex items-center gap-2 border border-border px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy transition-colors hover:border-gold hover:text-gold"
-          >
-            <Plus className="h-4 w-4" />
-            {profile?.may_hold_multiple_wills
-              ? "Continue or start a Will"
-              : "Continue my Will"}
-          </Link>
+          {profile?.may_hold_multiple_wills ? (
+            <Link
+              href="/dashboard/will/new"
+              prefetch={false}
+              className="inline-flex items-center gap-2 bg-navy px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-foreground transition-colors hover:bg-navy/90"
+            >
+              <Plus className="h-4 w-4" />
+              Start a new Will
+            </Link>
+          ) : (
+            <Link
+              href="/dashboard/will"
+              className="inline-flex items-center gap-2 border border-border px-6 py-3 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy transition-colors hover:border-gold hover:text-gold"
+            >
+              <Plus className="h-4 w-4" />
+              Continue my Will
+            </Link>
+          )}
         </>
       )}
     </div>

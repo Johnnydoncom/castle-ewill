@@ -306,6 +306,22 @@ export async function getOrCreateDraft(): Promise<ApiWill | null> {
 }
 
 /**
+ * A new Will — for a lawyer, another client's, whatever their earlier Wills
+ * are waiting on. The server hands back a blank one they already have rather
+ * than making another, and returns anybody who may hold only one Will to it.
+ */
+export async function startNewWill(): Promise<ApiWill | null> {
+  const result = await api<{ data: ApiWill }>("/wills/new", { method: "POST" });
+
+  if (!result.ok) {
+    console.error(`[will] could not start a Will: ${result.message}`);
+    return null;
+  }
+
+  return result.data.data;
+}
+
+/**
  * One Will, or why it could not be read.
  *
  * `apiData` collapses every failure into its fallback, which meant a Will that
