@@ -58,10 +58,16 @@ export type SmileIdCaptureConfig = {
    */
   document_types?: DocumentTypeOption[];
   /**
-   * The NIN the client already gave on their own Will, offered back if they
-   * choose the National ID. Null for a lawyer, whose Wills are their clients'.
+   * Where a National ID check's NIN comes from — decided by the server, which
+   * sends it:
+   *
+   * - `will`: the NIN on the client's own Will, not asked for again. `hint` is
+   *   its last four digits.
+   * - `sandbox`: Smile ID's test NIN (`hint`), whatever is on the Will.
+   * - `ask`: none on file — a lawyer, or a client with no NIN on a Will yet —
+   *   so it is typed.
    */
-  prefill?: { id_number: string | null } | null;
+  national_id?: { source: "will" | "sandbox" | "ask"; hint: string | null } | null;
   environment: "sandbox" | "production";
   theme_color: string;
 };
@@ -79,19 +85,6 @@ export type DocumentTypeOption = {
   /** The pattern that number must match, as Smile ID publish it. */
   id_number_pattern?: string | null;
 };
-
-/**
- * Smile ID's sandbox NIN test numbers — the last digit decides the answer.
- *
- * `4` is matched against a photograph the backend sends with the job (in the
- * sandbox only), so it is the one that can pass a real selfie.
- *
- * @see https://legacy-docs.usesmileid.com/supported-id-types/for-individuals-kyc/backed-by-id-authority/test-data
- */
-export const SANDBOX_TEST_NUMBERS = {
-  matchesYourSelfie: "00000000004",
-  notFound: "00000000001",
-} as const;
 
 export type StartAnswer =
   | { kind: "capture"; attemptId: string; config: SmileIdCaptureConfig }

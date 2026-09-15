@@ -21,7 +21,6 @@ import {
   CAPTURE_PUBLISHED,
   imagesForSubmission,
   loadSmileIdSdk,
-  SANDBOX_TEST_NUMBERS,
   type CapturedImage,
   type DocumentTypeOption,
   type SmileIdCaptureConfig,
@@ -386,8 +385,16 @@ function DocumentTypeStep({
   const documents = config.document_types ?? [];
   const [chosen, setChosen] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [idNumber, setIdNumber] = useState(config.prefill?.id_number ?? "");
+  const [idNumber, setIdNumber] = useState("");
   const selected = documents.find((candidate) => candidate.code === chosen) ?? null;
+
+  /*
+   * Where the National ID's NIN comes from. Only `ask` shows a field: the NIN
+   * on the client's own Will (or, in test mode, Smile ID's test number) is
+   * sent by the server without being asked for again.
+   */
+  const ninSource = config.national_id?.source ?? "ask";
+  const asksForNin = selected?.requires_id_number === true && ninSource === "ask";
 
   function proceed(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -399,7 +406,7 @@ function DocumentTypeStep({
     }
 
     // Checked here for feedback only: the server checks the pattern again.
-    if (selected.requires_id_number) {
+    if (asksForNin) {
       const number = idNumber.replace(/\s+/g, "");
 
       if (!new RegExp(selected.id_number_pattern ?? "^[0-9]{11}$").test(number)) {
@@ -460,7 +467,16 @@ function DocumentTypeStep({
         </div>
       </fieldset>
 
-      {selected?.requires_id_number && (
+      {selected?.requires_id_number && ninSource === "will" && (
+        <p className="rounded-xl border border-border bg-surface px-4 py-3 text-sm leading-relaxed text-navy">
+          We will use the NIN on your Will, ending{" "}
+          <span className="font-mono">{config.national_id?.hint}</span>. Your
+          selfie is matched against the photograph held on the national register
+          for it, so there is nothing to type or photograph.
+        </p>
+      )}
+
+      {asksForNin && (
         <label className="block">
           <span className="text-[11px] font-semibold uppercase tracking-[0.16em] text-navy">
             National Identification Number (NIN)
@@ -483,7 +499,6 @@ function DocumentTypeStep({
           <span className="mt-2 block text-xs leading-relaxed text-muted-foreground">
             Your selfie is matched against the photograph held on the national
             register for this number, so there is no document to photograph.
-            {config.prefill?.id_number && " This is the NIN from your Will — check it is right."}
           </span>
         </label>
       )}
@@ -493,12 +508,9 @@ function DocumentTypeStep({
           <strong className="font-medium">Test mode:</strong>{" "}
           {selected?.requires_id_number ? (
             <>
-              Smile ID&apos;s sandbox accepts only its test numbers, and refuses a
-              real NIN. Use{" "}
-              <span className="font-mono">{SANDBOX_TEST_NUMBERS.matchesYourSelfie}</span> to
-              be matched against your own selfie, or{" "}
-              <span className="font-mono">{SANDBOX_TEST_NUMBERS.notFound}</span> for a
-              number the register does not hold.
+              Smile ID&apos;s sandbox refuses a real NIN, so their test number,{" "}
+              <span className="font-mono">{config.national_id?.hint ?? "00000000000"}</span>, is
+              sent instead of the one on your Will.
             </>
           ) : (
             <>

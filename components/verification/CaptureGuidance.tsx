@@ -34,9 +34,10 @@ export function CaptureGuidance({
         {withDocument && (
           <li>
             <span className="text-navy">Have your NIN or an identity document to hand</span>{" "}
-            — your 11-digit NIN for your National ID, or your international
-            passport, driver&apos;s licence or voter&apos;s card, which you will
-            photograph after your selfie or upload as a clear photo or scan.
+            — your National ID is checked by its NIN (the one on your Will) and
+            a selfie; an international passport, driver&apos;s licence or
+            voter&apos;s card is photographed after your selfie, or uploaded as a
+            clear photo or scan.
           </li>
         )}
         <li>
