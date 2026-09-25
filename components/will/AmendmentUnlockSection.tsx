@@ -1,4 +1,4 @@
-"use client";
+ï»¿"use client";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -20,10 +20,10 @@ import { unlockWillForAmendment } from "@/lib/actions/will.client";
  *  - The editor page directly when a subscriber navigates to the edit URL
  *
  * The subscriber must read and confirm four things before the Will is unlocked:
- *   1. Their Will returns to draft — they must work through the wizard again.
+ *   1. Their Will returns to draft -- they must work through the wizard again.
  *   2. A selfie is required when they resubmit (liveness check).
  *   3. Their current printed Will stays legally valid throughout.
- *   4. Their subscription covers the amendment — no extra charge.
+ *   4. Their subscription covers the amendment -- no extra charge.
  *
  * Only after confirming does the API call fire and the editor open.
  */
@@ -47,7 +47,7 @@ export function AmendmentUnlockSection({ willId }: { willId: string }) {
       return;
     }
 
-    // The Will is now a draft — open the first step of the editor.
+    // The Will is now a draft -- open the first step of the editor.
     startTransition(() => {
       router.push(`/dashboard/wills/${willId}/edit?step=1`);
     });
@@ -62,7 +62,7 @@ export function AmendmentUnlockSection({ willId }: { willId: string }) {
             <h3 className="font-serif text-lg text-navy">Update your Will</h3>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
               Your subscription lets you amend and re-issue your Will whenever
-              life changes — a new beneficiary, a change of executor, or
+              life changes -- a new beneficiary, a change of executor, or
               anything else that no longer reflects your wishes.
             </p>
 
@@ -78,7 +78,7 @@ export function AmendmentUnlockSection({ willId }: { willId: string }) {
         </div>
       </section>
 
-      {/* Warning dialog — subscriber must confirm before the Will is unlocked */}
+      {/* Warning dialog -- subscriber must confirm before the Will is unlocked */}
       {showWarning && (
         <dialog
           open
@@ -117,12 +117,12 @@ export function AmendmentUnlockSection({ willId }: { willId: string }) {
                 {
                   heading: "Your Will returns to draft",
                   detail:
-                    "You will need to work through the four wizard steps again and resubmit. Nothing you entered before is lost — your existing answers are pre-filled.",
+                    "You will need to work through the four wizard steps again and resubmit. Nothing you entered before is lost -- your existing answers are pre-filled.",
                 },
                 {
                   heading: "A selfie is required at submission",
                   detail:
-                    "When you resubmit, we will ask for a brief camera check to confirm it is you making the change — exactly as we would for any amendment to a live instrument.",
+                    "When you resubmit, we will ask for a brief camera check to confirm it is you making the change -- exactly as we would for any amendment to a live instrument.",
                 },
                 {
                   heading: "Your current Will stays valid",
@@ -168,7 +168,7 @@ export function AmendmentUnlockSection({ willId }: { willId: string }) {
                 {loading && (
                   <Loader2 className="h-3.5 w-3.5 animate-spin" aria-hidden />
                 )}
-                {loading ? "Opening editor…" : "I understand — begin amendment"}
+                {loading ? "Opening editor..." : "I understand -- begin amendment"}
               </button>
 
               <button
