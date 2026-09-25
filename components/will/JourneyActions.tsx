@@ -7,6 +7,7 @@ import { Check, CreditCard, Download, ScanFace, Scale } from "lucide-react";
 
 import { chooseReview, type ReviewChoice } from "@/lib/actions/will.client";
 import type { PrintBlocker, WillJourney } from "@/lib/actions/will";
+import { AmendmentUnlockSection } from "@/components/will/AmendmentUnlockSection";
 
 /** A date as the client reads it, the same on the server and in the browser. */
 function readableDate(iso: string): string {
@@ -450,6 +451,17 @@ export function JourneyActions({
             </Link>
           </section>
         )}
+
+      {/*
+        Amendment unlock — shown to subscribers whose Will has already been
+        issued. The warning dialog makes clear what amending entails before
+        the Will is returned to draft.
+      */}
+      {journey.printed_at !== null && journey.can_update && (
+        <AmendmentUnlockSection willId={willId} />
+      )}
     </div>
   );
 }
+
+

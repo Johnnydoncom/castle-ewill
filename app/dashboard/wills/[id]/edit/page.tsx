@@ -27,6 +27,7 @@ import {
   WishesStep,
   WitnessesStep,
 } from "@/components/will/StepForms";
+import { AmendmentUnlockSection } from "@/components/will/AmendmentUnlockSection";
 
 export const metadata: Metadata = {
   title: "Will builder",
@@ -147,6 +148,16 @@ export default async function WillEditorPage({
    * is never left without a way back to payment.
    */
   if (will.status !== "draft") {
+    /*
+     * A subscriber arriving directly at the edit URL gets the amendment
+     * unlock section — the same warning dialog that lives on the Will's detail
+     * page — so the path forward is clear wherever they land.
+     *
+     * A non-subscriber sees the journey bar and a nudge toward the subscription
+     * panel, which lives on the Will's own page.
+     */
+    const canUpdate = will.journey?.can_update === true;
+
     return (
       <div className="space-y-8">
         <header className="border-b border-border pb-8">
@@ -157,13 +168,23 @@ export default async function WillEditorPage({
             </p>
           </div>
           <h1 className="font-serif text-3xl text-navy sm:text-4xl">
-            Your Will is written.
+            {canUpdate ? "Your Will is ready to amend." : "Your Will is written."}
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            The answers are locked in. What remains is below — and you can pick
-            it up here whenever you like.
+            {canUpdate
+              ? "Your subscription lets you update your Will. Read the notes below, then open the editor to begin."
+              : "The answers are locked in. What remains is below — and you can pick it up here whenever you like."}
           </p>
         </header>
+
+        {/*
+          Subscribers: show the full amendment unlock section (warning dialog +
+          begin button). The JourneyActions below also shows it on the Will's
+          own page, so the entry point is consistent wherever they arrive.
+        */}
+        {canUpdate && will.journey && (
+          <AmendmentUnlockSection willId={will.id} />
+        )}
 
         {will.journey && (
           <div className="space-y-6">

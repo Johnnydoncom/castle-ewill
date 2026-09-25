@@ -299,3 +299,26 @@ export async function chooseReview(
 
   return result.ok ? { ok: true } : { ok: false, message: result.message };
 }
+
+/* -------------------------------------------------------------------------- */
+/*  Amendment — unlock for editing                                             */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * Returns a submitted Will to draft so a subscriber may amend it.
+ *
+ * The backend increments `version` and records a revision. A liveness
+ * (selfie) check is not required at this point — it is owed once, when the
+ * amendment is *committed* via the submit route.
+ *
+ * On success the caller should redirect to the Will's editor
+ * (`/dashboard/wills/{id}/edit?step=1`). On failure it returns a message
+ * the UI may surface directly.
+ */
+export async function unlockWillForAmendment(
+  willId: string,
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const result = await api(`/wills/${willId}/unlock`, { method: "POST" });
+
+  return result.ok ? { ok: true } : { ok: false, message: result.message };
+}
