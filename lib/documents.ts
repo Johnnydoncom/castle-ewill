@@ -6,8 +6,17 @@
  * upload UI needs the same limits and MIME rules to give immediate feedback.
  */
 
-/** 10 MB — comfortably above a passport scan, below a denial-of-service. */
+/** 10 MB — comfortably above a scanned identity document, below a denial-of-service. */
 export const MAX_UPLOAD_BYTES = 10 * 1024 * 1024;
+
+/**
+ * 2 MB ceiling for passport photographs specifically.
+ *
+ * A passport photograph is a headshot, not a scanned document. 2 MB is
+ * generous for a JPEG or PNG at print quality. Kept in sync with
+ * `vault.max_passport_photo_bytes` on the backend.
+ */
+export const MAX_PASSPORT_PHOTO_BYTES = 2 * 1024 * 1024;
 
 /**
  * Accepted media types.
@@ -128,7 +137,12 @@ export function describeFileProblem(
   if (size === 0) return "That file appears to be empty.";
 
   const isRecording = kind === "will_video";
-  const limit = isRecording ? MAX_VIDEO_BYTES : MAX_UPLOAD_BYTES;
+  const isPassportPhoto = kind === "passport_photograph";
+  const limit = isRecording
+    ? MAX_VIDEO_BYTES
+    : isPassportPhoto
+      ? MAX_PASSPORT_PHOTO_BYTES
+      : MAX_UPLOAD_BYTES;
 
   if (size > limit) {
     return `That file is ${(size / 1024 / 1024).toFixed(1)} MB. The limit is ${limit / 1024 / 1024} MB.`;
