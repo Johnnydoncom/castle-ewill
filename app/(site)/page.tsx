@@ -141,6 +141,7 @@ function Proof() {
     ["Once", "Identity verified"],
     ["RC 9701348", "Registered in Nigeria"],
   ];
+
   return (
     <section className="mx-auto max-w-7xl px-4 py-20 sm:px-6 lg:px-8 lg:py-28">
       <div className="grid gap-12 lg:grid-cols-[1fr_1.15fr] lg:items-center lg:gap-20">
