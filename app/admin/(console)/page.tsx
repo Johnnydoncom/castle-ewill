@@ -124,7 +124,7 @@ export default async function AdminOverviewPage() {
             {
               label: "Confirmed their answers",
               value: stats.funnel.confirmed,
-              hint: "Finished all four steps and confirmed.",
+              hint: "Finished all five steps and confirmed.",
             },
             {
               label: "Paid",

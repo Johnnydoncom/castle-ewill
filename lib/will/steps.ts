@@ -1,5 +1,6 @@
 /**
- * The guided questionnaire: four pages of questions, then a last look.
+ * The guided questionnaire: five steps — four pages of questions, then a
+ * review of the answers.
  *
  * A **step** is a page with one Save & continue. A **section** is one question
  * on it — who the executors are, how the residue is shared. Help text belongs

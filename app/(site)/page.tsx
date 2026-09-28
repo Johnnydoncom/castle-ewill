@@ -136,7 +136,7 @@ function Proof() {
    * so it is not a promise the homepage may make.
    */
   const stats = [
-    ["4", "Guided steps"],
+    ["5", "Guided steps"],
     ["AES-256", "Encrypted at rest"],
     ["Once", "Identity verified"],
     ["RC 9701348", "Registered in Nigeria"],
@@ -812,7 +812,7 @@ function FAQPreview() {
     ],
     [
       "How long does it take to create a Will?",
-      "There are five short steps and a final review, designed to be finished in one sitting. Nothing is timed — you can save your progress and come back whenever you like.",
+      "There are five short steps, the last a review of everything you have entered, designed to be finished in one sitting. Nothing is timed — you can save your progress and come back whenever you like.",
     ],
     [
       "Can I update my Will later?",

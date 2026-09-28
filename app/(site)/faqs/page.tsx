@@ -27,7 +27,7 @@ const SECTIONS: Section[] = [
       },
       {
         q: "How long does it take?",
-        a: "There are four short steps and a final review, designed to be finished in one sitting. Nothing is timed — you can save your progress at any point and return later, and nothing is lost between sessions.",
+        a: "There are five short steps, the last a review of everything you have entered, designed to be finished in one sitting. Nothing is timed — you can save your progress at any point and return later, and nothing is lost between sessions.",
       },
       {
         q: "What if I own property outside Nigeria?",

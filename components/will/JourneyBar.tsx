@@ -26,7 +26,7 @@ export const JOURNEY_STAGE_LABELS: Record<JourneyStage, string> = {
  * either behind you or too far ahead to matter.
  */
 const NOTES: Partial<Record<JourneyStage, string>> = {
-  prepare: "Answer the four steps. Nothing to pay yet.",
+  prepare: "Work through the five steps. Nothing to pay yet.",
   legal_review: "Optional — request a solicitor's read, or skip it in one click.",
   print: "Pay, confirm your identity once, then download the finished Will.",
   execute: "Yours to do: sign it in front of two witnesses.",
