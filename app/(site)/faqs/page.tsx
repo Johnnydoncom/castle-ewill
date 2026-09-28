@@ -18,10 +18,6 @@ const SECTIONS: Section[] = [
     title: "Making a Will",
     faqs: [
       {
-        q: "Do I need a lawyer to make a Will here?",
-        a: "No. This is a platform, not a law firm: you answer the questions, the system assembles a Will that complies with the law, and you can print and sign it the same day without a solicitor being involved. A review by a practising Nigerian solicitor is available as a paid extra if you want a second pair of eyes — it is included with Premium — but it is never something you have to pass through, and skipping it is a single click.",
-      },
-      {
         q: "Is a Will made on this platform legally binding?",
         a: "Yes, provided it is properly executed. The document we generate contains the clauses a valid Will requires — a declaration, revocation of earlier Wills, appointment of executors, disposition of the estate and an attestation clause. It becomes legally effective when you sign it in the simultaneous presence of two witnesses, who then sign in your presence. Until it is signed, it is a draft with no legal effect.",
       },

@@ -45,7 +45,7 @@ const SLIDES: Slide[] = [
      * makes true.
      */
     caption: "Everyone your Will speaks for",
-    meta: "Four guided steps, in your own words",
+    meta: "Five guided steps, in your own words",
     cta: { label: "Start your Will", to: "/register" },
   },
   {
@@ -249,8 +249,8 @@ export function HeroSlides() {
                     <span
                       aria-hidden
                       className={`absolute inset-x-0 top-1/2 h-px -translate-y-1/2 transition-colors ${isActive
-                          ? "bg-white/25"
-                          : "bg-white/20 group-hover:bg-white/45"
+                        ? "bg-white/25"
+                        : "bg-white/20 group-hover:bg-white/45"
                         }`}
                     />
                     {isActive && (

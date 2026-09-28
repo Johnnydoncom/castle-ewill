@@ -239,7 +239,7 @@ function Steps() {
           n: "01",
           title: "Prepare",
           by: "You",
-          body: "Four guided steps in plain English. Save and come back as often as you like.",
+          body: "Five guided steps in plain English. Save and come back as often as you like.",
         },
         {
           n: "02",
@@ -359,9 +359,8 @@ function Steps() {
                   <li key={stage.n} className="relative pl-9">
                     <span
                       aria-hidden
-                      className={`absolute left-0 top-[7px] h-[7px] w-[7px] rounded-full ${
-                        stage.highlight ? "bg-navy ring-1 ring-gold" : "bg-gold"
-                      }`}
+                      className={`absolute left-0 top-[7px] h-[7px] w-[7px] rounded-full ${stage.highlight ? "bg-navy ring-1 ring-gold" : "bg-gold"
+                        }`}
                     />
 
                     <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
@@ -369,11 +368,10 @@ function Steps() {
                         {stage.title}
                       </h4>
                       <span
-                        className={`text-[9px] uppercase tracking-[0.2em] ${
-                          stage.highlight
-                            ? "border border-gold/50 px-2 py-0.5 text-gold"
-                            : "text-navy-foreground/40"
-                        }`}
+                        className={`text-[9px] uppercase tracking-[0.2em] ${stage.highlight
+                          ? "border border-gold/50 px-2 py-0.5 text-gold"
+                          : "text-navy-foreground/40"
+                          }`}
                       >
                         {stage.by}
                       </span>
@@ -413,7 +411,7 @@ function Features() {
     {
       numeral: "I",
       title: "Guided Will wizard",
-      body: "Four considered steps, each explained in plain English. No legal jargon — just clarity.",
+      body: "Five considered steps, each explained in plain English. No legal jargon — just clarity.",
     },
     {
       numeral: "II",
@@ -593,7 +591,7 @@ function Assurances() {
 function HowItWorks() {
   const steps = [
     { n: "01", title: "Create account", body: "Three fields. No credit card." },
-    { n: "02", title: "Draft your Will", body: "Four guided steps, plain English throughout." },
+    { n: "02", title: "Draft your Will", body: "Five guided steps, plain English throughout." },
     { n: "03", title: "Counsel review", body: "Optional: a qualified solicitor checks every clause." },
     { n: "04", title: "Sign & seal", body: "Two witnesses, your signature, encrypted vault." },
   ];
@@ -605,7 +603,7 @@ function HowItWorks() {
           How it works
         </p>
         <h2 className="font-serif text-4xl text-navy sm:text-5xl">
-          Four steps. <span className="italic text-primary">One afternoon.</span>
+          Five steps. <span className="italic text-primary">One afternoon.</span>
         </h2>
       </div>
       <div className="grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
@@ -814,7 +812,7 @@ function FAQPreview() {
     ],
     [
       "How long does it take to create a Will?",
-      "There are four short steps and a final review, designed to be finished in one sitting. Nothing is timed — you can save your progress and come back whenever you like.",
+      "There are five short steps and a final review, designed to be finished in one sitting. Nothing is timed — you can save your progress and come back whenever you like.",
     ],
     [
       "Can I update my Will later?",
