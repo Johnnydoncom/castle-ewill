@@ -61,11 +61,17 @@ function Submit({
 export function ReviewActions({
   willId,
   status,
+  canRead,
+  reviewRequested,
   lodgedAt,
   lodgingReference,
 }: {
   willId: string;
   status: string;
+  /** Whether the client has let this reviewer read the Will. */
+  canRead: boolean;
+  /** Whether the client asked for a legal review, as against declining one. */
+  reviewRequested: boolean;
   /** When this Will was lodged with the registry, if it has been. */
   lodgedAt?: string | null;
   lodgingReference?: string | null;
@@ -78,6 +84,17 @@ export function ReviewActions({
 
   const inReview = status === "submitted" || status === "under_review";
 
+  /*
+   * What the client's permission allows. Sending a Will back with changes is
+   * a judgement about what it says, and so is approving one somebody asked to
+   * have reviewed; neither is possible without reading it. Approving a Will
+   * whose owner declined a review is accepting it, not reviewing it — the
+   * server records it that way. The API enforces all of this; the screen only
+   * stops offering what would be refused.
+   */
+  const mayApprove = canRead || !reviewRequested;
+  const mayRequestChanges = canRead;
+
   return (
     <div className="space-y-6 border border-border bg-surface p-6">
       <div>
@@ -86,7 +103,11 @@ export function ReviewActions({
         </p>
         <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
           {inReview
-            ? "Approve this Will, or return it to the client with a note explaining what needs to change."
+            ? !mayApprove
+              ? "The client asked for a review. You need their permission to read this Will before you can approve it or send it back."
+              : !reviewRequested
+                ? "The client has not asked for a legal review. Accepting this Will records that it was not reviewed."
+                : "Approve this Will, or return it to the client with a note explaining what needs to change."
             : status === "approved"
               ? "This Will is approved. Mark it executed once the client confirms it has been signed and witnessed."
               : status === "draft"
@@ -99,13 +120,19 @@ export function ReviewActions({
 
       {inReview && (
         <div className="space-y-4">
-          <form action={approve} className="space-y-2">
-            <input type="hidden" name="willId" value={willId} />
-            <Submit label="Approve Will" busyLabel="Approving…" variant="primary" />
-            <Result state={approveState} />
-          </form>
+          {mayApprove && (
+            <form action={approve} className="space-y-2">
+              <input type="hidden" name="willId" value={willId} />
+              <Submit
+                label={reviewRequested ? "Approve Will" : "Accept without review"}
+                busyLabel="Approving…"
+                variant="primary"
+              />
+              <Result state={approveState} />
+            </form>
+          )}
 
-          {showChanges ? (
+          {!mayRequestChanges ? null : showChanges ? (
             <form action={requestChanges} className="space-y-3">
               <input type="hidden" name="willId" value={willId} />
               <label

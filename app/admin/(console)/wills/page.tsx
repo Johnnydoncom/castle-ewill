@@ -85,7 +85,7 @@ export default async function AdminWillsPage({
       </nav>
 
       <Table
-        headers={["Reference", "Client", "Status", "Completion", "Updated", ""]}
+        headers={["Reference", "Client", "Status", "Completion", "Updated", "Legal review"]}
         isEmpty={rows.length === 0}
         empty="No Wills match this filter."
       >
@@ -123,13 +123,17 @@ export default async function AdminWillsPage({
               </span>
             </Cell>
             <Cell muted>{formatDate(will.updated_at)}</Cell>
-            <Cell>
-              <Link
-                href={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${will.id}/pdf`}
-                className="text-xs uppercase tracking-wider text-navy underline underline-offset-4 hover:text-gold"
-              >
-                PDF
-              </Link>
+            {/*
+              No PDF link. It pointed at the client's own route, which 404s for
+              anybody but the owner; and a Will's contents reach the console
+              only under the client's grant, on the Will's own page.
+            */}
+            <Cell muted>
+              {will.review_choice === "requested"
+                ? "Requested"
+                : will.review_choice === "skipped"
+                  ? "Declined"
+                  : "—"}
             </Cell>
           </tr>
         ))}

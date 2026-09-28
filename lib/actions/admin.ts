@@ -4,6 +4,7 @@ import { api, apiData } from "@/lib/api/client";
 import type { PaymentRecord } from "./payments";
 import type { Plan } from "@/lib/pricing/types";
 import type { ApiWill, WillStatus } from "./will";
+import type { AdminWillAccess } from "@/lib/will/access";
 
 /**
  * Admin read models, delegated to the API.
@@ -246,8 +247,32 @@ export async function getVerificationSettings(): Promise<VerificationSettings> {
 /*  Wills                                                                      */
 /* -------------------------------------------------------------------------- */
 
+/**
+ * A Will as the console sees it without its owner's permission — which Will,
+ * where it stands, and nothing the client wrote. See `AdminWillSummaryResource`.
+ */
+export type AdminWillSummary = Pick<
+  ApiWill,
+  | "id"
+  | "reference"
+  | "title"
+  | "status"
+  | "version"
+  | "completion_percent"
+  | "submitted_at"
+  | "approved_at"
+  | "printed_at"
+  | "executed_at"
+  | "lodged_at"
+  | "lodging_reference"
+  | "updated_at"
+> & {
+  review_choice: "undecided" | "requested" | "skipped";
+  solicitor_review_requested: boolean;
+};
+
 export type AdminWillRow = {
-  will: ApiWill;
+  will: AdminWillSummary;
   client: { id: string; name: string | null; email: string };
 };
 
@@ -293,7 +318,13 @@ export async function listWills(options: {
 }
 
 export type AdminWillDetail = {
-  will: ApiWill;
+  will: AdminWillSummary;
+  /**
+   * What the client wrote — only under a grant they made, null otherwise.
+   * `access` says which, so the screen can ask for a code instead.
+   */
+  contents: ApiWill | null;
+  access: AdminWillAccess;
   client: { id: string; name: string | null; email: string; status: string };
   /**
    * The trail, newest first — a log of **events**, not of versions.

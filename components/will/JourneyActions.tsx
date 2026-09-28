@@ -30,6 +30,34 @@ function readableDate(iso: string): string {
  * reached the server, and the question came back on the next visit. Not one
  * choice had ever been recorded.
  */
+/**
+ * Asking for a review is asking for a reviewer to read the Will — the one
+ * time Castle staff may, without an access code. Said in words the client
+ * ticks, and required by the API.
+ */
+function ReviewConsent({
+  checked,
+  onChange,
+}: {
+  checked: boolean;
+  onChange: (checked: boolean) => void;
+}) {
+  return (
+    <label className="mt-5 flex max-w-2xl cursor-pointer items-start gap-3 text-sm leading-relaxed text-navy">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={(event) => onChange(event.target.checked)}
+        className="mt-1 accent-navy"
+      />
+      <span>
+        I allow a Castle reviewer to read and download this Will until the review
+        is finished. I can withdraw this at any time from this page.
+      </span>
+    </label>
+  );
+}
+
 function ChoiceButton({
   chosen,
   saving,
@@ -216,6 +244,7 @@ export function JourneyActions({
   const [saving, setSaving] = useState<ReviewChoice | null>(null);
   const [saved, setSaved] = useState<ReviewChoice | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [reviewConsent, setReviewConsent] = useState(false);
 
   const onRecord =
     journey.review_choice === "requested" || journey.review_choice === "skipped"
@@ -234,7 +263,7 @@ export function JourneyActions({
     setSaving(choice);
     setError(null);
 
-    const result = await chooseReview(willId, choice);
+    const result = await chooseReview(willId, choice, reviewConsent);
 
     setSaving(null);
 
@@ -296,11 +325,12 @@ export function JourneyActions({
             — you can go straight to printing, and your Will is no less valid for
             it.
           </p>
+          <ReviewConsent checked={reviewConsent} onChange={setReviewConsent} />
           <div className="mt-5 flex flex-wrap gap-3">
             <ChoiceButton
               chosen={saving === "requested"}
               saving={saving === "requested"}
-              disabled={saving !== null}
+              disabled={saving !== null || !reviewConsent}
               onClick={() => void choose("requested")}
             >
               Request a review
@@ -342,13 +372,17 @@ export function JourneyActions({
           <ChoiceButton
             chosen={false}
             saving={saving === theOtherAnswer}
-            disabled={saving !== null}
+            disabled={saving !== null || (theOtherAnswer === "requested" && !reviewConsent)}
             onClick={() => void choose(theOtherAnswer)}
           >
             {theOtherAnswer === "skipped"
               ? "Change — print it myself"
               : "Change — request a review"}
           </ChoiceButton>
+
+          {theOtherAnswer === "requested" && (
+            <ReviewConsent checked={reviewConsent} onChange={setReviewConsent} />
+          )}
 
           {errorMessage}
         </section>

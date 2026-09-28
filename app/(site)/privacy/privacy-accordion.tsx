@@ -286,6 +286,56 @@ export function PrivacyAccordion({ companyEmail }: { companyEmail: string }) {
         </AccordionContent>
       </AccordionItem>
 
+      {/* ── Article 8A ───────────────────────────────────── */}
+      {/*
+        Added, not renumbered: other articles refer to each other by number.
+        Mirrors `App\Services\Will\WillAccess` — change them together.
+      */}
+      <AccordionItem value="article-8a">
+        <AccordionTrigger className="font-serif text-base text-navy sm:text-lg">
+          Article 8A: Staff Access to Your Will
+        </AccordionTrigger>
+        <AccordionContent className="prose prose-sm max-w-none text-foreground/85">
+          <p>
+            By default, Castle staff can see that your Will exists and where it
+            stands (for example, whether it has been paid for, printed or
+            lodged), but not what it says, and they cannot download it. They
+            cannot edit a Will under any circumstances.
+          </p>
+          <ul className="mt-3 list-disc space-y-2 pl-5">
+            <li>
+              <strong>If you ask us for help,</strong> you can give Castle
+              support access from your Will&rsquo;s page. You choose whether
+              they may only read it or also download it, and for how long (one
+              day, three days or a week). You then give a one-time code to the
+              member of staff helping you. It works once, for that person only,
+              and must be used within 30 minutes.
+            </li>
+            <li>
+              <strong>If you ask for a legal review,</strong> you agree that a
+              Castle reviewer may read and download your Will until the review
+              is finished. That access ends automatically when it is.
+            </li>
+            <li>
+              <strong>You can withdraw access at any time</strong> from your
+              Will&rsquo;s page, and it takes effect immediately.
+            </li>
+            <li>
+              <strong>Every access is recorded and shown to you.</strong> Your
+              Will&rsquo;s page lists each time staff read or downloaded it. We
+              email you when an access code is used and each time a copy is
+              downloaded.
+            </li>
+          </ul>
+          <p className="mt-3">
+            These controls govern what our staff can do through the platform. To
+            prepare and print your Will, our servers must be able to read it, so
+            they sit alongside, and do not replace, the security measures in
+            Article 8.
+          </p>
+        </AccordionContent>
+      </AccordionItem>
+
       {/* ── Article 9 ────────────────────────────────────── */}
       <AccordionItem value="article-9">
         <AccordionTrigger className="font-serif text-base text-navy sm:text-lg">

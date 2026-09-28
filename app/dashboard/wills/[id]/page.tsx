@@ -8,9 +8,11 @@ import { AutoRenewalPanel } from "@/components/will/AutoRenewalPanel";
 import { SubscriptionPanel } from "@/components/will/SubscriptionPanel";
 import { JourneyActions } from "@/components/will/JourneyActions";
 import { JourneyBar } from "@/components/will/JourneyBar";
+import { StaffAccessPanel } from "@/components/will/StaffAccessPanel";
 import { ReviewSummary } from "@/components/will/ReviewSummary";
 import { WitnessVerification } from "@/components/will/WitnessVerification";
 import { readWill } from "@/lib/actions/will";
+import { getWillAccess } from "@/lib/actions/will-access";
 import { getPriceList } from "@/lib/pricing";
 import { WillCheckout } from "@/components/payments/WillCheckout";
 import {
@@ -88,7 +90,7 @@ export default async function WillDetailPage({
 
   const will = read.will;
 
-  const prices = await getPriceList();
+  const [prices, staffAccess] = await Promise.all([getPriceList(), getWillAccess(will.id)]);
   /*
    * Always, now — not only when a person is doing the checking.
    *
@@ -260,6 +262,8 @@ export default async function WillDetailPage({
           idTypes={witnessIdTypeOptions}
         />
       )}
+
+      <StaffAccessPanel willId={will.id} access={staffAccess} />
 
       <ReviewSummary will={will} editBasePath={`/dashboard/wills/${will.id}/edit`} />
     </div>

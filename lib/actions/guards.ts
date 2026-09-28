@@ -14,6 +14,8 @@ export type SessionUser = {
   isSuperAdmin?: boolean;
   /** Only ever populated by `requireAdmin()`. Full catalog when `isSuperAdmin`. */
   permissions?: string[];
+  /** Only ever populated by `requireAdmin()` — the console needs it on. */
+  twoFactorEnabled?: boolean;
 };
 
 /**
@@ -136,7 +138,12 @@ export async function requireProfile(): Promise<Profile> {
   return read.profile;
 }
 
-export async function requireAdmin(): Promise<SessionUser> {
+export async function requireAdmin(
+  options: {
+    /** Only the page where the second factor is set up. */
+    allowWithoutTwoFactor?: boolean;
+  } = {},
+): Promise<SessionUser> {
   const read = await loadProfile();
 
   /*
@@ -161,6 +168,15 @@ export async function requireAdmin(): Promise<SessionUser> {
     redirect("/dashboard");
   }
 
+  /*
+   * No console without a second factor. The API refuses every admin route to
+   * an account without one (`EnsureAdminHasTwoFactor`); this sends the
+   * administrator to set it up rather than rendering a console of refusals.
+   */
+  if (!profile.two_factor_enabled && !options.allowWithoutTwoFactor) {
+    redirect("/admin/security");
+  }
+
   return {
     id: profile.id,
     email: profile.email,
@@ -168,6 +184,7 @@ export async function requireAdmin(): Promise<SessionUser> {
     role: profile.role,
     isSuperAdmin: profile.is_superadmin ?? false,
     permissions: profile.permissions ?? [],
+    twoFactorEnabled: profile.two_factor_enabled,
   };
 }
 

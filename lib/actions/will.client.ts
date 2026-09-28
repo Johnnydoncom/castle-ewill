@@ -291,10 +291,19 @@ export type ReviewChoice = "requested" | "skipped";
 export async function chooseReview(
   willId: string,
   choice: ReviewChoice,
+  /**
+   * The client's permission for a Castle reviewer to read the Will. Staff
+   * read no Will without it, so the API refuses a request for a review that
+   * does not carry it.
+   */
+  consentToReviewAccess = false,
 ): Promise<{ ok: true } | { ok: false; message: string }> {
   const result = await api(`/wills/${willId}/review-choice`, {
     method: "POST",
-    body: { choice },
+    body:
+      choice === "requested"
+        ? { choice, consent_to_review_access: consentToReviewAccess }
+        : { choice },
   });
 
   return result.ok ? { ok: true } : { ok: false, message: result.message };
