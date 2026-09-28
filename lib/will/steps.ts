@@ -136,6 +136,48 @@ export type WillSectionDefinition = {
   step: number;
 };
 
+/**
+ * The wording for a Will drawn for somebody else.
+ *
+ * A verified lawyer drafts for clients, so "About you" and "use your names"
+ * address the wrong person — the testator is the client, not the account
+ * holder. Only the steps and sections that speak to the testator directly
+ * change; everything else reads the same either way.
+ *
+ * Keyed by the same slugs as the table above, and applied through the
+ * helpers below, so the literal types callers rely on stay as they are.
+ */
+const FOR_CLIENT: {
+  steps: Partial<Record<WillStepSlug, { title: string; intro: string }>>;
+  sections: Partial<Record<WillSectionSlug, string>>;
+} = {
+  steps: {
+    "about-you": {
+      title: "About your client",
+      intro: "Begin with the person whose wishes we are recording — your client.",
+    },
+  },
+  sections: {
+    personal:
+      "Use your client's names exactly as they appear on their identity documents. A mismatch is the most common cause of probate delay.",
+    declaration:
+      "A Will must state that it is the testator's last Will and revoke earlier ones, otherwise two documents may be read together and contradict each other.",
+  },
+};
+
+/** A step's title — for the testator themselves, or for a lawyer's client. */
+export function stepTitle(step: WillStepDefinition, forClient = false): string {
+  return (forClient && FOR_CLIENT.steps[step.slug]?.title) || step.title;
+}
+
+export function stepIntro(step: WillStepDefinition, forClient = false): string {
+  return (forClient && FOR_CLIENT.steps[step.slug]?.intro) || step.intro;
+}
+
+export function sectionHelp(slug: WillSectionSlug, forClient = false): string {
+  return (forClient && FOR_CLIENT.sections[slug]) || sectionBySlug(slug).help;
+}
+
 /** Counted rather than written down. */
 export const TOTAL_STEPS = WILL_STEPS.length;
 

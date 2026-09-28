@@ -208,6 +208,7 @@ export default async function WillEditorPage({
         steps={WILL_STEPS}
         current={current}
         completed={completions.filter((c) => c.complete).map((c) => c.step)}
+        forClient={!stepProps.nameIsTheirs}
       />
 
       <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:py-14">
@@ -219,7 +220,7 @@ export default async function WillEditorPage({
           <CompletionPill percent={percent} />
         </div>
 
-        <StepHeading step={definition} />
+        <StepHeading step={definition} forClient={!stepProps.nameIsTheirs} />
 
         <div className="mt-10">
           {/*

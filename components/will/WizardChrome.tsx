@@ -5,17 +5,20 @@ import { useFormStatus } from "react-dom";
 import { Check } from "lucide-react";
 
 import type { FormState } from "@/lib/actions/state";
-import type { WillStepDefinition } from "@/lib/will/steps";
+import { stepIntro, stepTitle, type WillStepDefinition } from "@/lib/will/steps";
 
 /** Segmented progress bar across the applicable steps. */
 export function StepProgress({
   steps,
   current,
   completed,
+  forClient = false,
 }: {
   steps: readonly WillStepDefinition[];
   current: number;
   completed: number[];
+  /** A lawyer drafting for a client: "About your client", not "About you". */
+  forClient?: boolean;
 }) {
   const done = new Set(completed);
 
@@ -41,7 +44,7 @@ export function StepProgress({
                       : "text-muted-foreground/60"
                     }`}
                 >
-                  {step.title}
+                  {stepTitle(step, forClient)}
                 </p>
               </li>
             );
@@ -55,7 +58,14 @@ export function StepProgress({
   );
 }
 
-export function StepHeading({ step }: { step: WillStepDefinition }) {
+export function StepHeading({
+  step,
+  forClient = false,
+}: {
+  step: WillStepDefinition;
+  /** A lawyer drafting for a client: "About your client", not "About you". */
+  forClient?: boolean;
+}) {
   return (
     <header className="border-b border-border pb-8">
       <div className="mb-4 flex items-center gap-3">
@@ -65,10 +75,10 @@ export function StepHeading({ step }: { step: WillStepDefinition }) {
         </p>
       </div>
       <h1 className="font-serif text-3xl tracking-tight text-navy sm:text-4xl">
-        {step.title}
+        {stepTitle(step, forClient)}
       </h1>
       <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-        {step.intro}
+        {stepIntro(step, forClient)}
       </p>
     </header>
   );

@@ -21,6 +21,7 @@ import {
 import { NIGERIAN_STATES } from "@/lib/will/reference";
 import {
   sectionBySlug,
+  sectionHelp,
   stepForSection,
   type WillSectionSlug,
 } from "@/lib/will/steps";
@@ -170,10 +171,13 @@ function NameFields({
 function Section({
   slug,
   errors,
+  forClient = false,
   children,
 }: {
   slug: WillSectionSlug;
   errors?: string[];
+  /** A lawyer drafting for a client: the help speaks of "your client". */
+  forClient?: boolean;
   children: React.ReactNode;
 }) {
   const section = sectionBySlug(slug);
@@ -199,7 +203,7 @@ function Section({
         </h2>
       )}
 
-      <HelpPanel>{section.help}</HelpPanel>
+      <HelpPanel>{sectionHelp(slug, forClient)}</HelpPanel>
 
       {errors?.length ? (
         <p
@@ -255,7 +259,7 @@ export function AboutYouStep({
 
   return (
     <StepForm will={will} state={state} action={action} backHref={backHref}>
-      <Section slug="personal">
+      <Section slug="personal" forClient={!nameIsTheirs}>
         <div className="grid gap-6 sm:grid-cols-2">
           {/*
             A field, not a panel. It saves on selection, so there is nothing to
@@ -418,7 +422,7 @@ export function AboutYouStep({
         </div>
       </Section>
 
-      <Section slug="declaration">
+      <Section slug="declaration" forClient={!nameIsTheirs}>
         <div className="space-y-5 border border-border bg-background p-6">
           <CheckboxField
             name="declaredLastWill"
