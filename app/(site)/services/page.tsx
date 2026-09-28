@@ -111,8 +111,7 @@ export default function ServicesPage() {
             <span className="italic text-primary">in one place.</span>
           </h1>
           <p className="mt-6 max-w-2xl leading-relaxed text-muted-foreground">
-            {COMPANY.legalName} is a platform, not a law firm. You answer the
-            questions and the system assembles a Will that complies with the
+            {COMPANY.legalName} is a platform where your questions are answered and the system assembles a Will that complies with the
             law; you can print and sign it the same day without a solicitor ever
             being involved. If you would rather one read it first, that is a
             service you can buy — never a gate you have to pass.
