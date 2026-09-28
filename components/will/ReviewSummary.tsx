@@ -19,11 +19,11 @@ import {
 export function ReviewSummary({
   will,
   /*
-   * Where an Edit link should go. Defaults to the entry route, which resolves
-   * the Will in flight — but a caller that already knows which Will this is
-   * passes its own editor path, so the link cannot land on a different one.
+   * Where an Edit link should go — this Will's own editor, so the link cannot
+   * land on a different one. Omitted, there are no Edit links at all: the
+   * console shows a client's Will read-only, and staff never edit one.
    */
-  editBasePath = "/dashboard/will",
+  editBasePath,
 }: {
   will: ApiWill;
   editBasePath?: string;
@@ -186,12 +186,14 @@ export function ReviewSummary({
                   </span>
                 )}
               </div>
-              <Link
-                href={`${editBasePath}?step=${section.step}`}
-                className="shrink-0 text-xs uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-navy"
-              >
-                Edit
-              </Link>
+              {editBasePath && (
+                <Link
+                  href={`${editBasePath}?step=${section.step}`}
+                  className="shrink-0 text-xs uppercase tracking-[0.2em] text-muted-foreground transition-colors hover:text-navy"
+                >
+                  Edit
+                </Link>
+              )}
             </div>
             <ul className="space-y-1.5 pl-8">
               {rows.map((row, i) => (
