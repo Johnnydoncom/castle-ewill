@@ -36,10 +36,40 @@ const NOTES: Partial<Record<JourneyStage, string>> = {
 };
 
 /**
- * The seven-stage progress rail.
+ * The same notes, for a lawyer looking at a client's Will.
  *
- * Rendered from `journey.stage`, which the server derives — never recomputed
- * here. The stage depends on payments, identity checks and a subscription, and
+ * The signing is the client's to do, not theirs; the identity confirmed is
+ * their own, once, and the executors are the ones the client named. There is
+ * no note for Legal review because a lawyer's Will has no such stage.
+ */
+const NOTES_FOR_CLIENT: Partial<Record<JourneyStage, string>> = {
+  print:
+    "Pay, then download the finished Will. Your own identity is confirmed once, and covers every Will you draw.",
+  execute: "Your client's to do: sign it in front of two witnesses.",
+  lodge: "Lodge it with the Probate Registry — or leave it to us, if you have asked us to.",
+  protect: "Held encrypted, released only to the executors your client named.",
+  update:
+    "Amend and re-issue whenever your client's life changes, while this Will's subscription runs.",
+};
+
+/**
+ * The stages this Will passes through, as the server lists them.
+ *
+ * A lawyer's has no Legal review, so "stage 2 of 7" counted against the full
+ * list would number a stage the Will never enters. The full list is the
+ * fallback for an API that predates the per-Will one.
+ */
+export function journeyStages(
+  journey: Pick<WillJourney, "stages">,
+): readonly JourneyStage[] {
+  return journey.stages?.length ? journey.stages : JOURNEY_STAGES;
+}
+
+/**
+ * The progress rail — seven stages, or six for a lawyer's Will.
+ *
+ * Rendered from `journey.stage` and `journey.stages`, which the server
+ * derives — never recomputed here. The stage depends on payments, identity checks and a subscription, and
  * a bar that worked that out for itself would eventually disagree with the
  * server about what the client may do next. Disagreeing about *that* is how
  * someone ends up staring at a "Print" step beside a download that returns 402.
@@ -49,14 +79,23 @@ const NOTES: Partial<Record<JourneyStage, string>> = {
  * every label longer than "Print". Nodes carry the number, the name sits under
  * them and is allowed to wrap to two lines, and nothing is abbreviated.
  */
-export function JourneyBar({ journey }: { journey: WillJourney }) {
-  const currentIndex = JOURNEY_STAGES.indexOf(journey.stage);
-  const note = NOTES[journey.stage];
+export function JourneyBar({
+  journey,
+  forClient = false,
+}: {
+  journey: WillJourney;
+  /** A lawyer looking at a client's Will: the notes speak of "your client". */
+  forClient?: boolean;
+}) {
+  const stages = journeyStages(journey);
+  const currentIndex = stages.indexOf(journey.stage);
+  const note =
+    (forClient && NOTES_FOR_CLIENT[journey.stage]) || NOTES[journey.stage];
 
   return (
     <nav aria-label="Your progress" className="border border-border bg-background p-5 sm:p-6">
       <ol className="flex items-start">
-        {JOURNEY_STAGES.map((stage, index) => {
+        {stages.map((stage, index) => {
           const isDone = index < currentIndex;
           const isCurrent = index === currentIndex;
 
@@ -94,7 +133,7 @@ export function JourneyBar({ journey }: { journey: WillJourney }) {
                 <span
                   aria-hidden
                   className={`h-px flex-1 ${
-                    index === JOURNEY_STAGES.length - 1
+                    index === stages.length - 1
                       ? "bg-transparent"
                       : isDone
                         ? "bg-gold/60"

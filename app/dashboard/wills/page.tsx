@@ -3,10 +3,10 @@ import Link from "next/link";
 import { ArrowRight, FileText, Plus } from "lucide-react";
 
 import { PageHead } from "@/components/dashboard/PageHead";
+import { journeyStages } from "@/components/will/JourneyBar";
 import { listWills } from "@/lib/actions/will";
 import { getProfile, requireUser } from "@/lib/actions/guards";
 import { WILL_STATUS_LABELS } from "@/lib/will/reference";
-import { JOURNEY_STAGES } from "@/lib/actions/will";
 
 export const metadata: Metadata = {
   title: "My Wills",
@@ -22,6 +22,16 @@ const NEXT_ACTION: Record<string, string> = {
   kyc_required: "Confirm your identity",
   passport_photograph_required: "Add your photograph",
   witnesses_required: "Checking your witnesses",
+};
+
+/**
+ * The same, for a lawyer's list of client Wills. The identity check is still
+ * their own; the photograph and the witnesses are the client's.
+ */
+const NEXT_ACTION_FOR_CLIENT: Record<string, string> = {
+  ...NEXT_ACTION,
+  passport_photograph_required: "Add your client's photograph",
+  witnesses_required: "Checking the witnesses",
 };
 
 /**
@@ -46,31 +56,46 @@ export default async function WillsPage() {
 
   const wills = await listWills();
 
+  /*
+   * A lawyer's list is of their clients' Wills. "My Wills" and "Begin your
+   * Will" describe a document they are the testator of, which is none of
+   * these.
+   */
+  const forClient = profile?.may_name_another_testator ?? false;
+  const nextAction = forClient ? NEXT_ACTION_FOR_CLIENT : NEXT_ACTION;
+
   return (
     <div className="space-y-10">
       <PageHead
-        kicker="Your documents"
-        title="My Wills"
+        kicker={forClient ? "Your practice" : "Your documents"}
+        title={forClient ? "Client Wills" : "My Wills"}
         blurb={
-          profile?.may_hold_multiple_wills
-            ? "Every Will you hold with us, and what each one is waiting on."
-            : "Your Will, and what it is waiting on."
+          forClient
+            ? "Every Will you have drawn for a client, and what each one is waiting on."
+            : profile?.may_hold_multiple_wills
+              ? "Every Will you hold with us, and what each one is waiting on."
+              : "Your Will, and what it is waiting on."
         }
       />
 
       {wills.length === 0 ? (
         <div className="border border-border bg-background py-16 text-center">
           <FileText className="mx-auto h-8 w-8 text-muted-foreground/40" />
-          <h2 className="mt-4 font-serif text-2xl text-navy">No Will yet.</h2>
+          <h2 className="mt-4 font-serif text-2xl text-navy">
+            {forClient ? "No client Wills yet." : "No Will yet."}
+          </h2>
           <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
-            Five guided steps, plain English throughout. You can pause and
-            resume at any point.
+            {forClient
+              ? "Five guided steps for each client. You can pause a Will and resume it at any point."
+              : "Five guided steps, plain English throughout. You can pause and resume at any point."}
           </p>
+          {/* No prefetch on a lawyer's: opening the new-Will route can create one. */}
           <Link
-            href="/dashboard/will"
+            href={forClient ? "/dashboard/will/new" : "/dashboard/will"}
+            prefetch={forClient ? false : undefined}
             className="mt-6 inline-flex items-center gap-2 bg-navy px-7 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy-foreground transition-colors hover:bg-navy/90"
           >
-            Begin your Will
+            {forClient ? "Start a client's Will" : "Begin your Will"}
             <ArrowRight className="h-4 w-4" />
           </Link>
         </div>
@@ -80,9 +105,10 @@ export default async function WillsPage() {
             {wills.map((will) => {
               const stage = will.journey?.stage;
               const blocked = will.journey?.print_blocked_by;
-              const stageNumber = stage
-                ? JOURNEY_STAGES.indexOf(stage) + 1
-                : null;
+              // Counted against this Will's own stages: a lawyer's has no
+              // Legal review, so it is one of six rather than of seven.
+              const stages = will.journey ? journeyStages(will.journey) : [];
+              const stageNumber = stage ? stages.indexOf(stage) + 1 : null;
 
               return (
                 <li key={will.id} className="bg-background">
@@ -106,7 +132,7 @@ export default async function WillsPage() {
                     <div className="mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
                       {stageNumber && (
                         <span className="text-muted-foreground">
-                          Stage {stageNumber} of {JOURNEY_STAGES.length}
+                          Stage {stageNumber} of {stages.length}
                         </span>
                       )}
 
@@ -117,7 +143,7 @@ export default async function WillsPage() {
                       {/* What it is waiting on — the reason to open it. */}
                       {blocked && (
                         <span className="font-medium text-gold">
-                          {NEXT_ACTION[blocked] ?? "Needs attention"}
+                          {nextAction[blocked] ?? "Needs attention"}
                         </span>
                       )}
                       {will.journey?.can_print && (

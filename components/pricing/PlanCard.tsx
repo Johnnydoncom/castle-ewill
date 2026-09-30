@@ -1,5 +1,6 @@
 import { Check, Minus } from "lucide-react";
 
+import { planCardLines } from "@/lib/pricing/breakdown";
 import type { Plan, PriceQuote } from "@/lib/pricing/types";
 
 /**
@@ -40,8 +41,11 @@ export function PlanCard({
   /** The call to action — a link on the public page, a form in the dashboard. */
   children?: React.ReactNode;
 }) {
+  // Without the bundled subscription — see `planCardLines`.
+  const lines = planCardLines(quote);
+
   // A single-line quote is just the plan itself; there is nothing to break out.
-  const showBreakdown = (quote?.lines.length ?? 0) > 1;
+  const showBreakdown = lines.length > 1;
 
   return (
     <div
@@ -91,7 +95,7 @@ export function PlanCard({
 
       {showBreakdown && quote && (
         <dl className="mt-6 space-y-2 border-t border-border pt-5 text-sm">
-          {quote.lines.map((line) => (
+          {lines.map((line) => (
             <div key={line.label} className="flex items-baseline justify-between gap-4">
               <dt
                 className={

@@ -39,7 +39,8 @@ const BASE_NAV = [
  */
 const WILLS_NAV = {
   href: "/dashboard/wills",
-  label: "My Wills",
+  // Theirs to draw, not theirs: each is a client's.
+  label: "Client Wills",
   icon: "will",
 } as const;
 
@@ -62,7 +63,26 @@ export default async function DashboardLayout({
    * solicitor review actually sold is a lawyer *reading the Will and writing
    * back*, not a scheduled call of a stated length. Promising a slot nothing
    * can allocate is the same fault as the invented client on the homepage.
+   *
+   * A verified lawyer is not offered it. The review is a solicitor reading a
+   * Will somebody wrote for themselves, and a lawyer drafting for a client is
+   * that solicitor already — the API sells them no review either. Theirs
+   * points at the help a practice actually asks for.
    */
+  const footer = profile?.may_name_another_testator
+    ? {
+        title: "Drafting for a client?",
+        body: "Questions about a client's Will, billing or lodging with the Probate Registry — we will help.",
+        cta: "Contact us",
+        href: "/contact",
+      }
+    : {
+        title: "Want a second opinion?",
+        body: "A Nigerian solicitor can read your Will clause by clause and write back. It is an optional paid extra.",
+        cta: "Ask about a review",
+        href: "/contact",
+      };
+
   return (
     <DashboardShell
       nav={nav}
@@ -71,12 +91,7 @@ export default async function DashboardLayout({
       personMeta={user.email}
       headerKicker="Castle eWill & Trust"
       headerTitle="Private Dashboard"
-      footer={{
-        title: "Want a second opinion?",
-        body: "A Nigerian solicitor can read your Will clause by clause and write back. It is an optional paid extra.",
-        cta: "Ask about a review",
-        href: "/contact",
-      }}
+      footer={footer}
     >
       {children}
     </DashboardShell>

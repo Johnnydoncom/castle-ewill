@@ -354,20 +354,29 @@ function DocumentRow({ record }: { record: VaultDocument }) {
  * now, behind exactly the gates the Will's own page uses: paid for, identity
  * confirmed, and an active subscription.
  */
-function WillCopies({ wills }: { wills: ApiWill[] }) {
+function WillCopies({
+  wills,
+  forClient,
+}: {
+  wills: ApiWill[];
+  forClient: boolean;
+}) {
   if (wills.length === 0) return null;
 
   return (
     <section className="space-y-4">
       <h2 className="font-serif text-xl text-navy">
-        {wills.length === 1 ? "Your Will" : "Your Wills"}
+        {/* A lawyer's are their clients', drawn for them rather than owned. */}
+        {forClient ? "Client Wills" : wills.length === 1 ? "Your Will" : "Your Wills"}
       </h2>
       <ul className="divide-y divide-border border border-border bg-background">
         {wills.map((will) => {
           const block = will.journey?.can_print
             ? null
-            : (willDownloadBlock(will.id, will.journey?.print_blocked_by) ?? {
-                message: "Your Will cannot be downloaded yet.",
+            : (willDownloadBlock(will.id, will.journey?.print_blocked_by, forClient) ?? {
+                message: forClient
+                  ? "This Will cannot be downloaded yet."
+                  : "Your Will cannot be downloaded yet.",
                 cta: { label: "Open this Will", href: `/dashboard/wills/${will.id}` },
               });
 
@@ -422,15 +431,18 @@ function WillCopies({ wills }: { wills: ApiWill[] }) {
 export function DocumentVault({
   records,
   wills = [],
+  forClient = false,
 }: {
   records: VaultDocument[];
   /** The client's paid Wills, listed above their documents. */
   wills?: ApiWill[];
+  /** A lawyer's vault: the Wills in it are their clients', not their own. */
+  forClient?: boolean;
 }) {
   return (
     <div className="grid gap-8 lg:grid-cols-[1.5fr_1fr] lg:gap-10">
       <div className="space-y-8">
-      <WillCopies wills={wills} />
+      <WillCopies wills={wills} forClient={forClient} />
 
       <section className="space-y-4">
         <h2 className="font-serif text-xl text-navy">Your documents</h2>

@@ -134,7 +134,19 @@ export type AmendmentLodging = {
 
 export type WillJourney = {
   stage: JourneyStage;
+  /**
+   * The stages *this* Will passes through, in order. Six for a verified
+   * lawyer's — there is no Legal review on a Will a lawyer draws — and seven
+   * for everybody else's. The progress rail renders this list.
+   */
   stages: JourneyStage[];
+  /**
+   * Whether a legal review is on offer for this Will at all. False for a
+   * verified lawyer's: the page then neither asks the question nor sells the
+   * review at checkout. Absent from an API that predates it, which offered it
+   * to everyone.
+   */
+  review_offered?: boolean;
   is_paid: boolean;
   identity: {
     confirmed: boolean;

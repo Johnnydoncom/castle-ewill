@@ -6,6 +6,10 @@ import type { PrintBlocker } from "@/lib/actions/will";
  * The reason is the server's (`journey.print_blocked_by`); the vault only words
  * it. The gates are the Will page's own — paid for, identity confirmed, an
  * active subscription — so the vault is never a way round them.
+ *
+ * Worded for whoever holds the vault. A lawyer's Wills are their clients', so
+ * theirs says "this Will" and asks for the client's photograph; the identity
+ * owed is still the lawyer's own.
  */
 export type WillDownloadBlock = {
   message: string;
@@ -15,6 +19,7 @@ export type WillDownloadBlock = {
 export function willDownloadBlock(
   willId: string,
   blocker: PrintBlocker | null | undefined,
+  forClient = false,
 ): WillDownloadBlock | null {
   const willPage = `/dashboard/wills/${willId}`;
 
@@ -30,7 +35,9 @@ export function willDownloadBlock(
       };
     case "kyc_required":
       return {
-        message: "Confirm your identity to download your Will.",
+        message: forClient
+          ? "Confirm your own identity to download this Will. One check covers every Will you draw."
+          : "Confirm your identity to download your Will.",
         cta: { label: "Verify my identity", href: "/dashboard/kyc" },
       };
     case "unpaid":
@@ -40,17 +47,26 @@ export function willDownloadBlock(
       };
     case "incomplete":
       return {
-        message: "Finish your Will to download it.",
-        cta: { label: "Continue your Will", href: willPage },
+        message: forClient
+          ? "Finish this Will to download it."
+          : "Finish your Will to download it.",
+        cta: {
+          label: forClient ? "Continue this Will" : "Continue your Will",
+          href: willPage,
+        },
       };
     case "passport_photograph_required":
       return {
-        message: "Add your passport photograph — it is printed on your Will.",
+        message: forClient
+          ? "Add your client's passport photograph — it is printed on their Will."
+          : "Add your passport photograph — it is printed on your Will.",
         cta: { label: "Open this Will", href: willPage },
       };
     case "witnesses_required":
       return {
-        message: "Your witnesses need confirming before your Will can be downloaded.",
+        message: forClient
+          ? "The witnesses need confirming before this Will can be downloaded."
+          : "Your witnesses need confirming before your Will can be downloaded.",
         cta: { label: "Open this Will", href: willPage },
       };
   }

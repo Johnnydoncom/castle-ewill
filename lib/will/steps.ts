@@ -139,29 +139,71 @@ export type WillSectionDefinition = {
 /**
  * The wording for a Will drawn for somebody else.
  *
- * A verified lawyer drafts for clients, so "About you" and "use your names"
- * address the wrong person — the testator is the client, not the account
- * holder. Only the steps and sections that speak to the testator directly
- * change; everything else reads the same either way.
+ * A verified lawyer drafts for clients, so "About you", "use your names" and
+ * "the people who will watch you sign" address the wrong person — the testator
+ * is the client, not the account holder. Every step and section that speaks to
+ * the testator directly has its counterpart here; the ones that do not (the
+ * residue, funeral wishes) read the same either way and are left out.
+ *
+ * "You" still means the lawyer wherever it is the lawyer who acts — "the
+ * shares you set below" is theirs to set on the client's instructions.
  *
  * Keyed by the same slugs as the table above, and applied through the
  * helpers below, so the literal types callers rely on stay as they are.
  */
 const FOR_CLIENT: {
-  steps: Partial<Record<WillStepSlug, { title: string; intro: string }>>;
-  sections: Partial<Record<WillSectionSlug, string>>;
+  steps: Partial<Record<WillStepSlug, { title?: string; intro?: string }>>;
+  sections: Partial<Record<WillSectionSlug, { title?: string; help?: string }>>;
 } = {
   steps: {
     "about-you": {
       title: "About your client",
       intro: "Begin with the person whose wishes we are recording — your client.",
     },
+    estate: {
+      intro:
+        "The people who will act for your client, the people who inherit, and what your client owns.",
+    },
+    wishes: {
+      intro:
+        "Particular gifts first, then how everything else is shared, then how your client would like to be laid to rest.",
+    },
+    witnesses: {
+      intro: "Name the two people who will watch your client sign.",
+    },
+    review: {
+      intro: "Read it through with your client before you confirm it is accurate.",
+    },
   },
   sections: {
-    personal:
-      "Use your client's names exactly as they appear on their identity documents. A mismatch is the most common cause of probate delay.",
-    declaration:
-      "A Will must state that it is the testator's last Will and revoke earlier ones, otherwise two documents may be read together and contradict each other.",
+    personal: {
+      help: "Use your client's names exactly as they appear on their identity documents. A mismatch is the most common cause of probate delay.",
+    },
+    declaration: {
+      help: "A Will must state that it is the testator's last Will and revoke earlier ones, otherwise two documents may be read together and contradict each other.",
+    },
+    executors: {
+      help: "An executor gathers your client's assets, settles debts and distributes the estate. Appoint at least two executors. A beneficiary may also be an executor.",
+    },
+    beneficiaries: {
+      help: "Name everyone who should inherit and how each is related to your client. If a beneficiary is under 18, appointment of a trusted guardian is desirable.",
+    },
+    trustees: {
+      help: "Direct the executors to open a trust bank account, from which the estate is generally administered and the appointed guardian is provided with what your client's children need.",
+    },
+    assets: {
+      title: "Your client's assets",
+      help: "An estate nobody has written down is an estate the executors have to go looking for. Listing it here does not give it away; it tells the people acting for your client what there is.",
+    },
+    bequests: {
+      help: "Give specific items to beneficiaries — or, if your client would rather not name gifts item by item, leave the whole estate to the trustees to hold and manage for the beneficiaries on the shares you set below.",
+    },
+    witnesses: {
+      help: "Two witnesses must watch your client sign and then sign in front of them. Neither may be a beneficiary, or that person's gift fails.",
+    },
+    review: {
+      help: "Nothing is final until it is printed and your client signs it in front of their witnesses.",
+    },
   },
 };
 
@@ -174,8 +216,13 @@ export function stepIntro(step: WillStepDefinition, forClient = false): string {
   return (forClient && FOR_CLIENT.steps[step.slug]?.intro) || step.intro;
 }
 
+/** A section's heading — "Your assets", or "Your client's assets". */
+export function sectionTitle(slug: WillSectionSlug, forClient = false): string {
+  return (forClient && FOR_CLIENT.sections[slug]?.title) || sectionBySlug(slug).title;
+}
+
 export function sectionHelp(slug: WillSectionSlug, forClient = false): string {
-  return (forClient && FOR_CLIENT.sections[slug]) || sectionBySlug(slug).help;
+  return (forClient && FOR_CLIENT.sections[slug]?.help) || sectionBySlug(slug).help;
 }
 
 /** Counted rather than written down. */

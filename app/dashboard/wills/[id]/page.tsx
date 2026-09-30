@@ -48,6 +48,13 @@ export default async function WillDetailPage({
 }) {
   const profile = await requireProfile();
 
+  /*
+   * A lawyer's Will is a client's. Everything below that would say "your
+   * Will", "your witnesses" or "sign it in front of you" says whose it really
+   * is instead — the account's own capability, as the server reports it.
+   */
+  const forClient = profile.may_name_another_testator;
+
   const { id } = await params;
   const read = await readWill(id);
 
@@ -78,9 +85,9 @@ export default async function WillDetailPage({
             We could not open this Will just now.
           </h1>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Your Will is safe — this is a problem reading it, not a problem with
-            the document. Please try again in a moment, and tell us if it keeps
-            happening.
+            {forClient ? "This Will is safe" : "Your Will is safe"} — this is a
+            problem reading it, not a problem with the document. Please try
+            again in a moment, and tell us if it keeps happening.
           </p>
           <p className="mt-3 text-xs text-muted-foreground">{read.message}</p>
         </div>
@@ -148,11 +155,12 @@ export default async function WillDetailPage({
 
       {will.journey && (
         <div className="space-y-6">
-          <JourneyBar journey={will.journey} />
+          <JourneyBar journey={will.journey} forClient={forClient} />
           <JourneyActions
             willId={will.id}
             journey={will.journey}
             pdfUrl={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${will.id}/pdf`}
+            forClient={forClient}
             /*
               These have their own panel further down this page, so the card
               and its button would only be pointing at what is already in view.
@@ -176,6 +184,7 @@ export default async function WillDetailPage({
           willId={will.id}
           expiresAt={will.subscription_expires_at}
           isActive={will.has_active_subscription}
+          forClient={forClient}
           renewal={
             prices.subscription
               ? {
@@ -195,6 +204,7 @@ export default async function WillDetailPage({
           willId={will.id}
           autoRenewal={will.auto_renewal}
           subscriptionPrice={prices.subscription?.price_formatted ?? null}
+          forClient={forClient}
         />
       )}
 
@@ -217,7 +227,13 @@ export default async function WillDetailPage({
               willId={will.id}
               // A verified lawyer is offered the professional plan only.
               plans={willPlansFor(prices, profile.pricing_audience)}
-              review={prices.review}
+              /*
+                Not sold where it is not offered. A lawyer drafting for a
+                client is the solicitor a review would go to, so the server
+                offers none on their Wills (`journey.review_offered`) and
+                would add no charge for one if asked.
+              */
+              review={will.journey?.review_offered === false ? null : prices.review}
               subscription={prices.subscription}
               lodging={prices.lodging}
               initialQuotes={prices.quotes}
@@ -226,6 +242,7 @@ export default async function WillDetailPage({
               // the first client's payment.
               hasActiveSubscription={will.has_active_subscription}
               autoRenewAvailable={prices.autoRenewAvailable}
+              forClient={forClient}
             />
           </div>
         </section>
@@ -260,12 +277,17 @@ export default async function WillDetailPage({
           records={witnessIds}
           suggested={suggestedWitnessNames}
           idTypes={witnessIdTypeOptions}
+          forClient={forClient}
         />
       )}
 
       <StaffAccessPanel willId={will.id} access={staffAccess} />
 
-      <ReviewSummary will={will} editBasePath={`/dashboard/wills/${will.id}/edit`} />
+      <ReviewSummary
+        will={will}
+        editBasePath={`/dashboard/wills/${will.id}/edit`}
+        forClient={forClient}
+      />
     </div>
   );
 }

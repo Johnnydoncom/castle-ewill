@@ -344,7 +344,10 @@ export function WitnessVerification({
   records = [],
   suggested = [],
   idTypes = [],
+  forClient = false,
 }: {
+  /** A lawyer's client's Will: the witnesses are the client's, not theirs. */
+  forClient?: boolean;
   records?: WitnessIdentityRecord[];
   /** The witnesses named in the Will, used to pre-fill the form. */
   suggested?: SuggestedWitness[];
@@ -430,13 +433,16 @@ export function WitnessVerification({
     <section className="border border-border bg-background p-6 sm:p-8">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="min-w-0">
-          <h2 className="font-serif text-xl text-navy">Your two witnesses</h2>
+          <h2 className="font-serif text-xl text-navy">
+            {forClient ? "The two witnesses" : "Your two witnesses"}
+          </h2>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
             We ask the authority that issued each witness&apos;s ID whether the
-            number belongs to them. Both must be confirmed before your Will can
-            be printed. Ask each witness first — it is their identity, not
-            yours — and enter their name exactly as it appears on the ID.
-            Answers usually come back within a few seconds.
+            number belongs to them. Both must be confirmed before{" "}
+            {forClient ? "this Will" : "your Will"} can be printed. Ask each
+            witness first — it is their identity, not yours — and enter their
+            name exactly as it appears on the ID. Answers usually come back
+            within a few seconds.
           </p>
           <p className="mt-2 max-w-2xl text-xs leading-relaxed text-muted-foreground">
             Nothing is uploaded, and we keep no copy of anyone&apos;s document.

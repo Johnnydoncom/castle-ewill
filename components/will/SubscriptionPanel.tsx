@@ -21,6 +21,7 @@ export function SubscriptionPanel({
   expiresAt,
   isActive,
   renewal,
+  forClient = false,
 }: {
   willId: string;
   expiresAt: string | null;
@@ -28,15 +29,21 @@ export function SubscriptionPanel({
   isActive: boolean;
   /** The published subscription, or null when none is on sale. */
   renewal: Renewal | null;
+  /** A lawyer's client's Will: each has a subscription of its own. */
+  forClient?: boolean;
 }) {
   const standing = subscriptionStanding(expiresAt, isActive);
 
+  // "This Will" for a lawyer, who holds one per client and is not the
+  // testator of any of them.
+  const [the, lower] = forClient ? ["This Will", "this Will"] : ["Your Will", "your Will"];
+
   const body =
     standing.kind === "active"
-      ? "Your Will is kept in the vault and can be updated free of charge while it runs. Renewing now adds a year to it, so nothing is lost by renewing early."
+      ? `${the} is kept in the vault and can be updated free of charge while it runs. Renewing now adds a year to it, so nothing is lost by renewing early.`
       : standing.kind === "ended"
-        ? "Renew to keep your Will downloadable and to update it again. Nothing has been deleted."
-        : "A subscription keeps your Will in the vault and lets you update it free of charge for a year.";
+        ? `Renew to keep ${lower} downloadable and to update it again. Nothing has been deleted.`
+        : `A subscription keeps ${lower} in the vault and lets you update it free of charge for a year.`;
 
   return (
     <section id="subscription" className="scroll-mt-24 border border-border bg-background p-6">

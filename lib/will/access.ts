@@ -58,7 +58,7 @@ export const ACCESS_SCOPES: ReadonlyArray<{ value: WillAccessScope; label: strin
   {
     value: "view",
     label: "Read only",
-    hint: "They can read your Will on screen, but not download it.",
+    hint: "They can read this Will on screen, but not download it.",
   },
   {
     value: "view_download",
@@ -85,13 +85,13 @@ export function describeAccessEvent(event: WillAccessEvent): string {
     case "will.access_revoked":
       return event.by === "you" ? "You withdrew access." : "Access was withdrawn.";
     case "will.review_access_opened":
-      return "You allowed a Castle reviewer to read your Will.";
+      return "You allowed a Castle reviewer to read this Will.";
     case "will.review_access_closed":
       return "The reviewer's access ended.";
     case "will.viewed_by_admin":
-      return `${event.purpose ? staff : "Castle staff"} read your Will.`;
+      return `${event.purpose ? staff : "Castle staff"} read this Will.`;
     case "will.pdf_read_by_admin":
-      return `${event.purpose ? staff : "Castle staff"} downloaded a copy of your Will.`;
+      return `${event.purpose ? staff : "Castle staff"} downloaded a copy of this Will.`;
     default:
       return "Access was recorded.";
   }

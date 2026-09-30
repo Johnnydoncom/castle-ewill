@@ -75,7 +75,12 @@ export default async function DocumentsPage() {
         })}
       </dl>
 
-      <DocumentVault records={records} wills={wills} />
+      <DocumentVault
+        records={records}
+        wills={wills}
+        // A lawyer's Wills are their clients': the vault says "this Will".
+        forClient={profile?.may_name_another_testator ?? false}
+      />
 
       <section className="border-l-2 border-gold/40 bg-gold/5 px-6 py-5">
         <p className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">

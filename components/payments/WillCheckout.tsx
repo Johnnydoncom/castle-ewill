@@ -99,6 +99,7 @@ export function WillCheckout({
   initialQuotes,
   hasActiveSubscription,
   autoRenewAvailable = false,
+  forClient = false,
 }: {
   /*
    * Which Will is being paid for.
@@ -128,6 +129,8 @@ export function WillCheckout({
   hasActiveSubscription: boolean;
   /** Whether the active gateway can keep a card for automatic renewal. */
   autoRenewAvailable?: boolean;
+  /** A lawyer paying for a client's Will: the subscription is that Will's. */
+  forClient?: boolean;
 }) {
   const [selected, setSelected] = useState(
     () => plans.find((plan) => plan.is_popular)?.slug ?? plans[0]?.slug ?? "",
@@ -163,7 +166,9 @@ export function WillCheckout({
       includedByPlan: (plan?.included_subscription_months ?? 0) > 0,
       alreadyHeld: hasActiveSubscription,
       includedNote: "Included with this plan for twelve months.",
-      heldNote: "Your subscription is active — amendments are already free.",
+      heldNote: forClient
+        ? "This Will's subscription is active — amendments are already free."
+        : "Your subscription is active — amendments are already free.",
     },
     {
       key: "withLodging" as OptionKey,
@@ -338,14 +343,18 @@ export function WillCheckout({
           />
           <span className="min-w-0 flex-1">
             <span className="font-serif text-base text-navy">
-              Renew my subscription automatically each year
+              {forClient
+                ? "Renew this Will's subscription automatically each year"
+                : "Renew my subscription automatically each year"}
             </span>
             <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">
               We keep the card you pay with and charge{" "}
               {subscription ? subscription.price_formatted : "the annual subscription"}{" "}
-              when your year ends, so access to your Will never lapses. We remind
-              you a week before, and you can switch it off at any time. Card
-              payments only.
+              {forClient
+                ? "when the year ends, so access to this Will never lapses."
+                : "when your year ends, so access to your Will never lapses."}{" "}
+              We remind you a week before, and you can switch it off at any time.
+              Card payments only.
             </span>
           </span>
         </label>

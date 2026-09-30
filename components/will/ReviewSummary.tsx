@@ -4,6 +4,7 @@ import type { ApiWill, WillPerson } from "@/lib/actions/will";
 import { WILL_STATUS_LABELS } from "@/lib/will/reference";
 import {
   sectionBySlug,
+  sectionTitle,
   stepByNumber,
   type WillSectionSlug,
 } from "@/lib/will/steps";
@@ -24,9 +25,12 @@ export function ReviewSummary({
    * console shows a client's Will read-only, and staff never edit one.
    */
   editBasePath,
+  forClient = false,
 }: {
   will: ApiWill;
   editBasePath?: string;
+  /** A lawyer reading back a client's Will: "the executors", not "my". */
+  forClient?: boolean;
 }) {
   const verdicts = new Map<string, boolean>(
     (will.progress?.steps ?? []).flatMap((step) =>
@@ -100,7 +104,9 @@ export function ReviewSummary({
           ? ["Not yet answered"]
           : [
               will.executors_are_trustees
-                ? "My executors act as my trustees"
+                ? forClient
+                  ? "The executors act as the trustees"
+                  : "My executors act as my trustees"
                 : (will.trustees ?? [])
                     .map((t) => `${t.full_name} — ${t.address}`)
                     .join("; ") || "No trustees named",
@@ -179,7 +185,9 @@ export function ReviewSummary({
                 <span className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">
                   {stepByNumber(section.step)?.numeral}
                 </span>
-                <h3 className="font-serif text-lg text-navy">{section.title}</h3>
+                <h3 className="font-serif text-lg text-navy">
+                  {sectionTitle(slug, forClient)}
+                </h3>
                 {verdicts.get(slug) === false && (
                   <span className="border border-destructive/40 px-2 py-0.5 text-[10px] uppercase tracking-wider text-destructive">
                     Incomplete

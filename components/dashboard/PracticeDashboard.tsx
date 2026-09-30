@@ -9,10 +9,9 @@ import {
 } from "lucide-react";
 
 import { PaymentBanner } from "@/components/payments/PaymentBanner";
-import { JOURNEY_STAGE_LABELS } from "@/components/will/JourneyBar";
+import { JOURNEY_STAGE_LABELS, journeyStages } from "@/components/will/JourneyBar";
 import type { DashboardData } from "@/lib/actions/dashboard";
 import type { Profile } from "@/lib/actions/guards";
-import { JOURNEY_STAGES } from "@/lib/actions/will";
 import { REVIEW_TRIGGERS } from "@/lib/company";
 import {
   RENEWAL_WINDOW_DAYS,
@@ -337,7 +336,7 @@ export function PracticeDashboard({
               href="/dashboard/wills"
               className="text-xs uppercase tracking-[0.2em] text-navy underline underline-offset-4 hover:text-gold"
             >
-              {wills.length > TABLE_ROWS ? `View all ${wills.length}` : "My Wills"} &rarr;
+              {wills.length > TABLE_ROWS ? `View all ${wills.length}` : "Client Wills"} &rarr;
             </Link>
           )}
         </div>
@@ -371,6 +370,8 @@ export function PracticeDashboard({
                   {wills.slice(0, TABLE_ROWS).map((will) => {
                     const action = practiceActionFor(will, now);
                     const stage = will.journey?.stage;
+                    // This Will's own stages — a lawyer's has no Legal review.
+                    const stages = will.journey ? journeyStages(will.journey) : [];
                     const percent = completionOf(will);
 
                     return (
@@ -386,7 +387,7 @@ export function PracticeDashboard({
                             <>
                               {JOURNEY_STAGE_LABELS[stage]}
                               <span className="ml-1.5 text-xs text-muted-foreground">
-                                {JOURNEY_STAGES.indexOf(stage) + 1}/{JOURNEY_STAGES.length}
+                                {stages.indexOf(stage) + 1}/{stages.length}
                               </span>
                             </>
                           ) : (

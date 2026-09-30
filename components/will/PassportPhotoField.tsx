@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import { AlertCircle, Camera, Check, Loader2 } from "lucide-react";
 
 import { uploadDocumentAction } from "@/lib/actions/documents.client";
+import { willVoice } from "@/lib/will/voice";
 
 /**
  * The testator's photograph, as a field rather than a panel.
@@ -26,6 +27,7 @@ export function PassportPhotoField({
   willId,
   documentId,
   onUploaded,
+  forClient = false,
 }: {
   /**
    * The Will this photograph is printed on. Each Will has its own: a lawyer's
@@ -36,7 +38,14 @@ export function PassportPhotoField({
   documentId?: string | null;
   /** Called once a new one is stored, so the page can stop asking for it. */
   onUploaded?: () => void;
+  /**
+   * A lawyer drafting for a client: the photograph is the client's, not
+   * theirs, and the note has to say whose to take.
+   */
+  forClient?: boolean;
 }) {
+  const voice = willVoice(forClient).photograph;
+
   const [preview, setPreview] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "saving" | "saved" | "error">(
     "idle",
@@ -126,7 +135,7 @@ export function PassportPhotoField({
             // eslint-disable-next-line @next/next/no-img-element
             <img
               src={preview}
-              alt="Your passport photograph"
+              alt={voice.alt}
               className="h-full w-full object-cover"
             />
           ) : (
@@ -147,8 +156,7 @@ export function PassportPhotoField({
 
         <div className="min-w-0 flex-1 space-y-2">
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Printed on the face of your Will. Use a recent photograph against a
-            plain background — it saves as soon as you choose it.
+            {voice.note}
           </p>
 
           <button

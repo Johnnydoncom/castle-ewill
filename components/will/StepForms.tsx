@@ -20,11 +20,12 @@ import {
 } from "@/lib/actions/will.client";
 import { NIGERIAN_STATES } from "@/lib/will/reference";
 import {
-  sectionBySlug,
   sectionHelp,
+  sectionTitle,
   stepForSection,
   type WillSectionSlug,
 } from "@/lib/will/steps";
+import { willVoice, type WillVoice } from "@/lib/will/voice";
 import {
   CheckboxField,
   RadioCards,
@@ -55,6 +56,9 @@ type StepProps = {
    * a question: it is the name this account was opened in and the name their
    * identity is checked against, so the wizard shows it instead of inviting a
    * spelling that would differ from the register's.
+   *
+   * It also sets who every step is talking to. False is a lawyer drafting for
+   * a client, and the wording follows on every page — see `willVoice`.
    */
   nameIsTheirs?: boolean;
   /**
@@ -69,8 +73,11 @@ type StepProps = {
   accountName?: { first: string; middle: string; last: string };
 };
 
-/** What every section's fields need: the Will, and the last submission. */
-type FieldsProps = { will: ApiWill; state: FormState };
+/**
+ * What every section's fields need: the Will, the last submission, and the
+ * wording for whoever is answering.
+ */
+type FieldsProps = { will: ApiWill; state: FormState; voice: WillVoice };
 
 const stateOptions = NIGERIAN_STATES.map((s) => ({ value: s, label: s }));
 
@@ -180,8 +187,6 @@ function Section({
   forClient?: boolean;
   children: React.ReactNode;
 }) {
-  const section = sectionBySlug(slug);
-
   /*
     Titled only when it shares its page. A step asking one thing already has
     that thing's name in the heading above, and printing it twice is the
@@ -199,7 +204,7 @@ function Section({
           id={`section-${slug}`}
           className="border-b border-border pb-3 font-serif text-2xl tracking-tight text-navy"
         >
-          {section.title}
+          {sectionTitle(slug, forClient)}
         </h2>
       )}
 
@@ -256,10 +261,12 @@ export function AboutYouStep({
 }: StepProps) {
   const [state, action] = useFormAction(saveAboutYouAction, { refresh: false });
   const e = state.fieldErrors;
+  const forClient = !nameIsTheirs;
+  const voice = willVoice(forClient).declaration;
 
   return (
     <StepForm will={will} state={state} action={action} backHref={backHref}>
-      <Section slug="personal" forClient={!nameIsTheirs}>
+      <Section slug="personal" forClient={forClient}>
         <div className="grid gap-6 sm:grid-cols-2">
           {/*
             A field, not a panel. It saves on selection, so there is nothing to
@@ -273,6 +280,7 @@ export function AboutYouStep({
             key={will.id}
             willId={will.id}
             documentId={passportPhotoId}
+            forClient={forClient}
           />
 
           {/*
@@ -422,29 +430,32 @@ export function AboutYouStep({
         </div>
       </Section>
 
-      <Section slug="declaration" forClient={!nameIsTheirs}>
+      <Section slug="declaration" forClient={forClient}>
         <div className="space-y-5 border border-border bg-background p-6">
           <CheckboxField
             name="declaredLastWill"
             defaultChecked={fieldChecked(state, "declaredLastWill", will.declaration.declared_last_will)}
             errors={e?.declaredLastWill}
           >
-            I declare this document to be my <strong>Last Will and Testament</strong>.
+            {/*
+              Said by whoever is ticking it. A lawyer attests to what their
+              client declares, not to a Will of their own.
+            */}
+            {voice.lastWillLead} <strong>Last Will and Testament</strong>.
           </CheckboxField>
           <CheckboxField
             name="revokesPriorWills"
             defaultChecked={fieldChecked(state, "revokesPriorWills", will.declaration.revokes_prior_wills)}
             errors={e?.revokesPriorWills}
           >
-            I revoke all Wills, codicils and testamentary dispositions previously
-            made by me.
+            {voice.revokes}
           </CheckboxField>
           <CheckboxField
             name="confirmedSoundMind"
             defaultChecked={fieldChecked(state, "confirmedSoundMind", will.declaration.confirmed_sound_mind)}
             errors={e?.confirmedSoundMind}
           >
-            I am of sound mind, memory and understanding, and of full legal age.
+            {voice.soundMind}
           </CheckboxField>
         </div>
       </Section>
@@ -454,26 +465,28 @@ export function AboutYouStep({
 
 /* ================================ Step 2 ================================= */
 
-export function EstateStep({ will, backHref }: StepProps) {
+export function EstateStep({ will, backHref, nameIsTheirs = true }: StepProps) {
   const [state, action] = useFormAction(saveEstateAction, { refresh: false });
   const e = state.fieldErrors;
+  const forClient = !nameIsTheirs;
+  const fields = { will, state, voice: willVoice(forClient) };
 
   return (
     <StepForm will={will} state={state} action={action} backHref={backHref}>
-      <Section slug="executors" errors={e?.executors}>
-        <ExecutorsFields will={will} state={state} />
+      <Section slug="executors" errors={e?.executors} forClient={forClient}>
+        <ExecutorsFields {...fields} />
       </Section>
 
-      <Section slug="beneficiaries" errors={e?.beneficiaries}>
-        <BeneficiariesFields will={will} state={state} />
+      <Section slug="beneficiaries" errors={e?.beneficiaries} forClient={forClient}>
+        <BeneficiariesFields {...fields} />
       </Section>
 
-      <Section slug="trustees" errors={e?.trustees}>
-        <TrusteesFields will={will} state={state} />
+      <Section slug="trustees" errors={e?.trustees} forClient={forClient}>
+        <TrusteesFields {...fields} />
       </Section>
 
-      <Section slug="assets" errors={e?.assets}>
-        <AssetsFields will={will} state={state} />
+      <Section slug="assets" errors={e?.assets} forClient={forClient}>
+        <AssetsFields {...fields} />
       </Section>
     </StepForm>
   );
@@ -724,7 +737,7 @@ function BeneficiaryRow({
  * default — and naming others clears it, because a Will naming two sets of
  * trustees is a Will nobody can act on.
  */
-function TrusteesFields({ will, state }: FieldsProps) {
+function TrusteesFields({ will, state, voice }: FieldsProps) {
   // Unanswered is null, and the default offered is that the executors act.
   const acting = fieldChecked(state, "executorsAreTrustees", will.executors_are_trustees ?? true);
   const [executorsActing, setExecutorsActing] = useState(acting);
@@ -747,7 +760,7 @@ function TrusteesFields({ will, state }: FieldsProps) {
             onChange={(event) => setExecutorsActing(event.target.checked)}
             className="mt-0.5 h-4 w-4 shrink-0 accent-navy"
           />
-          <span>My executors should also act as my trustees.</span>
+          <span>{voice.trustees.executorsAct}</span>
         </label>
       </div>
 
@@ -802,8 +815,7 @@ function TrusteesFields({ will, state }: FieldsProps) {
           name="trustBankAccount"
           defaultChecked={fieldChecked(state, "trustBankAccount", will.trust_bank_account ?? false)}
         >
-          Direct my executors to open a trust bank account, from which any
-          guardian is provided with what my children need.
+          {voice.trustees.trustAccount}
         </CheckboxField>
       </div>
 
@@ -831,14 +843,14 @@ function TrusteesFields({ will, state }: FieldsProps) {
  * An estate nobody has enumerated is an estate the executor has to go looking
  * for.
  */
-function AssetsFields({ will, state }: FieldsProps) {
+function AssetsFields({ will, state, voice }: FieldsProps) {
   return (
     <>
       <RepeatableList
         legend="Asset"
         prefix="assets"
         addLabel="Add another asset"
-        emptyLabel="Nothing listed yet. Add what you own — land, buildings, vehicles, accounts, jewellery, personal effects."
+        emptyLabel={voice.assets.empty}
         min={0}
         max={100}
         initialCount={will.assets.length || 1}
@@ -892,7 +904,7 @@ function AssetsFields({ will, state }: FieldsProps) {
           name="assetsDeclaredNone"
           defaultChecked={fieldChecked(state, "assetsDeclaredNone", will.assets_declared_none ?? false)}
         >
-          I have nothing to list separately.
+          {voice.assets.none}
         </CheckboxField>
       </div>
     </>
@@ -901,35 +913,37 @@ function AssetsFields({ will, state }: FieldsProps) {
 
 /* ================================ Step 3 ================================= */
 
-export function WishesStep({ will, backHref }: StepProps) {
+export function WishesStep({ will, backHref, nameIsTheirs = true }: StepProps) {
   const [state, action] = useFormAction(saveWishesAction, { refresh: false });
   const e = state.fieldErrors;
+  const forClient = !nameIsTheirs;
+  const fields = { will, state, voice: willVoice(forClient) };
 
   return (
     <StepForm will={will} state={state} action={action} backHref={backHref}>
-      <Section slug="bequests" errors={e?.bequests}>
-        <BequestsFields will={will} state={state} />
+      <Section slug="bequests" errors={e?.bequests} forClient={forClient}>
+        <BequestsFields {...fields} />
       </Section>
 
-      <Section slug="residue" errors={e?.shares}>
-        <ResidueFields will={will} state={state} />
+      <Section slug="residue" errors={e?.shares} forClient={forClient}>
+        <ResidueFields {...fields} />
       </Section>
 
-      <Section slug="funeral">
-        <FuneralFields will={will} state={state} />
+      <Section slug="funeral" forClient={forClient}>
+        <FuneralFields {...fields} />
       </Section>
     </StepForm>
   );
 }
 
-function BequestsFields({ will, state }: FieldsProps) {
+function BequestsFields({ will, state, voice }: FieldsProps) {
   return (
     <>
       <RepeatableList
         legend="Gift"
         prefix="bequests"
         addLabel="Add a specific gift"
-        emptyLabel="No specific gifts listed yet. Add one, or choose below to leave everything to your trustees."
+        emptyLabel={voice.gifts.empty}
         min={0}
         max={50}
         initialCount={will.bequests.length}
@@ -991,9 +1005,7 @@ function BequestsFields({ will, state }: FieldsProps) {
           name="estateInTrust"
           defaultChecked={fieldChecked(state, "estateInTrust", will.estate_in_trust ?? false)}
         >
-          I would rather not name gifts individually — leave my whole estate,
-          including everything listed as an asset, to my trustees to hold and
-          manage for my beneficiaries on the shares I set below.
+          {voice.gifts.estateInTrust}
         </CheckboxField>
       </div>
     </>
@@ -1012,7 +1024,7 @@ function formatPercent(value: number): string {
  * the residue is what those gifts leave, so it is divided once they are known.
  * The people come from the previous page; this only asks for a share each.
  */
-function ResidueFields({ will, state }: FieldsProps) {
+function ResidueFields({ will, state, voice }: FieldsProps) {
   const beneficiaries = will.beneficiaries;
 
   /*
@@ -1156,9 +1168,9 @@ function ResidueFields({ will, state }: FieldsProps) {
         "Optional".
       */}
       <TextArea
-        label="Directions to your executors about the residue"
+        label={voice.residue.directionsLabel}
         name="residuaryEstate"
-        hint="In your own words"
+        hint={voice.residue.directionsHint}
         rows={4}
         placeholder="For example: my executors may divide the residue among my children in such shares as they think fit."
         defaultValue={fieldValue(state, "residuaryEstate", will.residuary_estate ?? "")}
@@ -1168,7 +1180,7 @@ function ResidueFields({ will, state }: FieldsProps) {
   );
 }
 
-function FuneralFields({ will, state }: FieldsProps) {
+function FuneralFields({ will, state, voice }: FieldsProps) {
   const e = state.fieldErrors;
 
   return (
@@ -1200,11 +1212,11 @@ function FuneralFields({ will, state }: FieldsProps) {
       />
 
       <TextArea
-        label="Any other wishes for your executors"
+        label={voice.funeral.otherWishesLabel}
         name="specialInstructions"
         hint="Optional"
         rows={4}
-        placeholder="Anything else your executors should know."
+        placeholder={voice.funeral.otherWishesPlaceholder}
         defaultValue={fieldValue(state, "specialInstructions", will.special_instructions ?? "")}
         errors={e?.specialInstructions}
       />
@@ -1214,12 +1226,16 @@ function FuneralFields({ will, state }: FieldsProps) {
 
 /* ================================ Step 4 ================================= */
 
-export function WitnessesStep({ will, backHref }: StepProps) {
+export function WitnessesStep({ will, backHref, nameIsTheirs = true }: StepProps) {
   const [state, action] = useFormAction(saveWitnessesAction, { refresh: false });
 
   return (
     <StepForm will={will} state={state} action={action} backHref={backHref}>
-      <Section slug="witnesses" errors={state.fieldErrors?.witnesses}>
+      <Section
+        slug="witnesses"
+        errors={state.fieldErrors?.witnesses}
+        forClient={!nameIsTheirs}
+      >
         <RepeatableList
           legend="Witness"
           prefix="witnesses"
@@ -1288,6 +1304,7 @@ export function ReviewStep({
   backHref,
   children,
   lodgingJustPaid = false,
+  nameIsTheirs = true,
 }: StepProps & {
   children: React.ReactNode;
   /**
@@ -1298,6 +1315,8 @@ export function ReviewStep({
   lodgingJustPaid?: boolean;
 }) {
   const [state, action] = useFormAction(submitWillAction);
+  const forClient = !nameIsTheirs;
+  const voice = willVoice(forClient).review;
 
   /*
    * The form itself, so the identity check can submit it.
@@ -1376,9 +1395,7 @@ export function ReviewStep({
     const confirmation = formRef.current?.elements.namedItem("confirmedAccurate");
 
     if (!(confirmation instanceof HTMLInputElement) || !confirmation.checked) {
-      setPayError(
-        "Confirm that the information in your Will is accurate first, so it can be submitted as soon as your payment clears.",
-      );
+      setPayError(voice.confirmBeforePaying);
       return;
     }
 
@@ -1424,7 +1441,7 @@ export function ReviewStep({
       >
         <WillId id={will.id} />
         <StepBanner state={state} />
-        <HelpPanel>{sectionBySlug("review").help}</HelpPanel>
+        <HelpPanel>{sectionHelp("review", forClient)}</HelpPanel>
 
         {children}
 
@@ -1439,8 +1456,7 @@ export function ReviewStep({
             )}
             errors={state.fieldErrors?.confirmedAccurate}
           >
-            I confirm that the information recorded in this Will is accurate and
-            reflects my wishes.
+            {voice.confirmAccurate}
           </CheckboxField>
         </div>
 
@@ -1455,8 +1471,7 @@ export function ReviewStep({
               Updating this Will needs an active subscription
             </p>
             <p className="mt-1 text-sm text-muted-foreground">
-              Writing your Will was a one-off purchase. Keeping it current as your
-              life changes is what the subscription covers.
+              {voice.subscriptionNeeded}
             </p>
             {/* The Will's own page sells the renewal; there is no billing page. */}
             <Link
@@ -1482,6 +1497,7 @@ export function ReviewStep({
         {lodging && (
           <LodgingOption
             lodging={lodging}
+            voice={voice}
             wanted={wantsLodging}
             onChange={(wanted) => {
               setWantsLodging(wanted);
@@ -1504,6 +1520,7 @@ export function ReviewStep({
             amount={lodging.price_formatted}
             paying={paying}
             error={payError}
+            note={voice.afterPayment}
             onPay={() => void payForLodging()}
           />
         ) : (
@@ -1551,10 +1568,12 @@ export function ReviewStep({
  */
 function LodgingOption({
   lodging,
+  voice,
   wanted,
   onChange,
 }: {
   lodging: AmendmentLodging;
+  voice: WillVoice["review"];
   wanted: boolean;
   onChange: (wanted: boolean) => void;
 }) {
@@ -1586,14 +1605,12 @@ function LodgingOption({
           <span className="min-w-0 flex-1">
             <span className="flex flex-wrap items-baseline justify-between gap-x-4">
               <span className="font-serif text-lg text-foreground">
-                Lodge my updated Will with the Probate Registry
+                {voice.lodgeUpdated}
               </span>
               <span className="text-sm text-navy">{lodging.price_formatted}</span>
             </span>
             <span className="mt-1 block text-sm leading-relaxed text-muted-foreground">
-              Optional — you can lodge it yourself. A Will that has been reviewed
-              should always be lodged, so the registry holds the version that
-              counts.
+              {voice.lodgeNote}
             </span>
           </span>
         </label>
@@ -1613,12 +1630,15 @@ function LodgingPaymentFooter({
   amount,
   paying,
   error,
+  note,
   onPay,
 }: {
   backHref?: string;
   amount: string;
   paying: boolean;
   error: string | null;
+  /** What happens after paying, said to whoever is paying. */
+  note: string;
   onPay: () => void;
 }) {
   return (
@@ -1657,9 +1677,7 @@ function LodgingPaymentFooter({
         </button>
       </div>
 
-      <p className="text-sm leading-relaxed text-muted-foreground">
-        After payment you confirm it is you, and your updated Will is submitted.
-      </p>
+      <p className="text-sm leading-relaxed text-muted-foreground">{note}</p>
 
       {error && (
         <p role="alert" className="text-sm leading-relaxed text-destructive">

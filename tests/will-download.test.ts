@@ -26,6 +26,25 @@ describe("downloading a Will from the vault", () => {
     expect(willDownloadBlock("w1", "witnesses_required")?.cta.href).toBe("/dashboard/wills/w1");
   });
 
+  it("words it for a lawyer about their client's Will", () => {
+    // The Will, the photograph and the witnesses are the client's; the
+    // identity owed is still the lawyer's own, and goes to the same place.
+    expect(willDownloadBlock("w1", "passport_photograph_required", true)?.message).toBe(
+      "Add your client's passport photograph — it is printed on their Will.",
+    );
+    expect(willDownloadBlock("w1", "incomplete", true)).toEqual({
+      message: "Finish this Will to download it.",
+      cta: { label: "Continue this Will", href: "/dashboard/wills/w1" },
+    });
+    expect(willDownloadBlock("w1", "witnesses_required", true)?.message).not.toContain("Your");
+    expect(willDownloadBlock("w1", "kyc_required", true)?.cta.href).toBe("/dashboard/kyc");
+
+    // And unchanged for everybody else.
+    expect(willDownloadBlock("w1", "incomplete")?.message).toBe(
+      "Finish your Will to download it.",
+    );
+  });
+
   it("renews a document's subscription on its Will, or on the billing page when it has none", () => {
     expect(renewHrefFor("w1")).toBe("/dashboard/wills/w1#subscription");
     expect(renewHrefFor(null)).toBe("/dashboard/payments");

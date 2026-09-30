@@ -28,10 +28,13 @@ export function AutoRenewalPanel({
   willId,
   autoRenewal,
   subscriptionPrice,
+  forClient = false,
 }: {
   willId: string;
   autoRenewal: AutoRenewal;
   subscriptionPrice: string | null;
+  /** A lawyer's client's Will: the subscription is that Will's, not theirs. */
+  forClient?: boolean;
 }) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -44,14 +47,19 @@ export function AutoRenewalPanel({
 
   const price = subscriptionPrice ?? "the annual subscription";
 
+  // The card is the lawyer's own either way; the subscription is the Will's.
+  const [the, lower] = forClient
+    ? ["This Will's subscription", "this Will's subscription"]
+    : ["Your subscription", "your subscription"];
+
   const summary =
     enabled && card
-      ? `Your subscription renews by itself${renewsOn ? ` on ${readableDate(renewsOn)}` : ""}, charging ${price} to your ${card.label}. We remind you a week before.`
+      ? `${the} renews by itself${renewsOn ? ` on ${readableDate(renewsOn)}` : ""}, charging ${price} to your ${card.label}. We remind you a week before.`
       : enabled
         ? "Switched on. We are waiting for the payment provider to confirm your card, and will tell you if it does not arrive."
         : card
-          ? `Your ${card.label} is kept. Switch automatic renewal on and your subscription renews by itself each year.`
-          : "Tick automatic renewal the next time you pay by card, and your subscription will renew by itself each year.";
+          ? `Your ${card.label} is kept. Switch automatic renewal on and ${lower} renews by itself each year.`
+          : `Tick automatic renewal the next time you pay by card, and ${lower} will renew by itself each year.`;
 
   function toggle(next: boolean) {
     setMessage(null);

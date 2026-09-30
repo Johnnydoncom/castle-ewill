@@ -27,7 +27,18 @@ import { unlockWillForAmendment } from "@/lib/actions/will.client";
  *
  * Only after confirming does the API call fire and the editor open.
  */
-export function AmendmentUnlockSection({ willId }: { willId: string }) {
+export function AmendmentUnlockSection({
+  willId,
+  forClient = false,
+}: {
+  willId: string;
+  /**
+   * A lawyer amending a client's Will. The camera check is still the
+   * lawyer's own — theirs is the identity on file — but the Will, and the
+   * printed copy somebody is holding, are the client's.
+   */
+  forClient?: boolean;
+}) {
   const router = useRouter();
   const [showWarning, setShowWarning] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -59,11 +70,13 @@ export function AmendmentUnlockSection({ willId }: { willId: string }) {
         <div className="flex items-start gap-4">
           <Pencil className="mt-0.5 h-5 w-5 shrink-0 text-gold" />
           <div className="min-w-0">
-            <h3 className="font-serif text-lg text-navy">Update your Will</h3>
+            <h3 className="font-serif text-lg text-navy">
+              {forClient ? "Update this Will" : "Update your Will"}
+            </h3>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              Your subscription lets you amend and re-issue your Will whenever
-              life changes -- a new beneficiary, a change of executor, or
-              anything else that no longer reflects your wishes.
+              {forClient
+                ? "Its subscription lets you amend and re-issue this Will whenever your client's life changes -- a new beneficiary, a change of executor, or anything else that no longer reflects their wishes."
+                : "Your subscription lets you amend and re-issue your Will whenever life changes -- a new beneficiary, a change of executor, or anything else that no longer reflects your wishes."}
             </p>
 
             <button
@@ -115,9 +128,11 @@ export function AmendmentUnlockSection({ willId }: { willId: string }) {
             <ul className="mt-5 space-y-4 border-t border-border pt-5">
               {[
                 {
-                  heading: "Your Will returns to draft",
+                  heading: forClient
+                    ? "This Will returns to draft"
+                    : "Your Will returns to draft",
                   detail:
-                    "You will need to work through the four wizard steps again and resubmit. Nothing you entered before is lost -- your existing answers are pre-filled.",
+                    "You will need to work through the five steps again and resubmit. Nothing you entered before is lost -- your existing answers are pre-filled.",
                 },
                 {
                   heading: "A selfie is required at submission",
@@ -125,14 +140,20 @@ export function AmendmentUnlockSection({ willId }: { willId: string }) {
                     "When you resubmit, we will ask for a brief camera check to confirm it is you making the change -- exactly as we would for any amendment to a live instrument.",
                 },
                 {
-                  heading: "Your current Will stays valid",
-                  detail:
-                    "The printed Will you hold continues to be your legal Will until you complete and resubmit the amendment. Opening the editor does not invalidate anything.",
+                  heading: forClient
+                    ? "The current Will stays valid"
+                    : "Your current Will stays valid",
+                  detail: forClient
+                    ? "The printed Will your client holds continues to be their legal Will until you complete and resubmit the amendment. Opening the editor does not invalidate anything."
+                    : "The printed Will you hold continues to be your legal Will until you complete and resubmit the amendment. Opening the editor does not invalidate anything.",
                 },
                 {
                   heading: "Payment is not required again",
-                  detail:
-                    "Your subscription covers amendments. You will not be charged to resubmit, unless you add optional extras such as legal review or registry lodging.",
+                  // No review is offered on a lawyer's Will, so theirs does
+                  // not name one as an extra.
+                  detail: forClient
+                    ? "This Will's subscription covers amendments. You will not be charged to resubmit, unless you add registry lodging."
+                    : "Your subscription covers amendments. You will not be charged to resubmit, unless you add optional extras such as legal review or registry lodging.",
                 },
               ].map(({ heading, detail }) => (
                 <li key={heading} className="flex items-start gap-3 text-sm">

@@ -141,6 +141,12 @@ export default async function WillEditorPage({
   };
 
   /*
+   * And so who every line on this page is addressed to. A lawyer drafts for a
+   * client: the Will is not theirs, and they are not the one who signs it.
+   */
+  const forClient = !stepProps.nameIsTheirs;
+
+  /*
    * A submitted Will: no longer editable, but very much not finished.
    *
    * It shows the journey and its next action — the route back to paying,
@@ -168,11 +174,19 @@ export default async function WillEditorPage({
             </p>
           </div>
           <h1 className="font-serif text-3xl text-navy sm:text-4xl">
-            {canUpdate ? "Your Will is ready to amend." : "Your Will is written."}
+            {forClient
+              ? canUpdate
+                ? "This Will is ready to amend."
+                : "This Will is written."
+              : canUpdate
+                ? "Your Will is ready to amend."
+                : "Your Will is written."}
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
             {canUpdate
-              ? "Your subscription lets you update your Will. Read the notes below, then open the editor to begin."
+              ? forClient
+                ? "Its subscription lets you update this Will. Read the notes below, then open the editor to begin."
+                : "Your subscription lets you update your Will. Read the notes below, then open the editor to begin."
               : "The answers are locked in. What remains is below — and you can pick it up here whenever you like."}
           </p>
         </header>
@@ -183,21 +197,22 @@ export default async function WillEditorPage({
           own page, so the entry point is consistent wherever they arrive.
         */}
         {canUpdate && will.journey && (
-          <AmendmentUnlockSection willId={will.id} />
+          <AmendmentUnlockSection willId={will.id} forClient={forClient} />
         )}
 
         {will.journey && (
           <div className="space-y-6">
-            <JourneyBar journey={will.journey} />
+            <JourneyBar journey={will.journey} forClient={forClient} />
             <JourneyActions
               willId={will.id}
               journey={will.journey}
               pdfUrl={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${will.id}/pdf`}
+              forClient={forClient}
             />
           </div>
         )}
 
-        <ReviewSummary will={will} editBasePath={basePath} />
+        <ReviewSummary will={will} editBasePath={basePath} forClient={forClient} />
       </div>
     );
   }
@@ -208,7 +223,7 @@ export default async function WillEditorPage({
         steps={WILL_STEPS}
         current={current}
         completed={completions.filter((c) => c.complete).map((c) => c.step)}
-        forClient={!stepProps.nameIsTheirs}
+        forClient={forClient}
       />
 
       <div className="mx-auto max-w-3xl px-4 py-10 sm:px-6 lg:py-14">
@@ -220,7 +235,7 @@ export default async function WillEditorPage({
           <CompletionPill percent={percent} />
         </div>
 
-        <StepHeading step={definition} forClient={!stepProps.nameIsTheirs} />
+        <StepHeading step={definition} forClient={forClient} />
 
         <div className="mt-10">
           {/*
@@ -244,7 +259,7 @@ export default async function WillEditorPage({
                 answers and lands on the Will's own page, which is where the
                 journey bar, the review question and the payment button live.
               */}
-              <ReviewSummary will={will} editBasePath={basePath} />
+              <ReviewSummary will={will} editBasePath={basePath} forClient={forClient} />
             </ReviewStep>
           )}
         </div>

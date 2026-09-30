@@ -200,6 +200,43 @@ const BLOCKERS: Record<
 };
 
 /**
+ * The same cards, said to a lawyer about a client's Will.
+ *
+ * What differs is whose each thing is. The Will, the photograph and the
+ * witnesses are the client's. The identity check is the lawyer's own — and
+ * "because this is your first Will with us" is wrong for somebody who may be
+ * on their twentieth: one check covers every Will they draw.
+ *
+ * Laid over `BLOCKERS`, so the icon and the button come from the one table.
+ */
+const BLOCKERS_FOR_CLIENT: Record<PrintBlocker, { title: string; body: string }> = {
+  incomplete: {
+    title: "Finish this Will first",
+    body: "Every section needs an answer before the document can be produced.",
+  },
+  unpaid: {
+    title: "Payment is the next step",
+    body: "This Will is complete. Settle the fee and we will produce the signed-ready document.",
+  },
+  kyc_required: {
+    title: "One identity check to go",
+    body: "We confirm your own identity once — with your NIN and a selfie, or a photographed government-issued ID — and that one check covers every Will you draw. Your client is not checked.",
+  },
+  passport_photograph_required: {
+    title: "We need your client's photograph",
+    body: "A passport photograph of your client is printed on the face of their Will. Add one on the first step and you can carry on.",
+  },
+  witnesses_required: {
+    title: "The witnesses need confirming",
+    body: "Both witnesses' identification has to be confirmed before this Will can be released. Open the Will to see where each one stands.",
+  },
+  subscription_required: {
+    title: "Renew to download this Will",
+    body: "This Will's subscription has ended, so downloading it is paused. Renew it to download the Will again — nothing has been deleted, and renewing opens it straight away.",
+  },
+};
+
+/**
  * The actions available at the client's current stage.
  *
  * Everything here is driven by `journey`, which the server derives. Nothing is
@@ -211,10 +248,16 @@ export function JourneyActions({
   journey,
   pdfUrl,
   resolvedHere = [],
+  forClient = false,
 }: {
   willId: string;
   journey: WillJourney;
   pdfUrl: string;
+  /**
+   * A lawyer looking at a Will they drew for a client. The Will is not theirs
+   * and they are not the one who signs it, so nothing here says "your Will".
+   */
+  forClient?: boolean;
   /**
    * Blockers whose own panel is already on this page.
    *
@@ -289,7 +332,12 @@ export function JourneyActions({
   const blocked = journey.print_blocked_by;
 
   const blocker =
-    blocked && !resolvedHere.includes(blocked) ? BLOCKERS[blocked] : null;
+    blocked && !resolvedHere.includes(blocked)
+      ? {
+          ...BLOCKERS[blocked],
+          ...(forClient ? BLOCKERS_FOR_CLIENT[blocked] : {}),
+        }
+      : null;
 
   /*
     Beside the buttons, not at the top of the block. A refusal shown above a
@@ -391,11 +439,15 @@ export function JourneyActions({
       {/* Print: either the gate, or the download. */}
       {journey.can_print ? (
         <section className="border border-success/40 bg-success/5 p-6">
-          <h3 className="font-serif text-lg text-navy">Your Will is ready</h3>
+          <h3 className="font-serif text-lg text-navy">
+            {forClient ? "This Will is ready" : "Your Will is ready"}
+          </h3>
           <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-            Print it on good paper, then sign it in front of two witnesses who
-            each sign in front of you. The document carries a QR seal anyone can
-            scan to confirm it is genuine and current.
+            {forClient
+              ? "Print it on good paper for your client, who signs it in front of two witnesses who each sign in front of them."
+              : "Print it on good paper, then sign it in front of two witnesses who each sign in front of you."}{" "}
+            The document carries a QR seal anyone can scan to confirm it is
+            genuine and current.
           </p>
           {/*
             Links straight at the API, never through this Next server — the
@@ -407,7 +459,7 @@ export function JourneyActions({
             className="mt-5 inline-flex h-11 items-center gap-2 bg-navy px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-foreground transition-colors hover:bg-navy/90"
           >
             <Download className="h-4 w-4" />
-            Download my Will
+            {forClient ? "Download this Will" : "Download my Will"}
           </a>
 
           {/*
@@ -419,7 +471,9 @@ export function JourneyActions({
           {journey.download_access_ends_at && (
             <div className="mt-6 border-l-2 border-gold bg-gold/5 px-4 py-3 text-sm leading-relaxed text-navy">
               <p>
-                Your subscription has ended. You can download your Will until{" "}
+                {forClient
+                  ? "This Will's subscription has ended. You can download it until"
+                  : "Your subscription has ended. You can download your Will until"}{" "}
                 <span className="font-medium">
                   {readableDate(journey.download_access_ends_at)}
                 </span>
@@ -470,8 +524,9 @@ export function JourneyActions({
           <section className="border border-border bg-surface p-6">
             <h3 className="font-serif text-lg text-navy">Amendments</h3>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              Your Will has been issued. To amend and re-issue it as life changes,
-              an annual subscription keeps updates free.
+              {forClient
+                ? "This Will has been issued. To amend and re-issue it as your client's life changes, an annual subscription keeps updates free."
+                : "Your Will has been issued. To amend and re-issue it as life changes, an annual subscription keeps updates free."}
             </p>
             {/*
               It linked to the payments page, which sells no subscription for a
@@ -492,7 +547,7 @@ export function JourneyActions({
         the Will is returned to draft.
       */}
       {journey.printed_at !== null && journey.can_update && (
-        <AmendmentUnlockSection willId={willId} />
+        <AmendmentUnlockSection willId={willId} forClient={forClient} />
       )}
     </div>
   );
