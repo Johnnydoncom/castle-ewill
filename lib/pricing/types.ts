@@ -13,7 +13,13 @@
  * worked the total out for itself could differ from what the gateway charges.
  */
 
-export type PlanKind = "will" | "lodging" | "review" | "subscription";
+export type PlanKind =
+  | "will"
+  | "lodging"
+  | "review"
+  | "subscription"
+  /** Reopens an account deactivated after a three-year lapse. Never on the public list. */
+  | "reactivation";
 
 /**
  * Who a plan is sold to.

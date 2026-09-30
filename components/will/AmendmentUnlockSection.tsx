@@ -1,4 +1,4 @@
-﻿"use client";
+"use client";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -30,8 +30,14 @@ import { unlockWillForAmendment } from "@/lib/actions/will.client";
 export function AmendmentUnlockSection({
   willId,
   forClient = false,
+  openedByCastle = false,
 }: {
   willId: string;
+  /**
+   * A lawyer's submitted Will that Castle has opened for one update
+   * (2026-09-30). No subscription covers it; resubmitting locks it again.
+   */
+  openedByCastle?: boolean;
   /**
    * A lawyer amending a client's Will. The camera check is still the
    * lawyer's own — theirs is the identity on file — but the Will, and the
@@ -74,7 +80,9 @@ export function AmendmentUnlockSection({
               {forClient ? "Update this Will" : "Update your Will"}
             </h3>
             <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
-              {forClient
+              {openedByCastle
+                ? "Castle has opened this Will so you can update it. Make the changes your client needs and resubmit it -- it locks again once you do."
+                : forClient
                 ? "Its subscription lets you amend and re-issue this Will whenever your client's life changes -- a new beneficiary, a change of executor, or anything else that no longer reflects their wishes."
                 : "Your subscription lets you amend and re-issue your Will whenever life changes -- a new beneficiary, a change of executor, or anything else that no longer reflects your wishes."}
             </p>
@@ -151,7 +159,9 @@ export function AmendmentUnlockSection({
                   heading: "Payment is not required again",
                   // No review is offered on a lawyer's Will, so theirs does
                   // not name one as an extra.
-                  detail: forClient
+                  detail: openedByCastle
+                    ? "Castle opened this Will for this update. You will not be charged to resubmit, unless you add registry lodging -- and once resubmitted, it locks again."
+                    : forClient
                     ? "This Will's subscription covers amendments. You will not be charged to resubmit, unless you add registry lodging."
                     : "Your subscription covers amendments. You will not be charged to resubmit, unless you add optional extras such as legal review or registry lodging.",
                 },

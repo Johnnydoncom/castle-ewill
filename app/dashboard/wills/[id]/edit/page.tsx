@@ -163,6 +163,8 @@ export default async function WillEditorPage({
      * panel, which lives on the Will's own page.
      */
     const canUpdate = will.journey?.can_update === true;
+    // A lawyer's submitted Will that Castle has opened for one update.
+    const openedByCastle = will.journey?.amendment_permitted === true;
 
     return (
       <div className="space-y-8">
@@ -184,7 +186,9 @@ export default async function WillEditorPage({
           </h1>
           <p className="mt-3 max-w-2xl text-sm leading-relaxed text-muted-foreground">
             {canUpdate
-              ? forClient
+              ? openedByCastle
+                ? "Castle has opened this Will for you to update once. Read the notes below, then open the editor to begin."
+                : forClient
                 ? "Its subscription lets you update this Will. Read the notes below, then open the editor to begin."
                 : "Your subscription lets you update your Will. Read the notes below, then open the editor to begin."
               : "The answers are locked in. What remains is below — and you can pick it up here whenever you like."}
@@ -197,7 +201,11 @@ export default async function WillEditorPage({
           own page, so the entry point is consistent wherever they arrive.
         */}
         {canUpdate && will.journey && (
-          <AmendmentUnlockSection willId={will.id} forClient={forClient} />
+          <AmendmentUnlockSection
+            willId={will.id}
+            forClient={forClient}
+            openedByCastle={openedByCastle}
+          />
         )}
 
         {will.journey && (

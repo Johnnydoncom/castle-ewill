@@ -10,6 +10,8 @@ export type SessionUser = {
   email: string;
   name: string;
   role: "user" | "lawyer" | "admin";
+  /** Populated by `requireUser()` and `requireCustomer()`. */
+  status?: Profile["status"];
   /** Only ever populated by `requireAdmin()` — a superadmin passes every permission check. */
   isSuperAdmin?: boolean;
   /** Only ever populated by `requireAdmin()`. Full catalog when `isSuperAdmin`. */
@@ -42,7 +44,18 @@ export type Profile = {
   phone: string | null;
   image: string | null;
   role: "user" | "lawyer" | "admin";
-  status: "active" | "suspended" | "deleted";
+  /**
+   * `deactivated`: closed after its Wills' subscription lapsed for three
+   * years. It signs in, and is shown only the reactivation fee — see
+   * `requireCustomer()`.
+   */
+  status: "active" | "suspended" | "deactivated" | "deleted";
+  deactivated_at?: string | null;
+  /**
+   * Whether this account's Wills are on the annual subscription at all.
+   * False for a verified lawyer (2026-09-30). Absent from an older API.
+   */
+  subscription_offered?: boolean;
   /**
    * Which price list this account buys from — `User::pricingAudience()`.
    * "lawyer" only for a verified lawyer. Present on the caller's own record.
@@ -118,6 +131,7 @@ export async function requireUser(): Promise<SessionUser> {
     email: profile.email,
     name: profile.name ?? profile.email,
     role: profile.role,
+    status: profile.status,
   };
 }
 
@@ -232,6 +246,17 @@ export async function requireCustomer(): Promise<SessionUser> {
 
   if (user.role === "admin") {
     redirect("/admin");
+  }
+
+  /*
+   * An account deactivated after a three-year lapse has one page: the
+   * reactivation fee. The API refuses it everything else
+   * (`account_deactivated`), so the dashboard would render nothing but
+   * refusals. The payment return page uses `requireUser()`, so paying still
+   * lands.
+   */
+  if (user.status === "deactivated") {
+    redirect("/reactivate");
   }
 
   return user;

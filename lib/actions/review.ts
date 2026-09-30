@@ -107,6 +107,27 @@ export async function markLodgedAction(
   });
 }
 
+/**
+ * Opens a lawyer's submitted Will for them to update, or locks it again.
+ *
+ * A lawyer's Will cannot be updated once submitted except where Castle opens
+ * it (2026-09-30). This edits nothing and reads nothing the client wrote —
+ * the lawyer does the updating — so no client grant is asked for.
+ */
+export async function setAmendmentAccessAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const willId = String(formData.get("willId") ?? "");
+
+  if (!willId) return errorState("That Will could not be found.");
+
+  return apiMutation(`/admin/wills/${willId}/amendment-access`, {
+    method: "PUT",
+    body: { allowed: formData.get("allowed") === "on" },
+  });
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Client status                                                              */
 /* -------------------------------------------------------------------------- */

@@ -142,6 +142,30 @@ export async function startCheckoutAction(
 }
 
 /**
+ * Pays the reactivation fee for an account deactivated after a three-year
+ * lapse, returning to the account it reopens.
+ *
+ * Its own action because it names no Will and returns to the account rather
+ * than to one. The slug is the server's (`/account/reactivation`), and the
+ * server refuses it to an account that is not deactivated.
+ */
+export async function startReactivationCheckoutAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const planSlug = String(formData.get("planSlug") ?? "");
+
+  if (!planSlug) return errorState("The reactivation fee is not available just now.");
+
+  const result = await api<{ data: { checkout_url: string } }>("/payments/checkout", {
+    method: "POST",
+    body: { plan_slug: planSlug, return_to: "reactivation" },
+  });
+
+  return result.ok ? redirectState(result.data.data.checkout_url) : errorState(result.message);
+}
+
+/**
  * Records an intent to pay by bank transfer.
  *
  * No money moves. The row is created `pending` with a reference the client

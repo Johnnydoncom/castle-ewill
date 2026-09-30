@@ -26,13 +26,9 @@ export type PracticeSummary = {
   awaitingPayment: number;
   readyToPrint: number;
   issued: number;
-  renewalsDue: number;
+  /** Submitted Wills an administrator has opened for the lawyer to update. */
+  openForUpdate: number;
 };
-
-/** How far ahead a subscription ending counts as a renewal worth raising. */
-export const RENEWAL_WINDOW_DAYS = 30;
-
-const DAY_MS = 24 * 60 * 60 * 1000;
 
 /** Client Wills still on the books. An archived Will is not work. */
 export function activeWills(wills: ApiWill[]): ApiWill[] {
@@ -55,15 +51,15 @@ export function stageOf(will: ApiWill): JourneyStage | null {
   return will.journey?.stage ?? null;
 }
 
-/** Whether this Will's subscription runs out within the renewal window. */
-export function renewalDue(will: ApiWill, now: Date = new Date()): boolean {
-  if (!will.has_active_subscription || !will.subscription_expires_at) return false;
-
-  const ends = new Date(will.subscription_expires_at).getTime();
-
-  if (Number.isNaN(ends)) return false;
-
-  return ends >= now.getTime() && ends - now.getTime() <= RENEWAL_WINDOW_DAYS * DAY_MS;
+/**
+ * Whether an administrator has opened this submitted Will for an update.
+ *
+ * A lawyer's Wills carry no subscription (2026-09-30): once submitted, each is
+ * locked until the lawyer asks us and an administrator opens it — so an open
+ * one is waiting on the lawyer.
+ */
+export function openForUpdate(will: ApiWill): boolean {
+  return will.journey?.amendment_permitted === true && will.status !== "draft";
 }
 
 /**
@@ -73,7 +69,7 @@ export function renewalDue(will: ApiWill, now: Date = new Date()): boolean {
  * it. `kyc_required` is the lawyer's own check — one covers every client Will —
  * so it goes to the identity page rather than to the client's Will.
  */
-export function practiceActionFor(will: ApiWill, now: Date = new Date()): PracticeAction {
+export function practiceActionFor(will: ApiWill): PracticeAction {
   const page = `/dashboard/wills/${will.id}`;
   const journey = will.journey;
 
@@ -99,12 +95,10 @@ export function practiceActionFor(will: ApiWill, now: Date = new Date()): Practi
       return { label: "Client's photograph needed", tone: "attention", cta: "Open", href: page };
     case "witnesses_required":
       return { label: "Witnesses being checked", tone: "progress", cta: "View", href: page };
-    case "subscription_required":
-      return { label: "Subscription ended", tone: "attention", cta: "Renew", href: `${page}#subscription` };
   }
 
-  if (renewalDue(will, now)) {
-    return { label: "Renewal due", tone: "attention", cta: "Renew", href: `${page}#subscription` };
+  if (openForUpdate(will)) {
+    return { label: "Opened for update", tone: "attention", cta: "Update", href: page };
   }
 
   if (journey.lodged_at) return { label: "Lodged", tone: "done", cta: "Manage", href: page };
@@ -116,7 +110,7 @@ export function practiceActionFor(will: ApiWill, now: Date = new Date()): Practi
 }
 
 /** The practice in six numbers. */
-export function summarisePractice(wills: ApiWill[], now: Date = new Date()): PracticeSummary {
+export function summarisePractice(wills: ApiWill[]): PracticeSummary {
   const active = activeWills(wills);
 
   return {
@@ -125,7 +119,7 @@ export function summarisePractice(wills: ApiWill[], now: Date = new Date()): Pra
     awaitingPayment: active.filter((will) => will.journey?.print_blocked_by === "unpaid").length,
     readyToPrint: active.filter((will) => will.journey?.can_print && !will.journey.printed_at).length,
     issued: active.filter((will) => Boolean(will.journey?.printed_at ?? will.printed_at)).length,
-    renewalsDue: active.filter((will) => renewalDue(will, now)).length,
+    openForUpdate: active.filter(openForUpdate).length,
   };
 }
 
@@ -135,9 +129,8 @@ export function summarisePractice(wills: ApiWill[], now: Date = new Date()): Pra
  */
 export function needingAttention(
   wills: ApiWill[],
-  now: Date = new Date(),
 ): Array<{ will: ApiWill; action: PracticeAction }> {
   return activeWills(wills)
-    .map((will) => ({ will, action: practiceActionFor(will, now) }))
+    .map((will) => ({ will, action: practiceActionFor(will) }))
     .filter(({ action }) => action.tone === "attention" || action.tone === "ready");
 }

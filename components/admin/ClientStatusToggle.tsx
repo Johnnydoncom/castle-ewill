@@ -42,7 +42,12 @@ export function ClientStatusToggle({
     return <span className="text-xs text-muted-foreground/60">&mdash;</span>;
   }
 
-  const suspended = status === "suspended";
+  /*
+   * Suspended by a person, or deactivated after a three-year lapse
+   * (2026-09-30): either way the one action is to reactivate. Reactivating a
+   * deactivated client waives the fee and restarts their three-year clock.
+   */
+  const suspended = status === "suspended" || status === "deactivated";
 
   return (
     <form action={action}>

@@ -120,7 +120,11 @@ export type PrintBlocker =
  * Only ever set for a Will that has been produced once. A first draft, a first
  * submission and every print return null.
  */
-export type UpdateBlocker = "subscription_required" | "liveness_required";
+export type UpdateBlocker =
+  | "subscription_required"
+  | "liveness_required"
+  /** A lawyer's submitted Will, not opened for an update by Castle. */
+  | "amendment_locked";
 
 /** The lodging fee offered with an update, priced server-side. */
 export type AmendmentLodging = {
@@ -155,6 +159,24 @@ export type WillJourney = {
     kyc_verified: boolean;
   };
   is_subscribed: boolean;
+  /**
+   * Whether this Will is on the annual subscription at all. False for a
+   * verified lawyer's (2026-09-30): nothing is sold, renewed or counted down
+   * on it. Absent from an API that predates it, which offered it to everyone.
+   */
+  subscription_offered?: boolean;
+  /**
+   * A lawyer's Will once submitted is locked (`amendment_locked`) until
+   * Castle opens it for one update (`amendment_permitted`). Both false for
+   * anybody else's Will, which its subscription governs instead.
+   */
+  amendment_locked?: boolean;
+  amendment_permitted?: boolean;
+  /**
+   * Whether the page offers "Begin amendment", returning the Will to draft:
+   * an issued Will that may be amended and is not already being edited.
+   */
+  can_begin_amendment?: boolean;
   /**
    * Whether this Will's subscription may be bought or renewed from its page —
    * once the Will itself is paid for, whatever state the subscription is in.

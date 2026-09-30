@@ -127,7 +127,9 @@ export default async function AdminClientsPage({
                       : "unverified"
                 }
                 tone={
-                  client.status !== "active"
+                  client.status === "deactivated"
+                    ? "warn"
+                    : client.status !== "active"
                     ? "danger"
                     : client.is_email_verified
                       ? "success"

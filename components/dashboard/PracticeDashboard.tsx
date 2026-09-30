@@ -14,7 +14,6 @@ import type { DashboardData } from "@/lib/actions/dashboard";
 import type { Profile } from "@/lib/actions/guards";
 import { REVIEW_TRIGGERS } from "@/lib/company";
 import {
-  RENEWAL_WINDOW_DAYS,
   activeWills,
   completionOf,
   needingAttention,
@@ -88,10 +87,9 @@ export function PracticeDashboard({
   data: DashboardData;
   paymentOutcome?: string;
 }) {
-  const now = new Date();
   const wills = activeWills(data.wills);
-  const summary = summarisePractice(data.wills, now);
-  const attention = needingAttention(data.wills, now);
+  const summary = summarisePractice(data.wills);
+  const attention = needingAttention(data.wills);
 
   const firstName = profile.first_name || (profile.name ?? profile.email).split(" ")[0];
   const isVerified = profile.is_verified_lawyer === true;
@@ -103,7 +101,8 @@ export function PracticeDashboard({
     { label: "Awaiting payment", value: summary.awaitingPayment, note: "complete, not yet paid", flag: true },
     { label: "Ready to print", value: summary.readyToPrint, note: "paid and cleared", flag: true },
     { label: "Issued", value: summary.issued, note: "printed for signing" },
-    { label: "Renewals due", value: summary.renewalsDue, note: `within ${RENEWAL_WINDOW_DAYS} days`, flag: true },
+    // No renewals on a lawyer's Wills (2026-09-30): an opened Will is what waits on them.
+    { label: "Opened for update", value: summary.openForUpdate, note: "reopened by Castle", flag: true },
   ];
 
   type AccountRow = { key: string; done: boolean; label: string; detail?: string | null; href?: string | null };
@@ -346,7 +345,7 @@ export function PracticeDashboard({
             <FileText className="mx-auto h-8 w-8 text-muted-foreground/40" />
             <p className="mt-4 font-serif text-xl text-navy">No client Wills yet.</p>
             <p className="mx-auto mt-2 max-w-sm text-sm text-muted-foreground">
-              Each client&apos;s Will is its own record, with its own payment and subscription.
+              Each client&apos;s Will is its own record, with its own payment.
             </p>
           </div>
         ) : (
@@ -368,7 +367,7 @@ export function PracticeDashboard({
                 </thead>
                 <tbody className="divide-y divide-border">
                   {wills.slice(0, TABLE_ROWS).map((will) => {
-                    const action = practiceActionFor(will, now);
+                    const action = practiceActionFor(will);
                     const stage = will.journey?.stage;
                     // This Will's own stages — a lawyer's has no Legal review.
                     const stages = will.journey ? journeyStages(will.journey) : [];
@@ -434,7 +433,7 @@ export function PracticeDashboard({
             {/* A list where there is not. */}
             <ul className="divide-y divide-border md:hidden">
               {wills.slice(0, TABLE_ROWS).map((will) => {
-                const action = practiceActionFor(will, now);
+                const action = practiceActionFor(will);
                 const stage = will.journey?.stage;
 
                 return (

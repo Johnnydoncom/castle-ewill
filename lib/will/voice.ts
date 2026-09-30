@@ -52,6 +52,8 @@ export type WillVoice = {
     /** Refusing to take a lodging payment before the confirmation is ticked. */
     confirmBeforePaying: string;
     subscriptionNeeded: string;
+    /** A submitted Will Castle has not opened for an update (lawyers, 2026-09-30). */
+    amendmentLocked: string;
     lodgeUpdated: string;
     lodgeNote: string;
     afterPayment: string;
@@ -101,6 +103,8 @@ const OWN: WillVoice = {
       "Confirm that the information in your Will is accurate first, so it can be submitted as soon as your payment clears.",
     subscriptionNeeded:
       "Writing your Will was a one-off purchase. Keeping it current as your life changes is what the subscription covers.",
+    amendmentLocked:
+      "Your Will was submitted and is locked. Contact us and an administrator can open it for you to update.",
     lodgeUpdated: "Lodge my updated Will with the Probate Registry",
     lodgeNote:
       "Optional — you can lodge it yourself. A Will that has been reviewed should always be lodged, so the registry holds the version that counts.",
@@ -152,6 +156,8 @@ const FOR_CLIENT: WillVoice = {
       "Confirm that the information in this Will is accurate first, so it can be submitted as soon as your payment clears.",
     subscriptionNeeded:
       "Drafting this Will was a one-off purchase. Keeping it current as your client's life changes is what its subscription covers.",
+    amendmentLocked:
+      "This Will was submitted and is locked. Contact us and an administrator can open it for you to update once -- it locks again when you resubmit it.",
     lodgeUpdated: "Lodge this updated Will with the Probate Registry",
     lodgeNote:
       "Optional — it can be lodged without us. Lodging the update means the registry holds the version that counts.",

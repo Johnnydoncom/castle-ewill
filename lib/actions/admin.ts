@@ -269,6 +269,12 @@ export type AdminWillSummary = Pick<
 > & {
   review_choice: "undecided" | "requested" | "skipped";
   solicitor_review_requested: boolean;
+  /**
+   * A lawyer's submitted Will is locked until an administrator opens it for
+   * one update (2026-09-30). pplies is false for anybody else's Will.
+   * Absent from an older API.
+   */
+  amendment_access?: { applies: boolean; allowed: boolean; allowed_at: string | null };
 };
 
 export type AdminWillRow = {
@@ -359,7 +365,7 @@ export type ClientRow = {
   email: string;
   phone: string | null;
   role: "user" | "lawyer" | "admin";
-  status: "active" | "suspended" | "deleted";
+  status: "active" | "suspended" | "deactivated" | "deleted";
   is_email_verified: boolean;
   is_phone_verified: boolean;
   two_factor_enabled: boolean;
@@ -525,7 +531,7 @@ export type AdminAccountRow = {
     id: string;
     name: string | null;
     email: string;
-    status: "active" | "suspended" | "deleted";
+    status: "active" | "suspended" | "deactivated" | "deleted";
     created_at: string | null;
   };
   is_superadmin: boolean;

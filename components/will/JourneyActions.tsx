@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Check, CreditCard, Download, ScanFace, Scale } from "lucide-react";
+import { Check, CreditCard, Download, Lock, ScanFace, Scale } from "lucide-react";
 
 import { chooseReview, type ReviewChoice } from "@/lib/actions/will.client";
 import type { PrintBlocker, WillJourney } from "@/lib/actions/will";
@@ -515,11 +515,39 @@ export function JourneyActions({
         )
       )}
 
+      {/*
+        A lawyer's Will once submitted (2026-09-30): locked, and opened for an
+        update only by Castle — there is no subscription to buy instead.
+      */}
+      {journey.amendment_locked && (
+        <section className="border border-border bg-surface p-6">
+          <div className="flex items-start gap-4">
+            <Lock className="mt-0.5 h-5 w-5 shrink-0 text-gold" />
+            <div className="min-w-0">
+              <h3 className="font-serif text-lg text-navy">This Will is locked</h3>
+              <p className="mt-2 max-w-2xl text-sm leading-relaxed text-muted-foreground">
+                It was submitted, so it cannot be changed. If it needs updating,
+                contact us and an administrator can open it for you to update
+                once — it locks again when you resubmit it.
+              </p>
+              <Link
+                href="/contact"
+                className="mt-5 inline-flex h-11 items-center border border-border px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy transition-colors hover:border-gold hover:text-gold"
+              >
+                Contact us
+              </Link>
+            </div>
+          </div>
+        </section>
+      )}
+
       {/* Amending an issued Will is the subscriber feature. Someone still
-          drafting is never shown this. */}
+          drafting is never shown this, nor anybody whose Wills carry no
+          subscription. */}
       {/* Not beside the renewal card above, which already offers the same thing. */}
       {journey.printed_at !== null &&
         !journey.can_update &&
+        journey.subscription_offered !== false &&
         blocked !== "subscription_required" && (
           <section className="border border-border bg-surface p-6">
             <h3 className="font-serif text-lg text-navy">Amendments</h3>
@@ -543,11 +571,16 @@ export function JourneyActions({
 
       {/*
         Amendment unlock — shown to subscribers whose Will has already been
-        issued. The warning dialog makes clear what amending entails before
-        the Will is returned to draft.
+        issued, and on a lawyer's Will Castle has opened. The warning dialog
+        makes clear what amending entails before the Will is returned to
+        draft. The server says when; an older API did not, and meant this.
       */}
-      {journey.printed_at !== null && journey.can_update && (
-        <AmendmentUnlockSection willId={willId} forClient={forClient} />
+      {(journey.can_begin_amendment ?? (journey.printed_at !== null && journey.can_update)) && (
+        <AmendmentUnlockSection
+          willId={willId}
+          forClient={forClient}
+          openedByCastle={journey.amendment_permitted === true}
+        />
       )}
     </div>
   );

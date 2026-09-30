@@ -9,6 +9,7 @@ import { WILL_STATUS_LABELS } from "@/lib/will/reference";
 import { PageHead } from "@/components/dashboard/PageHead";
 import { RevisionHistory } from "@/components/admin/RevisionHistory";
 import { ReviewActions } from "@/components/admin/ReviewActions";
+import { AmendmentAccessToggle } from "@/components/admin/AmendmentAccessToggle";
 import { ClaimAccessForm } from "@/components/admin/ClaimAccessForm";
 import { ReviewSummary } from "@/components/will/ReviewSummary";
 import {
@@ -119,6 +120,15 @@ export default async function AdminWillDetailPage({
             lodgedAt={will.lodged_at}
             lodgingReference={will.lodging_reference}
           />
+
+          {/* A lawyer's submitted Will: locked until opened here. */}
+          {will.amendment_access?.applies && (
+            <AmendmentAccessToggle
+              willId={will.id}
+              allowed={will.amendment_access.allowed}
+              allowedAt={will.amendment_access.allowed_at}
+            />
+          )}
 
           <div className="border border-border bg-background p-6">
             <p className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">

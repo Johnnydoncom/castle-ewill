@@ -208,6 +208,19 @@ export async function api<T = unknown>(
   if (!response.ok) {
     const error = (payload ?? {}) as LaravelError;
 
+    /*
+     * The account was deactivated after a three-year lapse while this page
+     * was open. Its only way forward is the reactivation fee, so go there —
+     * a hard load, so no cached page replays the refusal.
+     */
+    if (
+      error.code === "account_deactivated" &&
+      typeof window !== "undefined" &&
+      window.location.pathname !== "/reactivate"
+    ) {
+      window.location.assign("/reactivate");
+    }
+
     return {
       ok: false,
       status: response.status,

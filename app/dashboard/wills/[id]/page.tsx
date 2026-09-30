@@ -234,7 +234,11 @@ export default async function WillDetailPage({
                 would add no charge for one if asked.
               */
               review={will.journey?.review_offered === false ? null : prices.review}
-              subscription={prices.subscription}
+              /*
+                Nor the subscription, on a Will outside it: a verified
+                lawyer's carry none (`journey.subscription_offered`).
+              */
+              subscription={will.journey?.subscription_offered === false ? null : prices.subscription}
               lodging={prices.lodging}
               initialQuotes={prices.quotes}
               // This Will's own, not the account's: reading the account would

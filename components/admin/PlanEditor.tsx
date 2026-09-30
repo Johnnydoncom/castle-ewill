@@ -43,6 +43,11 @@ const KINDS: { value: PlanKind; label: string; hint: string }[] = [
     label: "Annual subscription",
     hint: "Optional add-on buying free amendments. Only one is used.",
   },
+  {
+    value: "reactivation",
+    label: "Account reactivation",
+    hint: "Charged once to reopen an account deactivated after its subscription lapsed for three years. Not shown on the pricing page. Only one is used.",
+  },
 ];
 
 const field =

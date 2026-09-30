@@ -35,9 +35,17 @@ export default async function DashboardPaymentsPage() {
    * honest detail under the account-level line above — and where renewing
    * starts, on the Will it renews.
    */
-  const subscriptions = wills.filter(
-    (will) => will.journey?.can_renew_subscription || will.subscription_expires_at !== null,
-  );
+  /*
+   * None for an account outside the subscription — a verified lawyer's
+   * (2026-09-30), whose older Wills may still carry an expiry nobody reads.
+   */
+  const subscribes = profile?.subscription_offered !== false;
+
+  const subscriptions = subscribes
+    ? wills.filter(
+        (will) => will.journey?.can_renew_subscription || will.subscription_expires_at !== null,
+      )
+    : [];
 
   const expiresOn = profile?.subscription_expires_at
     ? new Date(profile.subscription_expires_at).toLocaleDateString("en-NG", {
@@ -59,8 +67,12 @@ export default async function DashboardPaymentsPage() {
       */}
       <PageHead
         kicker="Billing"
-        title="Subscription and receipts"
-        blurb="Your subscription, and every payment you have made. Paying for a Will happens on that Will."
+        title={subscribes ? "Subscription and receipts" : "Receipts"}
+        blurb={
+          subscribes
+            ? "Your subscription, and every payment you have made. Paying for a Will happens on that Will."
+            : "Every payment you have made. Paying for a Will happens on that Will."
+        }
       />
 
       {/*
@@ -68,7 +80,7 @@ export default async function DashboardPaymentsPage() {
         and "at least one of your Wills is covered" is the honest summary.
         Which Will is covered, and until when, belongs on that Will.
       */}
-      {profile?.has_active_subscription && expiresOn && (
+      {subscribes && profile?.has_active_subscription && expiresOn && (
         <div className="flex items-start gap-3 border-l-2 border-success bg-success/5 px-5 py-4 text-sm text-navy">
           <CalendarCheck className="mt-0.5 h-4 w-4 shrink-0 text-success" />
           <p className="leading-relaxed">

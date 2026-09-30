@@ -5,7 +5,7 @@ import {
   completionOf,
   needingAttention,
   practiceActionFor,
-  renewalDue,
+  openForUpdate,
   summarisePractice,
   testatorOf,
 } from "@/lib/dashboard/practice";
@@ -14,8 +14,6 @@ import {
  * A lawyer's dashboard reads their practice off the server's journey for each
  * client Will. These hold the wording and the counting to it.
  */
-
-const NOW = new Date("2026-09-15T12:00:00Z");
 
 function journey(overrides: Partial<WillJourney> = {}): WillJourney {
   return {
@@ -71,12 +69,23 @@ const practice = [
     id: "issued",
     status: "submitted",
     printed_at: "2026-09-01T00:00:00Z",
-    has_active_subscription: true,
-    subscription_expires_at: "2026-09-25T00:00:00Z",
     journey: journey({
       stage: "execute",
       print_blocked_by: null,
       can_print: true,
+      printed_at: "2026-09-01T00:00:00Z",
+    }),
+  }),
+  aWill({
+    id: "opened",
+    status: "submitted",
+    printed_at: "2026-09-01T00:00:00Z",
+    journey: journey({
+      stage: "execute",
+      print_blocked_by: null,
+      can_print: true,
+      amendment_permitted: true,
+      can_update: true,
       printed_at: "2026-09-01T00:00:00Z",
     }),
   }),
@@ -85,28 +94,28 @@ const practice = [
 
 describe("a lawyer's practice dashboard", () => {
   it("counts the practice by where each Will stands, leaving archived Wills out", () => {
-    expect(summarisePractice(practice, NOW)).toEqual({
-      total: 4,
+    expect(summarisePractice(practice)).toEqual({
+      total: 5,
       drafting: 1,
       awaitingPayment: 1,
       readyToPrint: 1,
-      issued: 1,
-      renewalsDue: 1,
+      issued: 2,
+      openForUpdate: 1,
     });
   });
 
   it("raises what is waiting on the lawyer, in the order the API lists it", () => {
-    expect(needingAttention(practice, NOW).map(({ will }) => will.id)).toEqual([
+    expect(needingAttention(practice).map(({ will }) => will.id)).toEqual([
       "unpaid",
       "ready",
-      "issued",
+      "opened",
     ]);
   });
 
   it("continues a draft at its next unanswered step", () => {
     const draft = aWill({ id: "a", progress: { next_incomplete_step: 3, percent: 40 } });
 
-    expect(practiceActionFor(draft, NOW)).toMatchObject({
+    expect(practiceActionFor(draft)).toMatchObject({
       label: "Drafting",
       cta: "Continue drafting",
       href: "/dashboard/wills/a/edit?step=3",
@@ -120,19 +129,30 @@ describe("a lawyer's practice dashboard", () => {
       journey: journey({ stage: "legal_review", print_blocked_by: "kyc_required" }),
     });
 
-    expect(practiceActionFor(will, NOW).href).toBe("/dashboard/kyc");
+    expect(practiceActionFor(will).href).toBe("/dashboard/kyc");
   });
 
-  it("raises a renewal only inside the window", () => {
-    const endingIn = (days: number) =>
-      aWill({
-        has_active_subscription: true,
-        subscription_expires_at: new Date(NOW.getTime() + days * 86_400_000).toISOString(),
-      });
+  it("raises a Will Castle has opened for an update, and never a renewal", () => {
+    const opened = aWill({
+      status: "submitted",
+      journey: journey({ print_blocked_by: null, amendment_permitted: true }),
+    });
 
-    expect(renewalDue(endingIn(10), NOW)).toBe(true);
-    expect(renewalDue(endingIn(60), NOW)).toBe(false);
-    expect(renewalDue(endingIn(-1), NOW)).toBe(false);
+    expect(openForUpdate(opened)).toBe(true);
+    expect(practiceActionFor(opened)).toMatchObject({ label: "Opened for update", cta: "Update" });
+    // Once reopened into a draft it is being edited, not waiting.
+    expect(openForUpdate(aWill({ journey: journey({ amendment_permitted: true }) }))).toBe(false);
+    // A lawyer's Will has no subscription to renew, whatever an old expiry says.
+    expect(
+      practiceActionFor(
+        aWill({
+          status: "submitted",
+          has_active_subscription: true,
+          subscription_expires_at: "2026-10-01T00:00:00Z",
+          journey: journey({ print_blocked_by: null, printed_at: "2026-09-01T00:00:00Z" }),
+        }),
+      ).label,
+    ).toBe("Issued");
   });
 
   it("names the client, or nobody before they are named", () => {

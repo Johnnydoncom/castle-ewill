@@ -48,8 +48,8 @@ const NOTES_FOR_CLIENT: Partial<Record<JourneyStage, string>> = {
   execute: "Your client's to do: sign it in front of two witnesses.",
   lodge: "Lodge it with the Probate Registry — or leave it to us, if you have asked us to.",
   protect: "Held encrypted, released only to the executors your client named.",
-  update:
-    "Amend and re-issue whenever your client's life changes, while this Will's subscription runs.",
+  // A lawyer's Will has no subscription (2026-09-30): Castle opens it for an update.
+  update: "Castle has opened this Will for you to amend and re-issue. It locks again when you resubmit it.",
 };
 
 /**

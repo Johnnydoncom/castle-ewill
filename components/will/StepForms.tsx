@@ -1465,6 +1465,20 @@ export function ReviewStep({
           `update_blocked_by` is the server's answer, not a rule re-derived
           here: null for a first draft, a first submission and every print.
         */}
+        {/* A lawyer's submitted Will, closed again by Castle mid-edit. */}
+        {will.journey?.update_blocked_by === "amendment_locked" && (
+          <div className="border border-border bg-muted/30 p-6">
+            <p className="font-serif text-lg text-foreground">This Will is locked</p>
+            <p className="mt-1 text-sm text-muted-foreground">{voice.amendmentLocked}</p>
+            <Link
+              href="/contact"
+              className="mt-4 inline-block text-sm font-semibold text-foreground underline underline-offset-4"
+            >
+              Contact us
+            </Link>
+          </div>
+        )}
+
         {will.journey?.update_blocked_by === "subscription_required" && (
           <div className="border border-border bg-muted/30 p-6">
             <p className="font-serif text-lg text-foreground">
