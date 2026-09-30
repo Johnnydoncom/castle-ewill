@@ -37,6 +37,18 @@ export function headerDestinations(viewer: Viewer | null): {
     };
   }
 
+  /*
+   * A verified lawyer has no Will of their own to continue. `/dashboard/will`
+   * resolves "the one in flight", which for them is whichever client's was
+   * touched last — so theirs goes to the list of them instead.
+   */
+  if (viewer.draftsForClients) {
+    return {
+      secondary: { href: "/dashboard", label: "Dashboard" },
+      primary: { href: "/dashboard/wills", label: "Client Wills" },
+    };
+  }
+
   return {
     secondary: { href: "/dashboard", label: "Dashboard" },
     primary: { href: "/dashboard/will", label: "Continue your Will" },

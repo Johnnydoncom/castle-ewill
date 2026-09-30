@@ -15,7 +15,16 @@ import { api } from "@/lib/api/browser";
  * `GET /me` answers 401 for a visitor with no session, which `api()` returns
  * as an ordinary unsuccessful result: nothing is logged and nothing redirects.
  */
-export type Viewer = { name: string | null; role: "user" | "admin" };
+export type Viewer = {
+  name: string | null;
+  role: "user" | "lawyer" | "admin";
+  /**
+   * A verified lawyer, who draws Wills for clients and has none of their own
+   * to "continue" — the server's `may_name_another_testator`. Absent is false:
+   * an unconfirmed lawyer is an ordinary client until the roll is checked.
+   */
+  draftsForClients?: boolean;
+};
 
 /**
  * One request per document load, shared by every caller.
@@ -27,8 +36,18 @@ export type Viewer = { name: string | null; role: "user" | "admin" };
 let asked: Promise<Viewer | null> | null = null;
 
 function viewer(): Promise<Viewer | null> {
-  asked ??= api<{ data: Viewer }>("/me")
-    .then((result) => (result.ok ? { name: result.data.data.name, role: result.data.data.role } : null))
+  asked ??= api<{
+    data: Pick<Viewer, "name" | "role"> & { may_name_another_testator?: boolean };
+  }>("/me")
+    .then((result) =>
+      result.ok
+        ? {
+            name: result.data.data.name,
+            role: result.data.data.role,
+            draftsForClients: result.data.data.may_name_another_testator === true,
+          }
+        : null,
+    )
     .catch(() => null);
 
   return asked;

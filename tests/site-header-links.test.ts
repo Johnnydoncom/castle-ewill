@@ -24,6 +24,21 @@ describe("the public header", () => {
     expect(links.primary).toEqual({ href: "/dashboard/will", label: "Continue your Will" });
   });
 
+  it("takes a verified lawyer to their clients' Wills, not to a Will of their own", () => {
+    const links = headerDestinations({ name: "Funmi", role: "lawyer", draftsForClients: true });
+
+    expect(links.secondary).toEqual({ href: "/dashboard", label: "Dashboard" });
+    expect(links.primary).toEqual({ href: "/dashboard/wills", label: "Client Wills" });
+  });
+
+  it("treats a lawyer nobody has confirmed as an ordinary client", () => {
+    // An enrolment number is a claim until the roll is checked: until then
+    // the account holds one Will, and it is their own.
+    const links = headerDestinations({ name: "Chidi", role: "lawyer", draftsForClients: false });
+
+    expect(links.primary).toEqual({ href: "/dashboard/will", label: "Continue your Will" });
+  });
+
   it("takes an administrator to the console, never the client dashboard", () => {
     const links = headerDestinations({ name: "Admin", role: "admin" });
 
@@ -32,8 +47,8 @@ describe("the public header", () => {
   });
 
   it("never sends a signed-in account to an auth page", () => {
-    for (const role of ["user", "admin"] as const) {
-      const links = headerDestinations({ name: null, role });
+    for (const role of ["user", "lawyer", "admin"] as const) {
+      const links = headerDestinations({ name: null, role, draftsForClients: role === "lawyer" });
 
       expect([links.secondary.href, links.primary.href]).not.toContain("/login");
       expect([links.secondary.href, links.primary.href]).not.toContain("/register");

@@ -43,7 +43,7 @@ export function receiptStanding(status: PaymentReceipt["status"]): ReceiptStandi
         kicker: "Payment record",
         title: "Payment not completed",
         badge: "Not completed",
-        note: "This payment did not go through, so there is no receipt for it. You can try again from your Will's page.",
+        note: "This payment did not go through, so there is no receipt for it. You can try again from that Will's page.",
       };
   }
 }

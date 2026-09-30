@@ -69,7 +69,7 @@ export default async function WillEditorPage({
     return (
       <div className="mx-auto max-w-2xl px-6 py-24 text-center">
         <p className="font-serif text-lg text-navy">
-          We could not open your Will. Please refresh and try again.
+          We could not open this Will. Please refresh and try again.
         </p>
       </div>
     );
