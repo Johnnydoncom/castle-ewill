@@ -19,7 +19,7 @@ const SECTIONS: Section[] = [
     faqs: [
       {
         q: "Is a Will made on this platform legally binding?",
-        a: "Yes, provided it is properly executed. The document we generate contains the clauses a valid Will requires — a declaration, revocation of earlier Wills, appointment of executors, disposition of the estate and an attestation clause. It becomes legally effective when you sign it in the simultaneous presence of two witnesses, who then sign in your presence. Until it is signed, it is a draft with no legal effect.",
+        a: "Yes, provided it is properly executed and lodged at the Probate Registry. The document we generate contains the clauses a valid Will requires — a declaration, revocation of earlier Wills, appointment of executors, disposition of the estate and an attestation clause. It becomes legally effective when you sign it in the simultaneous presence of two witnesses, who then sign in your presence. Until it is signed, it is a draft with no legal effect.",
       },
       {
         q: "Who can make a Will?",
