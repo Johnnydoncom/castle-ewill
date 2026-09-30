@@ -45,7 +45,7 @@ export function PlanCard({
   const lines = planCardLines(quote);
 
   // A single-line quote is just the plan itself; there is nothing to break out.
-  const showBreakdown = lines.length > 1;
+  const showBreakdown = false; //lines.length > 1;
 
   return (
     <div
