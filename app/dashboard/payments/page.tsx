@@ -10,7 +10,9 @@ import { listWills } from "@/lib/actions/will";
 import { describeStanding, subscriptionStanding } from "@/lib/will/subscription";
 
 export const metadata: Metadata = {
-  title: "Pay for your Will",
+  // What the page is, and what the sidebar calls it. It was "Pay for your
+  // Will" from when the checkout lived here; paying moved onto the Will.
+  title: "Billing",
   robots: { index: false, follow: false },
 };
 
