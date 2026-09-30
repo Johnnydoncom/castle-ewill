@@ -45,11 +45,10 @@ export function PlanCard({
 
   return (
     <div
-      className={`flex flex-col border p-8 ${
-        featured
-          ? "border-gold bg-card shadow-elegant lg:-translate-y-3"
-          : "border-border bg-card"
-      }`}
+      className={`flex flex-col border p-8 ${featured
+        ? "border-gold bg-card shadow-elegant lg:-translate-y-3"
+        : "border-border bg-card"
+        }`}
     >
       {/*
         One slot, so the two labels can never stack and knock the three cards
@@ -71,9 +70,9 @@ export function PlanCard({
       )}
 
       <h3 className="font-serif text-2xl text-navy">{plan.name}</h3>
-      {plan.tagline && (
+      {/* {plan.tagline && (
         <p className="mt-1 text-sm text-muted-foreground">{plan.tagline}</p>
-      )}
+      )} */}
 
       <div className="mt-6 flex items-baseline gap-2">
         <span className="font-serif text-4xl text-navy">
@@ -84,11 +83,11 @@ export function PlanCard({
         </span>
       </div>
 
-      {plan.description && (
+      {/* {plan.description && (
         <p className="mt-4 text-sm leading-relaxed text-muted-foreground">
           {plan.description}
         </p>
-      )}
+      )} */}
 
       {showBreakdown && quote && (
         <dl className="mt-6 space-y-2 border-t border-border pt-5 text-sm">
