@@ -850,10 +850,16 @@ function AssetsFields({ will, state, voice }: FieldsProps) {
         legend="Asset"
         prefix="assets"
         addLabel="Add another asset"
+        addFirstLabel="Add an asset"
         emptyLabel={voice.assets.empty}
         min={0}
         max={100}
-        initialCount={will.assets.length || 1}
+        /*
+          Empty until the client adds one. A blank row seeded here had to be
+          filled or deleted before the step would save, which is a demand,
+          not a prompt — and "nothing to list" below answers the section too.
+        */
+        initialCount={will.assets.length}
         renderRow={({ name, source }) => {
           const row = source === null ? undefined : will.assets[source];
 

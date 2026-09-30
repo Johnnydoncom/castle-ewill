@@ -36,6 +36,7 @@ export function RepeatableList({
   legend,
   prefix,
   addLabel,
+  addFirstLabel,
   emptyLabel,
   min = 0,
   max = 24,
@@ -54,6 +55,8 @@ export function RepeatableList({
    */
   prefix: string;
   addLabel: string;
+  /** The button while the list is empty — "Add an asset", not "Add another". */
+  addFirstLabel?: string;
   emptyLabel?: string;
   min?: number;
   max?: number;
@@ -118,7 +121,7 @@ export function RepeatableList({
           className="inline-flex items-center gap-2 border border-border px-4 py-2.5 text-xs font-medium uppercase tracking-[0.18em] text-navy transition-colors hover:border-gold hover:text-gold"
         >
           <Plus className="h-3.5 w-3.5" />
-          {addLabel}
+          {rows.length === 0 && addFirstLabel ? addFirstLabel : addLabel}
         </button>
       )}
     </fieldset>
