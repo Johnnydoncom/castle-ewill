@@ -32,7 +32,7 @@ export default async function AdminPaymentsPage({
   const { page: pageParam } = await searchParams;
   const page = Math.max(Number(pageParam) || 1, 1);
 
-  const { data: rows, total, success_kobo: successKobo } = await listPayments({
+  const { data: rows, total, success_kobo: successKobo, vat_kobo: vatKobo } = await listPayments({
     page,
     perPage: PER_PAGE,
   });
@@ -45,19 +45,24 @@ export default async function AdminPaymentsPage({
         blurb="Fees received, pending settlements and failed attempts."
       />
 
-      <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
+      <dl className="grid grid-cols-2 gap-4 sm:grid-cols-4">
         <StatCard
           numeral="I"
           value={formatNaira(successKobo)}
-          label="Collected"
+          label="Collected (incl. VAT)"
         />
         <StatCard
           numeral="II"
+          value={formatNaira(vatKobo)}
+          label="Output VAT in that"
+        />
+        <StatCard
+          numeral="III"
           value={total.toLocaleString()}
           label="Transactions"
         />
         <StatCard
-          numeral="III"
+          numeral="IV"
           value={
             total > 0
               ? `${Math.round((rows.filter((r) => r.status === "success").length / rows.length) * 100)}%`
@@ -68,13 +73,18 @@ export default async function AdminPaymentsPage({
       </dl>
 
       <Table
-        headers={["Reference", "Client", "Provider", "Amount", "Status", "Date", ""]}
+        headers={["Reference", "Client", "Provider", "Amount", "VAT", "Status", "Date", ""]}
         isEmpty={rows.length === 0}
         empty="No payments recorded yet. Payment providers are wired in phase 2."
       >
         {rows.map((payment) => (
           <tr key={payment.id}>
-            <Cell muted>{payment.reference}</Cell>
+            <Cell muted>
+              {payment.reference}
+              {payment.invoice_number && (
+                <span className="block text-xs">{payment.invoice_number}</span>
+              )}
+            </Cell>
             <Cell>
               <span className="font-medium">{payment.client?.name ?? "—"}</span>
               <span className="block text-xs text-muted-foreground">
@@ -83,6 +93,7 @@ export default async function AdminPaymentsPage({
             </Cell>
             <Cell muted>{payment.provider.replace("_", " ")}</Cell>
             <Cell>{payment.amount_formatted}</Cell>
+            <Cell muted>{payment.vat_formatted ?? "—"}</Cell>
             <Cell>
               <StatusBadge
                 label={payment.status}

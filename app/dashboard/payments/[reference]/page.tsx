@@ -8,6 +8,7 @@ import { PrintReceiptButton } from "@/components/payments/PrintReceiptButton";
 import { getPaymentByReference } from "@/lib/actions/payments";
 import { COMPANY } from "@/lib/company";
 import { paidWith, receiptDate, receiptNotes, receiptStanding } from "@/lib/payments/receipt";
+import { vatRateLabel } from "@/lib/payments/vat";
 
 export const metadata: Metadata = {
   title: "Payment receipt",
@@ -47,8 +48,10 @@ export default async function PaymentReceiptPage({
   if (!detail?.receipt) notFound();
 
   const { receipt } = detail;
-  const standing = receiptStanding(receipt.status);
+  const standing = receiptStanding(receipt.status, receipt.invoice_number !== null);
   const paid = standing.tone === "paid";
+  // An order that pre-dates VAT carries no breakdown, and is shown as it was.
+  const vat = receipt.vat !== null && receipt.vat.rate_bps > 0 ? receipt.vat : null;
   const notes = receiptNotes(receipt);
   const dated = receipt.paid_at ?? receipt.created_at;
 
@@ -71,8 +74,10 @@ export default async function PaymentReceiptPage({
           <div className="flex flex-wrap items-start justify-between gap-6">
             <Logo size={44} linked={false} />
             <address className="text-xs not-italic leading-relaxed text-muted-foreground sm:text-right">
-              <span className="block font-medium text-navy">{COMPANY.legalName}</span>
-              <span className="block">RC {COMPANY.rcNumber}</span>
+              <span className="block font-medium text-navy">{receipt.seller.name}</span>
+              <span className="block">RC {receipt.seller.rc_number}</span>
+              {/* A VAT invoice names its supplier's TIN; shown once one is on file. */}
+              {receipt.seller.tin && <span className="block">TIN {receipt.seller.tin}</span>}
               {COMPANY.addressLines.map((line) => (
                 <span key={line} className="block">
                   {line}
@@ -116,12 +121,23 @@ export default async function PaymentReceiptPage({
         <dl className="grid gap-x-10 gap-y-6 px-6 py-8 sm:grid-cols-2 sm:px-10">
           <div>
             <dt className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
-              Receipt number
+              {receipt.invoice_number ? "Invoice number" : "Receipt number"}
             </dt>
             <dd className="mt-1 break-all font-mono text-sm tracking-wide text-navy">
-              {receipt.reference}
+              {receipt.invoice_number ?? receipt.reference}
             </dd>
           </div>
+
+          {receipt.invoice_number && (
+            <div>
+              <dt className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
+                Payment reference
+              </dt>
+              <dd className="mt-1 break-all font-mono text-sm tracking-wide text-navy">
+                {receipt.reference}
+              </dd>
+            </div>
+          )}
 
           <div>
             <dt className="text-[10px] uppercase tracking-[0.25em] text-muted-foreground">
@@ -175,9 +191,23 @@ export default async function PaymentReceiptPage({
                   <th scope="col" className="py-3 pr-4 font-normal">
                     Description
                   </th>
-                  <th scope="col" className="py-3 text-right font-normal">
-                    Amount
-                  </th>
+                  {vat ? (
+                    <>
+                      <th scope="col" className="py-3 pl-4 text-right font-normal">
+                        Excl. VAT
+                      </th>
+                      <th scope="col" className="py-3 pl-4 text-right font-normal">
+                        VAT ({vatRateLabel(vat.rate_bps)})
+                      </th>
+                      <th scope="col" className="py-3 pl-4 text-right font-normal">
+                        Total
+                      </th>
+                    </>
+                  ) : (
+                    <th scope="col" className="py-3 text-right font-normal">
+                      Amount
+                    </th>
+                  )}
                 </tr>
               </thead>
               <tbody className="divide-y divide-border">
@@ -189,19 +219,59 @@ export default async function PaymentReceiptPage({
                         <span className="block text-xs text-muted-foreground">Included in your plan</span>
                       )}
                     </td>
-                    <td className="py-3 text-right tabular-nums text-navy">
-                      {line.is_included ? (
-                        <span className="text-muted-foreground">Included</span>
+                    {vat ? (
+                      line.is_included ? (
+                        <td colSpan={3} className="py-3 pl-4 text-right text-muted-foreground">
+                          Included
+                        </td>
                       ) : (
-                        line.amount_formatted
-                      )}
-                    </td>
+                        <>
+                          <td className="py-3 pl-4 text-right tabular-nums text-navy">
+                            {line.net_formatted ?? line.amount_formatted}
+                          </td>
+                          <td className="py-3 pl-4 text-right tabular-nums text-navy">
+                            {line.vat_formatted ?? "—"}
+                          </td>
+                          <td className="py-3 pl-4 text-right tabular-nums text-navy">
+                            {line.gross_formatted ?? line.amount_formatted}
+                          </td>
+                        </>
+                      )
+                    ) : (
+                      <td className="py-3 text-right tabular-nums text-navy">
+                        {line.is_included ? (
+                          <span className="text-muted-foreground">Included</span>
+                        ) : (
+                          line.amount_formatted
+                        )}
+                      </td>
+                    )}
                   </tr>
                 ))}
               </tbody>
               <tfoot>
-                <tr className="border-t-2 border-navy">
-                  <th scope="row" className="pr-4 pt-4 text-left font-serif text-base font-normal text-navy">
+                {vat && (
+                  <>
+                    <tr className="border-t-2 border-navy">
+                      <th scope="row" colSpan={3} className="pr-4 pt-4 text-right font-normal text-muted-foreground">
+                        Subtotal (excl. VAT)
+                      </th>
+                      <td className="pt-4 text-right tabular-nums text-navy">{vat.subtotal_formatted}</td>
+                    </tr>
+                    <tr>
+                      <th scope="row" colSpan={3} className="pr-4 pt-1 text-right font-normal text-muted-foreground">
+                        VAT ({vatRateLabel(vat.rate_bps)})
+                      </th>
+                      <td className="pt-1 text-right tabular-nums text-navy">{vat.vat_formatted}</td>
+                    </tr>
+                  </>
+                )}
+                <tr className={vat ? undefined : "border-t-2 border-navy"}>
+                  <th
+                    scope="row"
+                    colSpan={vat ? 3 : 1}
+                    className={`pr-4 pt-4 font-serif text-base font-normal text-navy ${vat ? "text-right" : "text-left"}`}
+                  >
                     {paid ? "Total paid" : "Total"}
                   </th>
                   <td className="pt-4 text-right font-serif text-xl tabular-nums text-navy">
@@ -222,7 +292,8 @@ export default async function PaymentReceiptPage({
         </section>
 
         <footer className="border-t border-border px-6 py-5 text-xs leading-relaxed text-muted-foreground sm:px-10">
-          {paid ? "Issued electronically" : "Recorded"} by {COMPANY.legalName}, RC {COMPANY.rcNumber}.
+          {paid ? "Issued electronically" : "Recorded"} by {receipt.seller.name}, RC {receipt.seller.rc_number}
+          {receipt.seller.tin ? `, TIN ${receipt.seller.tin}` : ""}.
           Questions about this payment? Email{" "}
           <a href={`mailto:${COMPANY.email}`} className="underline underline-offset-4 hover:text-navy">
             {COMPANY.email}

@@ -66,12 +66,26 @@ export type QuoteLine = {
   amount_formatted: string;
   /** Absorbed by the plan rather than charged — shown as included, not hidden. */
   is_included: boolean;
+  /** Before VAT, the VAT, and what the line adds to the charge. */
+  net_kobo: number;
+  vat_kobo: number;
+  gross_kobo: number;
 };
 
 export type PriceQuote = {
   plan_slug: string;
   plan_name: string;
   lines: QuoteLine[];
+  /** Before VAT. `subtotal + vat === total`, always. */
+  subtotal_kobo: number;
+  subtotal_formatted: string;
+  /** The rate applied in basis points; 0 when no VAT is charged. */
+  vat_rate_bps: number;
+  vat_kobo: number;
+  vat_formatted: string;
+  /** Whether the listed prices already contain the VAT, or it is added on top. */
+  prices_include_vat: boolean;
+  /** What is charged, VAT included. */
   total_kobo: number;
   total_formatted: string;
   currency: string;
@@ -84,6 +98,13 @@ export type PaymentProviders = {
   paystack: boolean;
   flutterwave: boolean;
   bank_transfer: boolean;
+};
+
+/** How VAT is applied to every price on the list. */
+export type VatTerms = {
+  /** 0 when the company charges none. */
+  rate_bps: number;
+  prices_include_vat: boolean;
 };
 
 export type PriceList = {
@@ -105,6 +126,7 @@ export type PriceList = {
   subscription: Plan | null;
   /** Composed totals keyed by Will-plan slug — render, never recompute. */
   quotes: Record<string, PriceQuote>;
+  vat: VatTerms;
   providers: PaymentProviders;
   /** Whether the active gateway can keep a card for automatic renewal. */
   autoRenewAvailable: boolean;

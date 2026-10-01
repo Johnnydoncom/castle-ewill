@@ -129,6 +129,7 @@ export default async function PricingPage() {
               lodging={prices.lodging}
               review={prices.review}
               subscription={prices.subscription}
+              vat={prices.vat}
             />
 
           </>

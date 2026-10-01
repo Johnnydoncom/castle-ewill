@@ -1,7 +1,9 @@
 import { Check, Minus } from "lucide-react";
 
 import { planCardLines } from "@/lib/pricing/breakdown";
-import type { Plan, PriceQuote } from "@/lib/pricing/types";
+import { QuoteVatNote, QuoteVatRows } from "@/components/pricing/QuoteVat";
+import { vatPriceNotice } from "@/lib/payments/vat";
+import type { Plan, PriceQuote, VatTerms } from "@/lib/pricing/types";
 
 /**
  * One priced tier, with its bill broken out.
@@ -49,10 +51,9 @@ export function PlanCard({
 
   return (
     <div
-      className={`flex flex-col border p-8 ${featured
-        ? "border-gold bg-card shadow-elegant lg:-translate-y-3"
-        : "border-border bg-card"
-        }`}
+      className={`flex flex-col border p-8 ${
+        featured ? "border-gold bg-card shadow-elegant lg:-translate-y-3" : "border-border bg-card"
+      }`}
     >
       {/*
         One slot, so the two labels can never stack and knock the three cards
@@ -79,12 +80,8 @@ export function PlanCard({
       )} */}
 
       <div className="mt-6 flex items-baseline gap-2">
-        <span className="font-serif text-4xl text-navy">
-          {plan.price_formatted}
-        </span>
-        <span className="text-sm text-muted-foreground">
-          {plan.charge_suffix}
-        </span>
+        <span className="font-serif text-4xl text-navy">{plan.price_formatted}</span>
+        <span className="text-sm text-muted-foreground">{plan.charge_suffix}</span>
       </div>
 
       {/* {plan.description && (
@@ -97,11 +94,7 @@ export function PlanCard({
         <dl className="mt-6 space-y-2 border-t border-border pt-5 text-sm">
           {lines.map((line) => (
             <div key={line.label} className="flex items-baseline justify-between gap-4">
-              <dt
-                className={
-                  line.is_included ? "text-muted-foreground" : "text-navy/80"
-                }
-              >
+              <dt className={line.is_included ? "text-muted-foreground" : "text-navy/80"}>
                 {line.label}
               </dt>
               <dd className="shrink-0 tabular-nums">
@@ -118,12 +111,16 @@ export function PlanCard({
             </div>
           ))}
 
+          <QuoteVatRows quote={quote} />
+
           <div className="flex items-baseline justify-between gap-4 border-t border-border pt-3">
             <dt className="font-serif text-base text-navy">Total payable</dt>
             <dd className="shrink-0 font-serif text-xl tabular-nums text-navy">
               {quote.total_formatted}
             </dd>
           </div>
+
+          <QuoteVatNote quote={quote} />
         </dl>
       )}
 
@@ -159,48 +156,60 @@ export function PricingFootnotes({
   lodging,
   review,
   subscription,
+  vat,
 }: {
   lodging: Plan | null;
   review: Plan | null;
   subscription: Plan | null;
+  /** How VAT is applied to every price shown — stated once, under the list. */
+  vat?: VatTerms;
 }) {
   const notes = [lodging, review, subscription].filter(Boolean) as Plan[];
+  const vatNotice = vat ? vatPriceNotice(vat) : null;
 
-  if (notes.length === 0) return null;
+  if (notes.length === 0 && !vatNotice) return null;
 
   return (
     <div className="mt-14 border-t border-border pt-10">
-      <div className="flex items-baseline gap-3">
-        <h3 className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">
-          Optional extras
-        </h3>
-        <span className="text-xs text-muted-foreground">
-          Added only if you ask for them.
-        </span>
-      </div>
-
-      <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
-        {notes.map((plan) => (
-          <div key={plan.id} className="flex gap-4">
-            <span className="mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-full border border-gold/40">
-              <Minus className="h-3.5 w-3.5 text-gold" />
-            </span>
-            <div className="min-w-0">
-              <h4 className="font-serif text-lg text-navy">
-                {plan.name}
-                <span className="ml-2 text-sm text-gold">
-                  {plan.price_formatted} {plan.charge_suffix}
-                </span>
-              </h4>
-              {plan.description && (
-                <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
-                  {plan.description}
-                </p>
-              )}
-            </div>
+      {notes.length > 0 && (
+        <>
+          <div className="flex items-baseline gap-3">
+            <h3 className="font-serif text-[10px] uppercase tracking-[0.3em] text-gold">
+              Optional extras
+            </h3>
+            <span className="text-xs text-muted-foreground">Added only if you ask for them.</span>
           </div>
-        ))}
-      </div>
+
+          <div className="mt-6 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
+            {notes.map((plan) => (
+              <div key={plan.id} className="flex gap-4">
+                <span className="mt-1 grid h-8 w-8 shrink-0 place-items-center rounded-full border border-gold/40">
+                  <Minus className="h-3.5 w-3.5 text-gold" />
+                </span>
+                <div className="min-w-0">
+                  <h4 className="font-serif text-lg text-navy">
+                    {plan.name}
+                    <span className="ml-2 text-sm text-gold">
+                      {plan.price_formatted} {plan.charge_suffix}
+                    </span>
+                  </h4>
+                  {plan.description && (
+                    <p className="mt-1.5 text-sm leading-relaxed text-muted-foreground">
+                      {plan.description}
+                    </p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        </>
+      )}
+
+      {vatNotice && (
+        <p className="mt-8 text-xs leading-relaxed text-muted-foreground">
+          {vatNotice} Every payment is issued with a VAT invoice.
+        </p>
+      )}
     </div>
   );
 }

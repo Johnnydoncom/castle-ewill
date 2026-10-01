@@ -414,15 +414,16 @@ export type AdminPaymentRow = PaymentRecord & {
  *
  * `success_kobo` is the settled total across the filter, not the sum of the
  * current page — it is the figure an operator reconciles against the bank, and
- * a page-local subtotal would be meaningless there.
+ * a page-local subtotal would be meaningless there. `vat_kobo` is the output
+ * VAT inside that settled money — what the firm owes the tax authority on it.
  */
 export async function listPayments(options: {
   status?: string;
   provider?: string;
   page?: number;
   perPage?: number;
-}): Promise<Paginated<AdminPaymentRow> & { success_kobo: number }> {
-  const result = await api<{ data: Paginated<AdminPaymentRow>; success_kobo?: number }>(
+}): Promise<Paginated<AdminPaymentRow> & { success_kobo: number; vat_kobo: number }> {
+  const result = await api<{ data: Paginated<AdminPaymentRow>; success_kobo?: number; vat_kobo?: number }>(
     "/admin/payments",
     {
       query: {
@@ -435,12 +436,13 @@ export async function listPayments(options: {
   );
 
   if (!result.ok) {
-    return { ...emptyPage<AdminPaymentRow>(), success_kobo: 0 };
+    return { ...emptyPage<AdminPaymentRow>(), success_kobo: 0, vat_kobo: 0 };
   }
 
   return {
     ...result.data.data,
     success_kobo: result.data.success_kobo ?? 0,
+    vat_kobo: result.data.vat_kobo ?? 0,
   };
 }
 

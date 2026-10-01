@@ -12,6 +12,7 @@ const EMPTY: PriceList = {
   review: null,
   subscription: null,
   quotes: {},
+  vat: { rate_bps: 0, prices_include_vat: true },
   providers: { nomba: false, paystack: false, flutterwave: false, bank_transfer: true },
   autoRenewAvailable: false,
 };
@@ -35,6 +36,7 @@ export async function getPriceList(): Promise<PriceList> {
     data: Plan[];
     meta?: {
       quotes?: PriceList["quotes"];
+      vat?: PriceList["vat"];
       providers?: PriceList["providers"];
       auto_renew_available?: boolean;
     };
@@ -62,6 +64,7 @@ export async function getPriceList(): Promise<PriceList> {
     review: ofKind("review")[0] ?? null,
     subscription: ofKind("subscription")[0] ?? null,
     quotes: result.data.meta?.quotes ?? {},
+    vat: result.data.meta?.vat ?? EMPTY.vat,
     providers: result.data.meta?.providers ?? EMPTY.providers,
     autoRenewAvailable: result.data.meta?.auto_renew_available ?? false,
   };

@@ -12,6 +12,7 @@ import {
   NO_OPTIONS,
   type PriceOptions,
 } from "@/lib/actions/payments.client";
+import { QuoteVatNote, QuoteVatRows } from "@/components/pricing/QuoteVat";
 import type { Plan, PriceQuote } from "@/lib/pricing/types";
 
 /**
@@ -386,6 +387,8 @@ export function WillCheckout({
             </div>
           ))}
 
+          <QuoteVatRows quote={quote} />
+
           <div className="flex items-baseline justify-between gap-4 border-t border-border pt-3">
             <dt className="font-serif text-lg text-navy">Total payable</dt>
             <dd className="shrink-0 font-serif text-2xl tabular-nums text-navy">
@@ -396,6 +399,8 @@ export function WillCheckout({
               )}
             </dd>
           </div>
+
+          {!repricing && <QuoteVatNote quote={quote} />}
         </dl>
       )}
 

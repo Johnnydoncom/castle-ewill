@@ -9,6 +9,7 @@ import {
   startReactivationCheckoutAction,
 } from "@/lib/actions/payments.client";
 import { signOutAction } from "@/lib/actions/session";
+import { vatRateLabel } from "@/lib/payments/vat";
 import type { PriceQuote } from "@/lib/pricing/types";
 
 function PayButton({ label }: { label: string }) {
@@ -58,9 +59,16 @@ export function ReactivationCheckout({ quote }: { quote: PriceQuote }) {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-baseline justify-between border-y border-border py-5">
-        <span className="text-sm text-muted-foreground">{quote.plan_name}</span>
-        <span className="font-serif text-3xl text-navy">{quote.total_formatted}</span>
+      <div className="border-y border-border py-5">
+        <div className="flex items-baseline justify-between">
+          <span className="text-sm text-muted-foreground">{quote.plan_name}</span>
+          <span className="font-serif text-3xl text-navy">{quote.total_formatted}</span>
+        </div>
+        {quote.vat_rate_bps > 0 && (
+          <p className="mt-2 text-right text-xs text-muted-foreground">
+            Includes VAT ({vatRateLabel(quote.vat_rate_bps)}) of {quote.vat_formatted}
+          </p>
+        )}
       </div>
 
       {error && (

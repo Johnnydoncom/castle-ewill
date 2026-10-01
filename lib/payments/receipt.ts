@@ -17,10 +17,13 @@ export type ReceiptStanding = {
   note: string | null;
 };
 
-export function receiptStanding(status: PaymentReceipt["status"]): ReceiptStanding {
+export function receiptStanding(status: PaymentReceipt["status"], invoiced = false): ReceiptStanding {
   switch (status) {
     case "success":
-      return { tone: "paid", kicker: "Receipt", title: "Payment receipt", badge: "Paid", note: null };
+      // A paid order with an invoice number is a VAT invoice as well as a receipt.
+      return invoiced
+        ? { tone: "paid", kicker: "Tax invoice", title: "Tax invoice and receipt", badge: "Paid", note: null }
+        : { tone: "paid", kicker: "Receipt", title: "Payment receipt", badge: "Paid", note: null };
     case "pending":
       return {
         tone: "pending",

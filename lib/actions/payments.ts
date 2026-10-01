@@ -26,6 +26,10 @@ export type PaymentRecord = {
   amount_kobo: number;
   amount_formatted: string;
   currency: string;
+  /** Null for a payment recorded before VAT was. */
+  vat_kobo: number | null;
+  vat_formatted: string | null;
+  invoice_number: string | null;
   paid_at: string | null;
   created_at: string;
 };
@@ -49,6 +53,27 @@ export type ReceiptLine = {
   amount_formatted: string;
   /** Covered by the plan at no charge — shown to say so, never added to the total. */
   is_included: boolean;
+  /** Null for an order recorded before VAT was. */
+  net_formatted: string | null;
+  vat_formatted: string | null;
+  gross_formatted: string | null;
+};
+
+/** The VAT on an order, or null when it was placed before VAT was recorded. */
+export type ReceiptVat = {
+  rate_bps: number;
+  subtotal_formatted: string;
+  vat_formatted: string;
+  total_formatted: string;
+  prices_include_vat: boolean;
+};
+
+/** Who the invoice is from — the company record, with its TIN once one is on file. */
+export type ReceiptSeller = {
+  name: string;
+  rc_number: string;
+  tin: string | null;
+  address: string;
 };
 
 /**
@@ -59,6 +84,9 @@ export type ReceiptLine = {
  */
 export type PaymentReceipt = {
   reference: string;
+  /** The tax invoice's serial; null until paid, and for orders that pre-date VAT. */
+  invoice_number: string | null;
+  invoiced_at: string | null;
   status: PaymentRecord["status"];
   amount_kobo: number;
   amount_formatted: string;
@@ -72,6 +100,8 @@ export type PaymentReceipt = {
   automatic_renewal: boolean;
   paid_with: { provider: string; channel: string | null };
   will: { id: string; reference: string; title: string } | null;
+  vat: ReceiptVat | null;
+  seller: ReceiptSeller;
   billed_to: { name: string; email: string } | null;
 };
 

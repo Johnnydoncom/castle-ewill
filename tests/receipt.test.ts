@@ -15,6 +15,17 @@ describe("a payment receipt", () => {
     expect(receiptStanding("refunded")).toMatchObject({ tone: "refunded", badge: "Refunded" });
   });
 
+  it("is a tax invoice as well once it carries an invoice number", () => {
+    expect(receiptStanding("success", true)).toMatchObject({
+      tone: "paid",
+      kicker: "Tax invoice",
+      title: "Tax invoice and receipt",
+    });
+    // A payment that was never invoiced, or has not been paid, is not one.
+    expect(receiptStanding("success", false).title).toBe("Payment receipt");
+    expect(receiptStanding("pending", true).title).toBe("Payment pending");
+  });
+
   it("names how it was paid without repeating itself", () => {
     expect(paidWith({ paid_with: { provider: "Flutterwave", channel: "Card" } })).toBe("Card via Flutterwave");
     expect(paidWith({ paid_with: { provider: "Flutterwave", channel: null } })).toBe("Flutterwave");

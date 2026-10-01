@@ -15,6 +15,9 @@ const line = (label: string, kind: PlanKind, isIncluded = false): QuoteLine => (
   amount_kobo: isIncluded ? 0 : 1,
   amount_formatted: isIncluded ? "₦0.00" : "₦1.00",
   is_included: isIncluded,
+  net_kobo: isIncluded ? 0 : 1,
+  vat_kobo: 0,
+  gross_kobo: isIncluded ? 0 : 1,
 });
 
 const quote = (lines: QuoteLine[]) => ({ lines }) as PriceQuote;

@@ -799,6 +799,7 @@ async function PricingPreview() {
           lodging={prices.lodging}
           review={prices.review}
           subscription={prices.subscription}
+          vat={prices.vat}
         />
 
       </div>

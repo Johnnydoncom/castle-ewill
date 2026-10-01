@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowUpRight, Check, Scale } from "lucide-react";
 
+import { vatRateLabel } from "@/lib/payments/vat";
 import type { Plan, PriceQuote } from "@/lib/pricing/types";
 
 /**
@@ -70,6 +71,13 @@ export function ProfessionalBand({
               {plan.charge_suffix}
             </span>
           </p>
+
+          {/* The total is VAT-inclusive whichever way the prices are listed. */}
+          {quote && quote.vat_rate_bps > 0 && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              Includes {vatRateLabel(quote.vat_rate_bps)} VAT
+            </p>
+          )}
         </div>
 
         {/* What it includes */}
