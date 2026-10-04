@@ -14,7 +14,7 @@ import { useEffect, useRef } from "react";
  * `lazyOnload` keeps it off the critical path: the chat is a convenience, and
  * a third-party bundle has no business competing with the page for LCP.
  *
- * **Not on the admin console.** Staff screens carry client records, and a
+ * **Not on the admin console.** Admin screens carry client records, and a
  * visitor chat bubble there is both noise and a third party watching a
  * privileged surface. On those paths the script is never requested; if it is
  * already loaded (a visit to the site first, then the console) the widget is
