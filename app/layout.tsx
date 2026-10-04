@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Fraunces, Inter } from "next/font/google";
 
 import "./globals.css";
+import { TawkChat } from "@/components/site/TawkChat";
 import { Toaster } from "@/components/ui/sonner";
 import { COMPANY } from "@/lib/company";
 
@@ -108,6 +109,7 @@ export default function RootLayout({
       <body>
         {children}
         <Toaster />
+        <TawkChat />
       </body>
     </html>
   );
