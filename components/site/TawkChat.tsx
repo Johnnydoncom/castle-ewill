@@ -22,7 +22,7 @@ import { useEffect, useRef } from "react";
  */
 const TAWK_SRC = "https://embed.tawk.to/6ac26c90cf3a4534d031f55f/1k43ng5eh";
 
-const HIDDEN_UNDER = ["/admin"];
+const HIDDEN_UNDER = ["/admin", "/dashboard"];
 
 type TawkApi = {
   onLoad?: () => void;
