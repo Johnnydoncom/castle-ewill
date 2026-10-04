@@ -447,6 +447,61 @@ export async function listPayments(options: {
 }
 
 /* -------------------------------------------------------------------------- */
+/*  Referrals                                                                  */
+/* -------------------------------------------------------------------------- */
+
+export type AdminReferralRow = {
+  id: string;
+  code: string;
+  status: "pending" | "rewarded";
+  referrer: { id: string; name: string | null; email: string } | null;
+  referred: { id: string; name: string | null; email: string } | null;
+  payment: { reference: string; invoice_number: string | null } | null;
+  base_formatted: string | null;
+  rate_bps: number | null;
+  commission_kobo: number | null;
+  commission_formatted: string | null;
+  created_at: string | null;
+  rewarded_at: string | null;
+};
+
+/** Across the whole programme, not the current page. */
+export type AdminReferralSummary = {
+  referrals: number;
+  rewarded: number;
+  commission_kobo: number;
+  /** What clients' wallets hold between them — the firm's liability. */
+  wallet_balance_kobo: number;
+  commission_rate_bps: number;
+};
+
+export async function listReferrals(options: {
+  status?: string;
+  page?: number;
+  perPage?: number;
+}): Promise<Paginated<AdminReferralRow> & { summary: AdminReferralSummary }> {
+  const result = await api<{ data: Paginated<AdminReferralRow>; summary: AdminReferralSummary }>(
+    "/admin/referrals",
+    {
+      query: {
+        status: options.status,
+        page: options.page,
+        per_page: options.perPage,
+      },
+    },
+  );
+
+  if (!result.ok) {
+    return {
+      ...emptyPage<AdminReferralRow>(),
+      summary: { referrals: 0, rewarded: 0, commission_kobo: 0, wallet_balance_kobo: 0, commission_rate_bps: 0 },
+    };
+  }
+
+  return { ...result.data.data, summary: result.data.summary };
+}
+
+/* -------------------------------------------------------------------------- */
 /*  Verification queue                                                         */
 /* -------------------------------------------------------------------------- */
 

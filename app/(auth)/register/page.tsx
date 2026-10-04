@@ -17,7 +17,7 @@ export const dynamic = "force-dynamic";
 export default async function RegisterPage({
   searchParams,
 }: {
-  searchParams: Promise<{ type?: string }>;
+  searchParams: Promise<{ type?: string; ref?: string }>;
 }) {
   const user = await currentUser();
   if (user) redirect(user.role === "admin" ? "/admin" : "/dashboard");
@@ -25,7 +25,11 @@ export default async function RegisterPage({
   // `?type=lawyer` from the pricing page preselects the practitioner path, so
   // someone arriving from "register as a lawyer" is not asked the question
   // they have already answered.
-  const { type } = await searchParams;
+  const { type, ref } = await searchParams;
+
+  // A shared referral link: `/register?ref=ADAEZE`. Tidied to the code's own
+  // alphabet here for display; the server is what decides whether it is one.
+  const referralCode = ref?.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 24) || undefined;
 
   return (
     <AuthShell
@@ -51,7 +55,10 @@ export default async function RegisterPage({
         </>
       }
     >
-      <RegisterForm initialAccountType={type === "lawyer" ? "lawyer" : "individual"} />
+      <RegisterForm
+        initialAccountType={type === "lawyer" ? "lawyer" : "individual"}
+        initialReferralCode={referralCode}
+      />
     </AuthShell>
   );
 }

@@ -57,6 +57,8 @@ export async function registerAction(
         accountType === "lawyer"
           ? String(formData.get("enrolmentNumber") ?? "")
           : null,
+      // Whose recommendation brought them; checked against the table server-side.
+      referral_code: String(formData.get("referralCode") ?? "").trim() || null,
     },
     onError: (result) => ({
       status: "error",
@@ -340,6 +342,7 @@ function mapFieldErrors(
     accepted_terms: "acceptedTerms",
     account_type: "accountType",
     enrolment_number: "enrolmentNumber",
+    referral_code: "referralCode",
   };
 
   return Object.fromEntries(

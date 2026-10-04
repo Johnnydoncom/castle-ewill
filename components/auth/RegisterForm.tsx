@@ -34,8 +34,11 @@ const ACCOUNT_TYPES: ReadonlyArray<{
 
 export function RegisterForm({
   initialAccountType = "individual",
+  initialReferralCode,
 }: {
   initialAccountType?: AccountType;
+  /** From a shared link's `?ref=`, so nobody has to copy the code across. */
+  initialReferralCode?: string;
 } = {}) {
   const [state, action] = useFormAction(registerAction, { refresh: false });
 
@@ -188,6 +191,20 @@ export function RegisterForm({
         hint="10+ characters"
         withMeter
         errors={state.fieldErrors?.password}
+      />
+      {/*
+        Optional, and only ever asked here: a referral is attached when the
+        account is opened. Seeded from the link until the first submission,
+        after which the field keeps whatever was typed.
+      */}
+      <Field
+        label="Referral code"
+        name="referralCode"
+        autoComplete="off"
+        placeholder="Optional"
+        hint={initialReferralCode ? "From your invitation" : undefined}
+        defaultValue={state.values ? undefined : initialReferralCode}
+        errors={state.fieldErrors?.referralCode}
       />
       <label className="flex items-start gap-3 pt-1 text-sm text-muted-foreground">
         <input

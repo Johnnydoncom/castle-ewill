@@ -28,6 +28,8 @@ export const adminNav = [
   // Shares the payments permission rather than taking one of its own: both
   // are the money surface, and delegating one implies delegating the other.
   { href: "/admin/pricing", label: "Pricing", icon: "pricing", permission: "manage_payments" },
+  // Commissions are money the firm owes, so they sit with the money too.
+  { href: "/admin/referrals", label: "Referrals", icon: "referrals", permission: "manage_payments" },
   { href: "/admin/messages", label: "Messages", icon: "messages", permission: "manage_messages" },
   // Its own permission, not `manage_settings`: writing for the public site
   // and holding the payment credentials are different jobs.

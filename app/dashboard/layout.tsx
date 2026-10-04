@@ -23,6 +23,8 @@ const BASE_NAV = [
   { href: "/dashboard", label: "Overview", icon: "overview" },
   { href: "/dashboard/documents", label: "Documents", icon: "documents" },
   { href: "/dashboard/payments", label: "Billing", icon: "payments" },
+  // The referral code and the wallet its commissions are paid into.
+  { href: "/dashboard/referrals", label: "Refer & earn", icon: "referrals" },
   { href: "/dashboard/settings", label: "Settings", icon: "settings" },
 ] as const;
 

@@ -6,6 +6,7 @@ import { useState, useEffect } from "react";
 import {
   CreditCard,
   FolderLock,
+  Gift,
   KeyRound,
   LayoutDashboard,
   Menu,
@@ -38,6 +39,7 @@ const ICON_MAP: Record<string, React.ComponentType<{ className?: string }>> = {
   verifications: ShieldCheck,
   payments: CreditCard,
   pricing: Tags,
+  referrals: Gift,
   messages: MessageSquare,
   posts: Newspaper,
   settings: Settings,
