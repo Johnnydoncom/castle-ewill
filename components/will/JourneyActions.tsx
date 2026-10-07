@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, useTransition } from "react";
-import { Check, CreditCard, Download, Lock, ScanFace, Scale } from "lucide-react";
+import { Check, CreditCard, Download, FileText, Lock, ScanFace, Scale } from "lucide-react";
 
 import { chooseReview, type ReviewChoice } from "@/lib/actions/will.client";
 import type { PrintBlocker, WillJourney } from "@/lib/actions/will";
@@ -247,12 +247,15 @@ export function JourneyActions({
   willId,
   journey,
   pdfUrl,
+  lodgingLetterUrl,
   resolvedHere = [],
   forClient = false,
 }: {
   willId: string;
   journey: WillJourney;
   pdfUrl: string;
+  /** The cover letter for lodging the Will with the Probate Registry. */
+  lodgingLetterUrl: string;
   /**
    * A lawyer looking at a Will they drew for a client. The Will is not theirs
    * and they are not the one who signs it, so nothing here says "your Will".
@@ -454,13 +457,32 @@ export function JourneyActions({
             same rule as the vault. The bytes are a legal instrument and have
             no business transiting a tier that does not need to see them.
           */}
-          <a
-            href={pdfUrl}
-            className="mt-5 inline-flex h-11 items-center gap-2 bg-navy px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-foreground transition-colors hover:bg-navy/90"
-          >
-            <Download className="h-4 w-4" />
-            {forClient ? "Download this Will" : "Download my Will"}
-          </a>
+          <div className="mt-5 flex flex-wrap gap-3">
+            <a
+              href={pdfUrl}
+              className="inline-flex h-11 items-center gap-2 bg-navy px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy-foreground transition-colors hover:bg-navy/90"
+            >
+              <Download className="h-4 w-4" />
+              {forClient ? "Download this Will" : "Download my Will"}
+            </a>
+            {/*
+              The letter to the Probate Registry that goes with the original
+              when it is lodged for safe custody. Behind the same gate as the
+              Will, so it is offered exactly when the Will is.
+            */}
+            <a
+              href={lodgingLetterUrl}
+              className="inline-flex h-11 items-center gap-2 border border-border px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy transition-colors hover:border-gold hover:text-gold"
+            >
+              <FileText className="h-4 w-4" />
+              Download cover letter
+            </a>
+          </div>
+          <p className="mt-3 max-w-2xl text-xs leading-relaxed text-muted-foreground">
+            {forClient
+              ? "The cover letter applies to the Probate Registry to lodge the signed Will for safe custody. It is filled in from the Will, ready for your client to sign."
+              : "The cover letter applies to the Probate Registry to lodge your signed Will for safe custody. It is filled in from your Will, ready for you to sign."}
+          </p>
 
           {/*
             Any grace after a lapsed subscription, while it runs — none by

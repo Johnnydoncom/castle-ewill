@@ -160,6 +160,7 @@ export default async function WillDetailPage({
             willId={will.id}
             journey={will.journey}
             pdfUrl={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${will.id}/pdf`}
+            lodgingLetterUrl={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${will.id}/lodging-letter`}
             forClient={forClient}
             /*
               These have their own panel further down this page, so the card

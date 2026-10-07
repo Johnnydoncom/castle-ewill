@@ -411,13 +411,23 @@ function WillCopies({
                     Download
                   </span>
                 ) : (
-                  <a
-                    href={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${will.id}/pdf`}
-                    className="inline-flex items-center gap-1.5 text-xs text-navy underline underline-offset-4 transition-colors hover:text-gold"
-                  >
-                    <Download className="h-3.5 w-3.5" />
-                    Download
-                  </a>
+                  <>
+                    <a
+                      href={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${will.id}/pdf`}
+                      className="inline-flex items-center gap-1.5 text-xs text-navy underline underline-offset-4 transition-colors hover:text-gold"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Download
+                    </a>
+                    {/* The Probate Registry cover letter — same gate as the Will. */}
+                    <a
+                      href={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${will.id}/lodging-letter`}
+                      className="inline-flex items-center gap-1.5 text-xs text-navy underline underline-offset-4 transition-colors hover:text-gold"
+                    >
+                      <Download className="h-3.5 w-3.5" />
+                      Cover letter
+                    </a>
+                  </>
                 )}
               </div>
             </li>

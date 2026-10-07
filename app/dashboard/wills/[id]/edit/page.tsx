@@ -215,6 +215,7 @@ export default async function WillEditorPage({
               willId={will.id}
               journey={will.journey}
               pdfUrl={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${will.id}/pdf`}
+              lodgingLetterUrl={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${will.id}/lodging-letter`}
               forClient={forClient}
             />
           </div>

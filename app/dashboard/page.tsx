@@ -172,13 +172,23 @@ export default async function DashboardPage({
                   possible outcome was a 402.
                 */}
                 {activeWill.journey?.can_print && (
-                  <Link
-                    href={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${activeWill.id}/pdf`}
-                    className="inline-flex items-center gap-2 border border-border px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy transition-colors hover:border-gold hover:text-gold"
-                  >
-                    <Download className="h-4 w-4" />
-                    PDF
-                  </Link>
+                  <>
+                    <Link
+                      href={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${activeWill.id}/pdf`}
+                      className="inline-flex items-center gap-2 border border-border px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy transition-colors hover:border-gold hover:text-gold"
+                    >
+                      <Download className="h-4 w-4" />
+                      PDF
+                    </Link>
+                    {/* The Probate Registry cover letter — same gate as the Will. */}
+                    <Link
+                      href={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${activeWill.id}/lodging-letter`}
+                      className="inline-flex items-center gap-2 border border-border px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy transition-colors hover:border-gold hover:text-gold"
+                    >
+                      <Download className="h-4 w-4" />
+                      Cover letter
+                    </Link>
+                  </>
                 )}
               </div>
             </>
