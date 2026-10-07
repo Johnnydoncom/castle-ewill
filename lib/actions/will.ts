@@ -187,6 +187,12 @@ export type WillJourney = {
   can_request_review: boolean;
   can_skip_review: boolean;
   can_print: boolean;
+  /**
+   * Whether the Probate Registry cover letter is offered beside the Will's
+   * download — regular clients only, never a lawyer. Absent from an older API,
+   * which means no.
+   */
+  offers_lodging_letter?: boolean;
   print_blocked_by: PrintBlocker | null;
   /**
    * When downloading stops without a renewal — set only while a lapsed

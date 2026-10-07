@@ -180,14 +180,16 @@ export default async function DashboardPage({
                       <Download className="h-4 w-4" />
                       PDF
                     </Link>
-                    {/* The Probate Registry cover letter — same gate as the Will. */}
-                    <Link
-                      href={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${activeWill.id}/lodging-letter`}
-                      className="inline-flex items-center gap-2 border border-border px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy transition-colors hover:border-gold hover:text-gold"
-                    >
-                      <Download className="h-4 w-4" />
-                      Cover letter
-                    </Link>
+                    {/* The Probate Registry cover letter — regular clients only. */}
+                    {activeWill.journey.offers_lodging_letter === true && (
+                      <Link
+                        href={`${process.env.NEXT_PUBLIC_API_URL ?? ""}/wills/${activeWill.id}/lodging-letter`}
+                        className="inline-flex items-center gap-2 border border-border px-6 py-3.5 text-[12px] font-semibold uppercase tracking-[0.2em] text-navy transition-colors hover:border-gold hover:text-gold"
+                      >
+                        <Download className="h-4 w-4" />
+                        Cover letter
+                      </Link>
+                    )}
                   </>
                 )}
               </div>

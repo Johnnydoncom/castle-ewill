@@ -468,21 +468,25 @@ export function JourneyActions({
             {/*
               The letter to the Probate Registry that goes with the original
               when it is lodged for safe custody. Behind the same gate as the
-              Will, so it is offered exactly when the Will is.
+              Will, and offered to regular clients only — never a lawyer.
             */}
-            <a
-              href={lodgingLetterUrl}
-              className="inline-flex h-11 items-center gap-2 border border-border px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy transition-colors hover:border-gold hover:text-gold"
-            >
-              <FileText className="h-4 w-4" />
-              Download cover letter
-            </a>
+            {journey.offers_lodging_letter === true && (
+              <a
+                href={lodgingLetterUrl}
+                className="inline-flex h-11 items-center gap-2 border border-border px-6 text-[11px] font-semibold uppercase tracking-[0.18em] text-navy transition-colors hover:border-gold hover:text-gold"
+              >
+                <FileText className="h-4 w-4" />
+                Download cover letter
+              </a>
+            )}
           </div>
-          <p className="mt-3 max-w-2xl text-xs leading-relaxed text-muted-foreground">
-            {forClient
-              ? "The cover letter applies to the Probate Registry to lodge the signed Will for safe custody. It is filled in from the Will, ready for your client to sign."
-              : "The cover letter applies to the Probate Registry to lodge your signed Will for safe custody. It is filled in from your Will, ready for you to sign."}
-          </p>
+          {journey.offers_lodging_letter === true && (
+            <p className="mt-3 max-w-2xl text-xs leading-relaxed text-muted-foreground">
+              The cover letter applies to the Probate Registry to lodge your
+              signed Will for safe custody. It is filled in from your Will, ready
+              for you to sign.
+            </p>
+          )}
 
           {/*
             Any grace after a lapsed subscription, while it runs — none by
