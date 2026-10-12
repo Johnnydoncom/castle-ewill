@@ -1,5 +1,5 @@
 import { apiMutation } from "@/lib/api/browser";
-import { errorState, type FormState } from "./state";
+import { errorState, redirectState, type FormState } from "./state";
 
 /**
  * Editing one's own account.
@@ -75,6 +75,53 @@ export async function changePasswordAction(
       fieldErrors: mapFieldErrors(result.fieldErrors),
     }),
   });
+}
+
+/**
+ * Withdrawing consent and closing the account (NDPA 2023).
+ *
+ * The backend does all of it — the password check, refusing staff, soft-
+ * deleting the account with its Wills and documents, ending the session. The
+ * acknowledgement box is checked here only for a faster message; the password
+ * is what the server holds the caller to.
+ *
+ * On success the session no longer exists, so the browser is sent somewhere
+ * public with a full document load: a client-side push would replay pages
+ * cached while still signed in (see `FormState.hardRedirect`).
+ */
+export async function closeAccountAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  if (formData.get("understood") !== "on") {
+    return errorState("Please confirm you understand what closing does.", {
+      understood: ["Tick the box to confirm"],
+    });
+  }
+
+  const result = await apiMutation("/me", {
+    method: "DELETE",
+    body: {
+      current_password: String(formData.get("currentPassword") ?? ""),
+    },
+    onError: (failure) => ({
+      status: "error",
+      message: failure.message,
+      fieldErrors: mapFieldErrors(failure.fieldErrors),
+    }),
+  });
+
+  if (result.status !== "success") return result;
+
+  const erasureDueAt = result.data?.erasure_due_at;
+
+  return redirectState(
+    erasureDueAt
+      ? `/account-closed?erase=${encodeURIComponent(erasureDueAt)}`
+      : "/account-closed",
+    result.message,
+    { hard: true },
+  );
 }
 
 /** Snake_case from the API, camelCase on the form. */

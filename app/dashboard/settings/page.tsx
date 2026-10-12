@@ -10,6 +10,7 @@ import { PasswordChangeForm } from "@/components/settings/PasswordChangeForm";
 import { TwoFactorSettings } from "@/components/settings/TwoFactorSettings";
 import { PhoneVerification } from "@/components/settings/PhoneVerification";
 import { LifeEventForm } from "@/components/settings/LifeEventForm";
+import { CloseAccountForm } from "@/components/settings/CloseAccountForm";
 
 export const metadata: Metadata = {
   title: "Settings",
@@ -154,6 +155,24 @@ export default async function SettingsPage() {
             minutes.
           </li>
         </ul>
+      </section>
+
+      {/*
+        * Last on the page, below everything a client comes here to do, and
+        * folded away until asked for. Withdrawing consent is a right (NDPA
+        * 2023), so it is offered plainly rather than hidden behind a request
+        * to support — but it is not something to stumble into.
+        */}
+      <section className="border border-border bg-background p-6 sm:p-8">
+        <h2 className="font-serif text-xl text-navy">Close your account</h2>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Withdraw your consent to our processing your personal data, and close
+          your account.
+        </p>
+
+        <div className="mt-8 border-t border-border pt-8">
+          <CloseAccountForm forClients={Boolean(profile?.is_verified_lawyer)} />
+        </div>
       </section>
     </div>
   );

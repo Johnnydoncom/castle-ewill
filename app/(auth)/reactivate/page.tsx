@@ -3,6 +3,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 
 import { ReactivationCheckout } from "@/components/account/ReactivationCheckout";
+import { CloseAccountForm } from "@/components/settings/CloseAccountForm";
 import { AuthShell } from "@/components/auth/AuthShell";
 import { requireProfile } from "@/lib/actions/guards";
 import { apiData } from "@/lib/api/client";
@@ -88,6 +89,20 @@ export default async function ReactivatePage() {
           we will reactivate your account for you.
         </p>
       )}
+
+      {/*
+        * The other way out. Withdrawing consent is a right, and a lapse does
+        * not make it conditional on paying the fee first — the API lets a
+        * deactivated account reach `DELETE /me` for exactly this.
+        */}
+      <div className="mt-12 border-t border-border pt-8">
+        <h2 className="font-serif text-lg text-navy">Or close your account</h2>
+        <p className="mt-2 mb-6 text-sm text-muted-foreground">
+          If you would rather not come back, you can withdraw your consent and
+          close your account instead.
+        </p>
+        <CloseAccountForm forClients={Boolean(profile.is_verified_lawyer)} />
+      </div>
     </AuthShell>
   );
 }
