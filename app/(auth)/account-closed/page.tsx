@@ -66,6 +66,11 @@ export default async function AccountClosedPage({
           permanently erased.
         </p>
         <p>
+          Changed your mind? Contact us
+          {erasureDate ? ` before ${erasureDate}` : " within six months"} and
+          we will send you a link to reopen your account.
+        </p>
+        <p>
           A paper Will you have already signed and had witnessed is not
           affected by closing your account.
         </p>

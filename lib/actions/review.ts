@@ -155,6 +155,26 @@ export async function setClientStatusAction(
 }
 
 /**
+ * Emails a closed account the link that reopens it.
+ *
+ * Staff never reopen an account themselves — the backend only sends the link,
+ * and the client's own click from that inbox does the reopening. See
+ * `AccountRestoration` in the API.
+ */
+export async function sendRestoreLinkAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const userId = String(formData.get("userId") ?? "");
+
+  if (!userId) {
+    return errorState("That request was not valid.");
+  }
+
+  return apiMutation(`/admin/closed-accounts/${userId}/restore-link`);
+}
+
+/**
  * Confirms or refuses a lawyer's Supreme Court enrolment number.
  *
  * This is the decision that unlocks the ₦10,000 professional rate, so it is

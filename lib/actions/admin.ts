@@ -400,6 +400,42 @@ export async function listClients(options: {
   });
 }
 
+/**
+ * An account its holder closed (NDPA consent withdrawal), still held and so
+ * still able to come back. Erased accounts are never listed.
+ */
+export type ClosedAccountRow = {
+  id: string;
+  name: string | null;
+  email: string;
+  role: "user" | "lawyer";
+  /** What reopening would bring back. */
+  wills_count: number;
+  documents_count: number;
+  closed_at: string | null;
+  erasure_due_at: string | null;
+  /** Set while a link the client has not used yet is still valid. */
+  restore_link_expires_at: string | null;
+};
+
+export async function listClosedAccounts(options: {
+  search?: string;
+  page?: number;
+  perPage?: number;
+}): Promise<Paginated<ClosedAccountRow>> {
+  return apiData<Paginated<ClosedAccountRow>>(
+    "/admin/closed-accounts",
+    emptyPage<ClosedAccountRow>(),
+    {
+      query: {
+        search: options.search,
+        page: options.page,
+        per_page: options.perPage,
+      },
+    },
+  );
+}
+
 /* -------------------------------------------------------------------------- */
 /*  Payments                                                                   */
 /* -------------------------------------------------------------------------- */

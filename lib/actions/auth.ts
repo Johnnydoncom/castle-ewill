@@ -121,6 +121,26 @@ export async function confirmEmailAction(
   return { status: "success", message, data: { outcome } };
 }
 
+/**
+ * Reopens a closed account from the link an administrator sent it.
+ *
+ * Reached only by pressing the button on `/restore-account`, never by loading
+ * the page: mail scanners open every link in an email, and a single-use token
+ * spent by one would leave the client a link that "never worked".
+ */
+export async function restoreAccountAction(
+  _previous: FormState,
+  formData: FormData,
+): Promise<FormState> {
+  const token = String(formData.get("token") ?? "");
+
+  if (!token) {
+    return errorState("That link is missing its token.");
+  }
+
+  return apiMutation("/auth/account/restore", { body: { token } });
+}
+
 export async function resendVerificationAction(
   _previous: FormState,
   formData: FormData,

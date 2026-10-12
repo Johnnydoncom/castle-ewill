@@ -48,7 +48,8 @@ export function CloseAccountForm({ forClients = false }: { forClients?: boolean 
         <ul className="mt-3 list-disc space-y-2 pl-5 text-sm leading-relaxed text-navy/80">
           <li>
             You are signed out at once, and you will not be able to sign in
-            again.
+            again unless you ask us to reopen your account before its data is
+            erased.
           </li>
           <li>
             {forClients
@@ -95,8 +96,8 @@ export function CloseAccountForm({ forClients = false }: { forClients?: boolean 
             className="mt-0.5 h-4 w-4 shrink-0 rounded border-border text-navy focus:ring-gold"
           />
           <span>
-            I understand that closing my account cannot be undone, and that my
-            data will be permanently erased after six months.
+            I understand that my account closes now, and that my data will be
+            permanently erased after six months.
           </span>
         </label>
         {state.fieldErrors?.understood && (

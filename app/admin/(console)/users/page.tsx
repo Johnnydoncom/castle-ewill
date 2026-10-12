@@ -78,6 +78,13 @@ export default async function AdminClientsPage({
         >
           {lawyersOnly ? "All clients" : "Lawyers awaiting checks"}
         </Link>
+        {/* Clients who closed their account, and the way to reopen one. */}
+        <Link
+          href="/admin/users/closed"
+          className="self-center border border-border px-5 py-2 text-xs font-medium uppercase tracking-[0.18em] text-navy transition-colors hover:border-gold hover:text-gold"
+        >
+          Closed accounts
+        </Link>
       </form>
 
       <Table
