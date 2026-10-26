@@ -134,6 +134,9 @@
   --sidebar-accent-foreground: oklch(0.22 0.06 260);
   --sidebar-border: oklch(0.92 0.01 240);
   --sidebar-ring: oklch(0.52 0.09 218);
+
+  --gradient-brand: linear-gradient(135deg, oklch(0.22 0.06 260), oklch(0.52 0.09 218));
+  --gradient-glow: radial-gradient(circle at center, oklch(0.52 0.09 218 / 0.5), transparent 70%);
 }
 
 .dark {
@@ -332,7 +335,7 @@
  * design opinion with it, and this site already has one — an editorial serif on
  * navy. Ten selectors is less than the configuration it would take to override.
  */
-.prose-article > * + * {
+.prose-article>*+* {
   margin-top: 1.25em;
 }
 
@@ -352,9 +355,17 @@
   margin-top: 2em;
 }
 
-.prose-article h2 { font-size: 1.75rem; }
-.prose-article h3 { font-size: 1.375rem; }
-.prose-article h4 { font-size: 1.125rem; }
+.prose-article h2 {
+  font-size: 1.75rem;
+}
+
+.prose-article h3 {
+  font-size: 1.375rem;
+}
+
+.prose-article h4 {
+  font-size: 1.125rem;
+}
 
 .prose-article ul,
 .prose-article ol {
@@ -365,9 +376,17 @@
   color: color-mix(in oklab, var(--navy) 90%, transparent);
 }
 
-.prose-article ul { list-style: disc; }
-.prose-article ol { list-style: decimal; }
-.prose-article li + li { margin-top: 0.375em; }
+.prose-article ul {
+  list-style: disc;
+}
+
+.prose-article ol {
+  list-style: decimal;
+}
+
+.prose-article li+li {
+  margin-top: 0.375em;
+}
 
 .prose-article a {
   color: var(--navy);
