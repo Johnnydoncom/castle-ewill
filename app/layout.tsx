@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import { Fraunces, Inter } from "next/font/google";
 
 import "./globals.css";
-import { TawkChat } from "@/components/site/TawkChat";
 import { Toaster } from "@/components/ui/sonner";
 import { COMPANY } from "@/lib/company";
+import Script from "next/script";
 
 /**
  * Fonts are self-hosted through `next/font` rather than a `<link>` to Google.
@@ -109,7 +109,19 @@ export default function RootLayout({
       <body>
         {children}
         <Toaster />
-        <TawkChat />
+        <Script id="tawk-to" strategy="lazyOnload">
+          {`
+            var Tawk_API=Tawk_API||{}, Tawk_LoadStart=new Date();
+            (function(){
+            var s1=document.createElement("script"),s0=document.getElementsByTagName("script")[0];
+            s1.async=true;
+            s1.src='https://embed.tawk.to/6ac26c90cf3a4534d031f55f/1k43ng5eh';
+            s1.charset='UTF-8';
+            s1.setAttribute('crossorigin','*');
+            s0.parentNode.insertBefore(s1,s0);
+            })();
+          `}
+        </Script>
       </body>
     </html>
   );
