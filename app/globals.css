@@ -42,8 +42,13 @@
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
 
-  --color-primary-glow: hsl(184 95% 65%);
-
+  /*
+   * The halo under the floating contact button. Teal and gold taken from the
+   * palette rather than the stock cyan this arrived as, so the pulse reads as
+   * the brand glowing and not a third accent colour.
+   */
+  --color-primary-glow: var(--primary-glow);
+  --color-gold-glow: var(--gold-glow);
 
   --color-navy: var(--navy);
   --color-navy-foreground: var(--navy-foreground);
@@ -76,6 +81,26 @@
   --gradient-hero: radial-gradient(1200px 600px at 80% -10%, color-mix(in oklab, var(--primary) 18%, transparent), transparent 60%), radial-gradient(900px 500px at 0% 0%, color-mix(in oklab, var(--navy) 12%, transparent), transparent 55%);
   --gradient-navy: linear-gradient(135deg, var(--navy) 0%, oklch(0.22 0.06 260) 100%);
   --gradient-gold: linear-gradient(135deg, oklch(0.78 0.13 85) 0%, var(--gold) 100%);
+  --gradient-teal: linear-gradient(140deg, oklch(0.6 0.1 208) 0%, var(--primary) 55%, oklch(0.42 0.08 228) 100%);
+
+  /*
+   * The floating contact button's halo. `animate-pulse-ring` was in the markup
+   * before any keyframes existed, so the halo sat as a flat opaque disc over
+   * the button — which is the whole of why it looked like a plain cyan circle.
+   */
+  --animate-pulse-ring: pulse-ring 2.4s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+}
+
+@keyframes pulse-ring {
+  0% {
+    opacity: 0.5;
+    transform: scale(0.92);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(1.8);
+  }
 }
 
 :root {
@@ -103,6 +128,14 @@
   /* Gold — antique gold from logo */
   --gold: oklch(0.72 0.11 85);
   --gold-foreground: oklch(0.22 0.06 260);
+
+  /* Lifted teal and gold, used only as a halo — never as a surface colour. */
+  --primary-glow: oklch(0.72 0.1 205);
+  --gold-glow: oklch(0.78 0.13 85);
+
+  /* Shared easing for the floating contact button. Declared here rather than
+     in @theme because `transition` is not a Tailwind token namespace. */
+  --transition-smooth: all 400ms cubic-bezier(0.22, 1, 0.36, 1);
 
   --secondary: oklch(0.96 0.008 240);
   --secondary-foreground: oklch(0.22 0.06 260);
@@ -158,6 +191,8 @@
   --navy-foreground: oklch(0.98 0.005 240);
   --gold: oklch(0.78 0.13 85);
   --gold-foreground: oklch(0.14 0.03 260);
+  --primary-glow: oklch(0.78 0.1 205);
+  --gold-glow: oklch(0.82 0.13 85);
   --secondary: oklch(0.24 0.04 260);
   --secondary-foreground: oklch(0.98 0.005 240);
   --muted: oklch(0.24 0.04 260);
@@ -331,12 +366,33 @@
     background-image: var(--gradient-brand);
   }
 
+  .bg-gradient-teal {
+    background-image: var(--gradient-teal);
+  }
+
   .bg-gradient-text {
     background-image: var(--gradient-text);
   }
 
+  /*
+   * Navy depth with a teal bloom, so the floating button lifts off a white
+   * page and still separates from the navy sections. The cyan this replaced
+   * belonged to no part of the palette.
+   */
   .shadow-brand {
-    box-shadow: 0 20px 60px -20px hsl(187 90% 42% / 0.45);
+    box-shadow:
+      0 18px 40px -16px color-mix(in oklab, var(--navy) 55%, transparent),
+      0 8px 24px -10px color-mix(in oklab, var(--primary) 45%, transparent);
+  }
+
+  .shadow-brand-strong {
+    box-shadow:
+      0 22px 50px -14px color-mix(in oklab, var(--navy) 65%, transparent),
+      0 10px 30px -8px color-mix(in oklab, var(--primary) 55%, transparent);
+  }
+
+  .transition-smooth {
+    transition: var(--transition-smooth);
   }
 }
 
