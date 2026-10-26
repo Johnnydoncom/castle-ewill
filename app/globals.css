@@ -42,6 +42,9 @@
   --color-ring: var(--ring);
   --color-ring-offset-background: var(--background);
 
+  --color-primary-glow: hsl(184 95% 65%);
+
+
   --color-navy: var(--navy);
   --color-navy-foreground: var(--navy-foreground);
   --color-gold: var(--gold);
@@ -136,7 +139,7 @@
   --sidebar-ring: oklch(0.52 0.09 218);
 
   --gradient-brand: linear-gradient(135deg, oklch(0.22 0.06 260), oklch(0.52 0.09 218));
-  --gradient-glow: radial-gradient(circle at center, oklch(0.52 0.09 218 / 0.5), transparent 70%);
+  --gradient-glow: radial-gradient(circle at center, oklch(0.72 0.11 85 / 0.5), transparent 70%);
   --gradient-text: linear-gradient(135deg, oklch(0.52 0.09 218), oklch(0.72 0.11 85));
 }
 
