@@ -1,5 +1,6 @@
 import { SiteHeader } from "@/components/site/SiteHeader";
 import { SiteFooter } from "@/components/site/SiteFooter";
+import { FloatingActions } from "@/components/site/FloatingActions";
 
 export default function RootLayout({
   children,
@@ -15,6 +16,8 @@ export default function RootLayout({
         <SiteHeader />
         <main id="main">
           {children}
+
+          <FloatingActions />
         </main>
         <SiteFooter />
       </div>

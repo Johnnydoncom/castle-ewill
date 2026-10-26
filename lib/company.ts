@@ -17,6 +17,7 @@ export const COMPANY = {
   ],
   email: "info@castlewilltrust.com",
   phone: "08111115547",
+  whatsapp: "2348111115547",
   phoneHref: "tel:+2348111115547",
   business: "Online drafting of Wills and Trusts",
 } as const;
